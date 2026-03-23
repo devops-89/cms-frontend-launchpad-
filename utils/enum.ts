@@ -33,3 +33,26 @@ export enum COLORS {
   ERROR = "#ef4444",
   BORDER = "rgba(0, 0, 0, 0.1)",
 }
+
+export enum UserRole {
+  ADMIN = "admin",
+  JUDGE = "judge",
+  PARTICIPANT = "participant",
+  MODERATOR = "moderator",
+  ALL = "All",
+}
+
+export enum UserStatus {
+  ACTIVE = "Active",
+  INACTIVE = "Inactive",
+  SUSPENDED = "Suspended",
+  PENDING = "Pending",
+  BANNED = "Banned",
+  REJECTED = "Rejected",
+  ALL = "All",
+  UPCOMING = "Upcoming",
+  COMPLETED = "Completed",
+  OFFLINE = "Offline",
+  PUBLISHED = "Published",
+  DRAFT = "Draft",
+}

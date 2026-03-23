@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 };
 
 import { ThemeContextProvider } from "@/context/ThemeContext";
+import { FormProvider } from "@/context/FormContext";
+import LayoutWrapper from "@/components/widgets/Layout-Wrapper";
 
 export default function RootLayout({
   children,
@@ -17,7 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={science_gothic.variable}>
       <body>
-        <ThemeContextProvider>{children}</ThemeContextProvider>
+        <ThemeContextProvider>
+          <FormProvider>
+            <LayoutWrapper>{children}</LayoutWrapper>
+          </FormProvider>
+        </ThemeContextProvider>
       </body>
     </html>
   );

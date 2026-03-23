@@ -10,10 +10,10 @@ import React, {
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
-import { LIGHT_COLORS } from "@/utils/enum";
+import { LIGHT_COLORS, DARK_COLORS } from "@/utils/enum";
 
 interface ThemeContextType {
-  mode: "light";
+  mode: "light" | "dark";
   colors: typeof LIGHT_COLORS;
 }
 
