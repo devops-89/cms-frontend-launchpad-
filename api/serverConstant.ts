@@ -1,4 +1,4 @@
-const baseUrl = "http://103.150.136.179/api/";
+const baseUrl = "https://api.competition.topyounginnovators.org/api/";
 
 export const SERVER_ENDPOINTS = {
   AUTH_BASEURL: baseUrl + "auth/",
