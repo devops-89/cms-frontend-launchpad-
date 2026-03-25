@@ -1,0 +1,168 @@
+{
+  "form_identity_spec": {
+    "name": "string (Internal unique identifier/slug)",
+    "title": "string (The public text shown in the form header)",
+    "timestamp": "ISO-8601 string (Auto-generated save time)"
+  },
+  "field_types": [
+    {
+      "type": "textfield",
+      "label": "Text Input",
+      "category": "Basic",
+      "attributes": {
+        "required": "boolean (default: false)",
+        "variant": "string ['outlined', 'filled', 'standard']",
+        "placeholder": "string (hint text)",
+        "label": "string (field title)"
+      }
+    },
+    {
+      "type": "numberField",
+      "label": "Number Input",
+      "category": "Basic",
+      "attributes": {
+        "required": "boolean",
+        "variant": "string",
+        "placeholder": "string",
+        "label": "string"
+      }
+    },
+    {
+      "type": "telInput",
+      "label": "Phone Connection",
+      "category": "Input",
+      "attributes": {
+        "required": "boolean",
+        "variant": "string",
+        "label": "string",
+        "config": {
+          "defaultCountry": "string (ISO code, e.g., 'AE')",
+          "onlyCountries": "string[] (list of allowed ISO codes)"
+        }
+      }
+    },
+    {
+      "type": "datePicker",
+      "label": "Date Selection",
+      "category": "Input",
+      "attributes": {
+        "required": "boolean",
+        "variant": "string",
+        "label": "string",
+        "config": {
+          "disablePast": "boolean",
+          "disableFuture": "boolean"
+        }
+      }
+    },
+    {
+      "type": "autocomplete",
+      "label": "Smart Search",
+      "category": "Selection",
+      "attributes": {
+        "required": "boolean",
+        "label": "string",
+        "options": "string[] (list of searchable items)"
+      }
+    },
+    {
+      "type": "select",
+      "label": "Dropdown Menu",
+      "category": "Selection",
+      "attributes": {
+        "required": "boolean",
+        "variant": "string",
+        "label": "string",
+        "options": "string[] (list of dropdown values)"
+      }
+    },
+    {
+      "type": "radio",
+      "label": "Radio Group",
+      "category": "Selection",
+      "attributes": {
+        "required": "boolean",
+        "label": "string",
+        "options": "string[] (list of radio choices)"
+      }
+    },
+    {
+      "type": "checkbox",
+      "label": "Toggle Box",
+      "category": "Toggle",
+      "attributes": {
+        "required": "boolean",
+        "label": "string"
+      }
+    },
+    {
+      "type": "switch",
+      "label": "Switch Key",
+      "category": "Toggle",
+      "attributes": {
+        "label": "string"
+      }
+    },
+    {
+      "type": "slider",
+      "label": "Range Slider",
+      "category": "Visual",
+      "attributes": {
+        "label": "string",
+        "config": {
+          "min": "number",
+          "max": "number"
+        }
+      }
+    },
+    {
+      "type": "rating",
+      "label": "Visual Rating",
+      "category": "Visual",
+      "attributes": {
+        "label": "string",
+        "config": {
+          "max": "number (e.g., 5, 10)"
+        }
+      }
+    },
+    {
+      "type": "countrySelector",
+      "label": "Global Countries",
+      "category": "Input",
+      "attributes": {
+        "required": "boolean",
+        "variant": "string",
+        "label": "string"
+      }
+    },
+    {
+      "type": "button",
+      "label": "Primary Button",
+      "category": "Actions",
+      "attributes": {
+        "label": "string (button text)"
+      }
+    }
+  ],
+  "payload_example": {
+    "form_identity": {
+      "name": "registration_form_2025",
+      "title": "UAE Grand Event 2025",
+      "timestamp": "2026-03-24T08:21:44Z"
+    },
+    "fields": [
+      {
+        "id": "abc123456",
+        "type": "telInput",
+        "label": "Phone Number",
+        "required": true,
+        "variant": "outlined",
+        "config": {
+          "defaultCountry": "AE",
+          "onlyCountries": ["AE", "SA"]
+        }
+      }
+    ]
+  }
+}

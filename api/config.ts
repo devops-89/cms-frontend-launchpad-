@@ -39,4 +39,21 @@ userSecuredApi.interceptors.request.use(
   },
 );
 
-export { authSecuredApi, authPublicApi, userSecuredApi };
+const formSecuredApi = axios.create({
+  baseURL: SERVER_ENDPOINTS.FORM_BASEURL,
+});
+
+formSecuredApi.interceptors.request.use(
+  (config: InternalAxiosRequestConfig<any>) => {
+    let token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
+export { authSecuredApi, authPublicApi, userSecuredApi, formSecuredApi };

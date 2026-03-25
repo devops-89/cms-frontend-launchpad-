@@ -5,5 +5,5 @@ export const SERVER_ENDPOINTS = {
   USER_BASEURL: baseUrl + "user/",
   CONTEST_BASEURL: baseUrl + "contest/",
   ENTRY_BASEURL: baseUrl + "entry/",
-  FORM_BASEURL: baseUrl + "form/",
+  FORM_BASEURL: baseUrl + "form-builder/",
 };

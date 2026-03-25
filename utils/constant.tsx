@@ -11,6 +11,7 @@ import {
   AddBusinessRounded,
   Gavel,
   EmojiEvents,
+  BuildRounded,
 } from "@mui/icons-material";
 import { UserRole, UserStatus } from "./enum";
 import { CountryType } from "@/types/user";
@@ -146,8 +147,8 @@ export const SIDEBAR = [
         href: "/user-management/judges",
       },
       {
-        label: "Roles",
-        href: "/user-management/roles",
+        label: "Permission Management",
+        href: "/user-management/permissions",
         icon: PersonSharp,
       },
     ],
@@ -162,14 +163,14 @@ export const SIDEBAR = [
       },
       {
         label: "Form Builder",
-        icon: undefined,
+        icon: BuildRounded,
         href: "/form-builder",
       },
-      {
-        label: "Entries",
-        icon: undefined,
-        href: "/contest-management/entries",
-      },
+      // {
+      //   label: "Entries",
+      //   icon: undefined,
+      //   href: "/contest-management/entries",
+      // },
     ],
   },
   {},

@@ -1,3 +1,4 @@
+"use client";
 import { roboto } from "@/utils/fonts";
 import { Box, Breadcrumbs, Typography } from "@mui/material";
 import Link from "next/link";
@@ -8,6 +9,7 @@ interface BREADCRUMBS_PROPS {
   data: {
     title: string;
     href: string;
+    onClick?: () => void;
   }[];
 }
 
@@ -31,6 +33,11 @@ const Breadcrumb = ({ title, data }: BREADCRUMBS_PROPS) => {
             href={item.href}
             style={{ textDecoration: "none" }}
             key={item.title}
+            onClick={(e) => {
+              if (item.onClick) {
+                item.onClick();
+              }
+            }}
           >
             <Typography
               sx={{

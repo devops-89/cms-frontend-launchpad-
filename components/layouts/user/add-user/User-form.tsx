@@ -11,6 +11,7 @@ import {
   TextField,
 } from "@mui/material";
 import React, { useState } from "react";
+import { useSnackbar } from "@/context/SnackbarContext";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { MuiTelInput } from "mui-tel-input";
@@ -24,6 +25,7 @@ import { RegisterParticipantPayload } from "@/types/user";
 import { UserRole } from "@/utils/enum";
 
 const UserForm = () => {
+  const { showSnackbar } = useSnackbar();
   const [showPassword, setShowPassword] = useState(false);
   const {
     register,
@@ -63,7 +65,7 @@ const UserForm = () => {
           confirmPassword: values.confirmPassword,
         };
         await register(payload);
-        alert("User added successfully!");
+        showSnackbar("User added successfully!", "success");
         formik.resetForm();
       } catch (err) {
         console.error("Failed to add user:", err);
