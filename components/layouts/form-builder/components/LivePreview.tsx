@@ -81,6 +81,8 @@ const LivePreview: React.FC<LivePreviewProps> = ({
         return <TextField {...commonProps} />;
       case "numberField":
         return <TextField {...commonProps} type="number" />;
+      case "password":
+        return <TextField {...commonProps} type="password" />;
       case "telInput":
         return (
           <MuiTelInput

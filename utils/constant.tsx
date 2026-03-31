@@ -812,7 +812,7 @@ export const CONTEST_DATA = [
 ];
 
 export const CONTEST_TABLE_HEADER = [
-  "Id",
+  // "Id",
   "Contest Name",
   "Description",
   "Start Date",

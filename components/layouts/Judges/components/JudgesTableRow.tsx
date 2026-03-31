@@ -13,9 +13,10 @@ import {
   Select,
   FormControl,
 } from "@mui/material";
-import { Edit as EditIcon, MoreVert as MoreIcon } from "@mui/icons-material";
+import { Edit as EditIcon, MoreVert as MoreIcon, Assignment as AssignIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import { UserStatus } from "@/utils/enum";
+import AssignJudgesDialog from "./AssignJudgesDialog";
 
 interface JudgesTableRowProps {
   judge: any;
@@ -50,6 +51,7 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
   const router = useRouter();
   const [judge, setJudge] = useState(initialJudge);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -86,7 +88,27 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
 
       {/* Name / Judge Details */}
       <TableCell>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            cursor: "pointer",
+            width: "fit-content",
+            "&:hover": {
+              "& .MuiTypography-body2": {
+                color: colors.PRIMARY,
+                textDecoration: "underline",
+              },
+              "& .MuiAvatar-root": {
+                opacity: 0.8,
+                transform: "scale(1.05)",
+                transition: "all 0.2s ease",
+              },
+            },
+          }}
+          onClick={() => router.push(`/user-management/judges/${judge.id}`)}
+        >
           <Avatar
             src={judge.avatar}
             sx={{
@@ -109,6 +131,7 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                 fontWeight: 700,
                 color: colors.TEXT_PRIMARY,
                 lineHeight: 1.2,
+                transition: "color 0.2s ease",
               }}
             >
               {judge.name}
@@ -202,6 +225,16 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
             <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
               View Details
             </MenuItem>
+            <MenuItem 
+              onClick={() => {
+                handleCloseMenu();
+                setIsAssignDialogOpen(true);
+              }} 
+              sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
+            >
+              <AssignIcon fontSize="small" sx={{ color: colors.PRIMARY, fontSize: 16 }} />
+              Assign to Contest
+            </MenuItem>
             <MenuItem
               onClick={handleCloseMenu}
               sx={{ fontSize: "0.85rem", color: colors.ERROR }}
@@ -209,6 +242,12 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
               Delete Judge
             </MenuItem>
           </Menu>
+
+          <AssignJudgesDialog
+            open={isAssignDialogOpen}
+            onClose={() => setIsAssignDialogOpen(false)}
+            judges={[{ id: judge.id, name: judge.name }]}
+          />
         </Box>
       </TableCell>
     </TableRow>

@@ -17,9 +17,25 @@ export const FORM_CONTROLLERS = {
       throw error;
     }
   },
+  getTemplateById: async (id: string) => {
+    try {
+      let result = await formSecuredApi.get(`templates/${id}`);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
   deleteTemplate: async (id: string) => {
     try {
       let result = await formSecuredApi.delete(`templates/${id}`);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  editTemplate: async (id: string, data: any) => {
+    try {
+      let result = await formSecuredApi.put(`templates/${id}`, data);
       return result;
     } catch (error) {
       throw error;

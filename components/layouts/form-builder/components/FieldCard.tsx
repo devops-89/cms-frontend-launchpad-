@@ -90,7 +90,7 @@ const FieldCard: React.FC<FieldCardProps> = ({
           onClick={() => onRemove(field.id)}
           sx={{
             position: "absolute",
-            top: 12,
+            top: 2,
             right: 12,
             color: "error.main",
             bgcolor: alpha(theme.palette.error.main, 0.03),
@@ -106,11 +106,17 @@ const FieldCard: React.FC<FieldCardProps> = ({
               <Select
                 value={field.type}
                 label="Type"
-                onChange={(e) => onUpdate(field.id, { type: e.target.value as FieldType })}
+                onChange={(e) =>
+                  onUpdate(field.id, { type: e.target.value as FieldType })
+                }
                 sx={{ borderRadius: "10px", fontSize: "0.8rem" }}
               >
                 {fieldTypes.map((ft) => (
-                  <MenuItem key={ft.type} value={ft.type} sx={{ fontSize: "0.8rem" }}>
+                  <MenuItem
+                    key={ft.type}
+                    value={ft.type}
+                    sx={{ fontSize: "0.8rem" }}
+                  >
                     {ft.label}
                   </MenuItem>
                 ))}
@@ -137,12 +143,22 @@ const FieldCard: React.FC<FieldCardProps> = ({
               <Select
                 value={field.variant || "outlined"}
                 label="Variant"
-                onChange={(e) => onUpdate(field.id, { variant: e.target.value as FieldVariant })}
+                onChange={(e) =>
+                  onUpdate(field.id, {
+                    variant: e.target.value as FieldVariant,
+                  })
+                }
                 sx={{ borderRadius: "10px", fontSize: "0.8rem" }}
               >
-                <MenuItem value="outlined" sx={{ fontSize: "0.8rem" }}>Outlined</MenuItem>
-                <MenuItem value="filled" sx={{ fontSize: "0.8rem" }}>Filled</MenuItem>
-                <MenuItem value="standard" sx={{ fontSize: "0.8rem" }}>Standard</MenuItem>
+                <MenuItem value="outlined" sx={{ fontSize: "0.8rem" }}>
+                  Outlined
+                </MenuItem>
+                <MenuItem value="filled" sx={{ fontSize: "0.8rem" }}>
+                  Filled
+                </MenuItem>
+                <MenuItem value="standard" sx={{ fontSize: "0.8rem" }}>
+                  Standard
+                </MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -153,7 +169,9 @@ const FieldCard: React.FC<FieldCardProps> = ({
               label="Placeholder"
               placeholder="Hint..."
               value={field.placeholder || ""}
-              onChange={(e) => onUpdate(field.id, { placeholder: e.target.value })}
+              onChange={(e) =>
+                onUpdate(field.id, { placeholder: e.target.value })
+              }
               sx={{
                 "& .MuiOutlinedInput-root": { borderRadius: "10px" },
                 "& .MuiInputLabel-root": { fontSize: "0.8rem" },
@@ -186,7 +204,11 @@ const FieldCard: React.FC<FieldCardProps> = ({
                 >
                   Options List
                 </Typography>
-                <Stack direction="row" spacing={1} sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.8 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.8 }}
+                >
                   {(field.options || []).map((opt) => (
                     <Chip
                       key={opt}
@@ -213,16 +235,27 @@ const FieldCard: React.FC<FieldCardProps> = ({
                     placeholder="New option..."
                     value={newOptionText || ""}
                     onChange={(e) => setNewOptionText(field.id, e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && onAddOption(field.id)}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" && onAddOption(field.id)
+                    }
                     sx={{
-                      "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: "8px",
+                        bgcolor: "white",
+                      },
                       "& .MuiInputBase-input": { fontSize: "0.75rem", py: 0.8 },
                     }}
                   />
                   <Button
                     variant="contained"
                     onClick={() => onAddOption(field.id)}
-                    sx={{ borderRadius: "8px", minWidth: "36px", px: 0, height: "36px", boxShadow: "none" }}
+                    sx={{
+                      borderRadius: "8px",
+                      minWidth: "36px",
+                      px: 0,
+                      height: "36px",
+                      boxShadow: "none",
+                    }}
                   >
                     <AddIcon sx={{ fontSize: "1.1rem" }} />
                   </Button>
@@ -262,15 +295,23 @@ const FieldCard: React.FC<FieldCardProps> = ({
                     <Autocomplete
                       options={countries}
                       getOptionLabel={(option) => option.label}
-                      value={countries.find((c) => c.code === (field.config?.defaultCountry || "AE"))}
-                      onChange={(e, v) => onUpdateConfig(field.id, "defaultCountry", v?.code)}
+                      value={countries.find(
+                        (c) =>
+                          c.code === (field.config?.defaultCountry || "AE"),
+                      )}
+                      onChange={(e, v) =>
+                        onUpdateConfig(field.id, "defaultCountry", v?.code)
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}
                           size="small"
                           label="Default"
                           sx={{
-                            "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "8px",
+                              bgcolor: "white",
+                            },
                             "& .MuiInputLabel-root": { fontSize: "0.75rem" },
                           }}
                         />
@@ -281,9 +322,14 @@ const FieldCard: React.FC<FieldCardProps> = ({
                     <Autocomplete
                       multiple
                       options={countries.map((c) => c.code)}
-                      getOptionLabel={(option) => countries.find((c) => c.code === option)?.label || option}
+                      getOptionLabel={(option) =>
+                        countries.find((c) => c.code === option)?.label ||
+                        option
+                      }
                       value={field.config?.onlyCountries || []}
-                      onChange={(e, v) => onUpdateConfig(field.id, "onlyCountries", v)}
+                      onChange={(e, v) =>
+                        onUpdateConfig(field.id, "onlyCountries", v)
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -291,7 +337,10 @@ const FieldCard: React.FC<FieldCardProps> = ({
                           label="Allowed"
                           placeholder="Search..."
                           sx={{
-                            "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: "8px",
+                              bgcolor: "white",
+                            },
                             "& .MuiInputLabel-root": { fontSize: "0.75rem" },
                           }}
                         />
@@ -303,7 +352,12 @@ const FieldCard: React.FC<FieldCardProps> = ({
                             key={option}
                             label={option}
                             size="small"
-                            sx={{ borderRadius: "5px", fontWeight: 700, height: 20, fontSize: "0.6rem" }}
+                            sx={{
+                              borderRadius: "5px",
+                              fontWeight: 700,
+                              height: 20,
+                              fontSize: "0.6rem",
+                            }}
                           />
                         ))
                       }
@@ -346,20 +400,40 @@ const FieldCard: React.FC<FieldCardProps> = ({
                       <Switch
                         size="small"
                         checked={!!field.config?.disablePast}
-                        onChange={(e) => onUpdateConfig(field.id, "disablePast", e.target.checked)}
+                        onChange={(e) =>
+                          onUpdateConfig(
+                            field.id,
+                            "disablePast",
+                            e.target.checked,
+                          )
+                        }
                       />
                     }
-                    label={<Typography variant="caption" sx={{ fontWeight: 700 }}>Disable Past</Typography>}
+                    label={
+                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                        Disable Past
+                      </Typography>
+                    }
                   />
                   <FormControlLabel
                     control={
                       <Switch
                         size="small"
                         checked={!!field.config?.disableFuture}
-                        onChange={(e) => onUpdateConfig(field.id, "disableFuture", e.target.checked)}
+                        onChange={(e) =>
+                          onUpdateConfig(
+                            field.id,
+                            "disableFuture",
+                            e.target.checked,
+                          )
+                        }
                       />
                     }
-                    label={<Typography variant="caption" sx={{ fontWeight: 700 }}>Disable Future</Typography>}
+                    label={
+                      <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                        Disable Future
+                      </Typography>
+                    }
                   />
                 </Stack>
               </Box>
@@ -372,7 +446,9 @@ const FieldCard: React.FC<FieldCardProps> = ({
                 <Switch
                   size="small"
                   checked={field.required}
-                  onChange={(e) => onUpdate(field.id, { required: e.target.checked })}
+                  onChange={(e) =>
+                    onUpdate(field.id, { required: e.target.checked })
+                  }
                 />
               }
               label={

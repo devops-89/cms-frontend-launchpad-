@@ -25,6 +25,7 @@ interface UserTableRowProps {
   dense?: boolean;
   selected?: boolean;
   onSelect?: () => void;
+  visibleColumns: string[];
 }
 
 const getStatusStyles = (status: UserStatus) => {
@@ -48,6 +49,7 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
   dense,
   selected,
   onSelect,
+  visibleColumns,
 }) => {
   const router = useRouter();
   const [user, setUser] = useState(initialUser);
@@ -87,148 +89,196 @@ const UserTableRow: React.FC<UserTableRowProps> = ({
       </TableCell>
 
       {/* Name / User Details */}
-      <TableCell>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <Avatar
-            src={user.avatar}
+      {visibleColumns.includes("name") && (
+        <TableCell>
+          <Box
             sx={{
-              width: 36,
-              height: 36,
-              bgcolor: colors.PRIMARY,
-              fontSize: "0.8rem",
-              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              cursor: "pointer",
+              width: "fit-content",
+              "&:hover": {
+                "& .MuiTypography-body2": {
+                  color: colors.PRIMARY,
+                  textDecoration: "underline",
+                },
+                "& .MuiAvatar-root": {
+                  opacity: 0.8,
+                  transform: "scale(1.05)",
+                  transition: "all 0.2s ease",
+                },
+              },
             }}
+            onClick={() => router.push(`/user-management/users/${user.id}`)}
           >
-            {user.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")}
-          </Avatar>
-          <Box>
-            <Typography
-              variant="body2"
+            <Avatar
+              src={user.avatar}
               sx={{
-                fontWeight: 700,
-                color: colors.TEXT_PRIMARY,
-                lineHeight: 1.2,
+                width: 36,
+                height: 36,
+                bgcolor: colors.PRIMARY,
+                fontSize: "0.8rem",
+                fontWeight: 600,
               }}
             >
-              {user.name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY }}>
-              {user.email}
-            </Typography>
+              {user.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: colors.TEXT_PRIMARY,
+                  lineHeight: 1.2,
+                  transition: "color 0.2s ease",
+                }}
+              >
+                {user.name}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </TableCell>
+        </TableCell>
+      )}
+
+      {/* Email */}
+      {visibleColumns.includes("email") && (
+        <TableCell>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            {user.email}
+          </Typography>
+        </TableCell>
+      )}
+
+      {/* Id */}
+      {visibleColumns.includes("id") && (
+        <TableCell>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            #{user.id}
+          </Typography>
+        </TableCell>
+      )}
 
       {/* Phone Number */}
-      <TableCell>
-        <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
-          {user.phoneNumber || "—"}
-        </Typography>
-      </TableCell>
+      {visibleColumns.includes("phoneNumber") && (
+        <TableCell>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            {user.phoneNumber || "—"}
+          </Typography>
+        </TableCell>
+      )}
 
-      {/* Company */}
-      <TableCell>
-        <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
-          {user.grade || "—"}
-        </Typography>
-      </TableCell>
+      {/* Grade */}
+      {visibleColumns.includes("grade") && (
+        <TableCell>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            {user.grade || "—"}
+          </Typography>
+        </TableCell>
+      )}
 
-      {/* Role - Static */}
-      {/* <TableCell>
-        <Chip
-          label={user.role}
-          size="small"
-          sx={{
-            bgcolor: "rgba(0,0,0,0.05)",
-            color: colors.TEXT_PRIMARY,
-            fontWeight: 600,
-            borderRadius: "6px",
-            fontSize: "0.75rem",
-            height: 24,
-          }}
-        />
-      </TableCell> */}
+      {/* Joined At */}
+      {visibleColumns.includes("joinedAt") && (
+        <TableCell>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            {user.joinedAt || "—"}
+          </Typography>
+        </TableCell>
+      )}
+
+      {/* Last Login */}
+      {visibleColumns.includes("lastLogin") && (
+        <TableCell>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            {user.lastLogin || "—"}
+          </Typography>
+        </TableCell>
+      )}
 
       {/* Status Selector */}
-      <TableCell>
-        <FormControl variant="standard" fullWidth>
-          <Select
-            value={user.status}
-            onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
-            disableUnderline
-            sx={{
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              width: "fit-content",
-              "& .MuiSelect-select": {
-                py: 0.5,
-                px: 1,
-                borderRadius: "6px",
-                bgcolor: statusStyle.bgcolor,
-                color: statusStyle.color,
-              },
-            }}
-          >
-            {Object.values(UserStatus)
-              .filter((s) => s !== UserStatus.ALL)
-              .map((status) => (
-                <MenuItem
-                  key={status}
-                  value={status}
-                  sx={{ fontSize: "0.85rem" }}
-                >
-                  {status}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-      </TableCell>
+      {visibleColumns.includes("status") && (
+        <TableCell>
+          <FormControl variant="standard" fullWidth>
+            <Select
+              value={user.status}
+              onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
+              disableUnderline
+              sx={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                width: "fit-content",
+                "& .MuiSelect-select": {
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: "6px",
+                  bgcolor: statusStyle.bgcolor,
+                  color: statusStyle.color,
+                },
+              }}
+            >
+              {Object.values(UserStatus)
+                .filter((s) => s !== UserStatus.ALL)
+                .map((status) => (
+                  <MenuItem
+                    key={status}
+                    value={status}
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    {status}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+        </TableCell>
+      )}
 
       {/* Actions */}
-      <TableCell align="right">
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-          <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            sx={{ color: colors.TEXT_SECONDARY }}
-            onClick={handleOpenMenu}
-          >
-            <MoreIcon fontSize="small" />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleCloseMenu}
-            transformOrigin={{ horizontal: "right", vertical: "top" }}
-            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-            PaperProps={{
-              elevation: 0,
-              sx: {
-                minWidth: 120,
-                border: `1px solid ${colors.BORDER}`,
-                borderRadius: 2,
-                mt: 0.5,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-              },
-            }}
-          >
-            <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
-              View Details
-            </MenuItem>
-            <MenuItem
-              onClick={handleCloseMenu}
-              sx={{ fontSize: "0.85rem", color: colors.ERROR }}
+      {visibleColumns.includes("actions") && (
+        <TableCell align="right">
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              sx={{ color: colors.TEXT_SECONDARY }}
+              onClick={handleOpenMenu}
             >
-              Delete User
-            </MenuItem>
-          </Menu>
-        </Box>
-      </TableCell>
+              <MoreIcon fontSize="small" />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleCloseMenu}
+              transformOrigin={{ horizontal: "right", vertical: "top" }}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+              PaperProps={{
+                elevation: 0,
+                sx: {
+                  minWidth: 120,
+                  border: `1px solid ${colors.BORDER}`,
+                  borderRadius: 2,
+                  mt: 0.5,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                },
+              }}
+            >
+              <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
+                View Details
+              </MenuItem>
+              <MenuItem
+                onClick={handleCloseMenu}
+                sx={{ fontSize: "0.85rem", color: colors.ERROR }}
+              >
+                Delete User
+              </MenuItem>
+            </Menu>
+          </Box>
+        </TableCell>
+      )}
     </TableRow>
   );
 };

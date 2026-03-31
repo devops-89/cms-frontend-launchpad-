@@ -1,4 +1,5 @@
 import { UserRole, UserStatus } from "@/utils/enum";
+import { TextFieldVariants } from "@mui/material";
 
 export interface User {
   id: string;
@@ -46,4 +47,91 @@ export interface CountryType {
 
 export interface TABLE_HEADER_DATA_PROPS {
   label: string;
+}
+
+export interface AddContestPayload {
+  name: string;
+  description: string;
+  start_date: string;
+  end_date: string;
+  available_regions: string[];
+  user_level_template_id: string;
+  entry_level_template_id: string;
+}
+
+export interface CONTESTDETAILS {
+  available_regions: string;
+  description: string;
+  end_date: string;
+  entry_level_template: {
+    id: string;
+    createdAt: string;
+    isActive: boolean;
+    name: string;
+    schema: {
+      fields: {
+        id: string;
+        config?: any;
+        label: string;
+        required: boolean;
+        type: string;
+        variant: TextFieldVariants;
+        options?: string[] | readonly CountryType[];
+        placeholder?: string;
+        helperText?: string;
+        defaultCountry?: string;
+      }[];
+      form_identity: {
+        name: string;
+        timestamp: string;
+        title: string;
+      };
+    };
+  };
+  entry_level_template_id: string;
+  id: string;
+  name: string;
+  needs_moderation: number;
+  start_date: string;
+  status: UserStatus;
+  total_entries: number;
+  total_votes: number;
+  userLevelTemplate: {
+    id: string;
+    createdAt: string;
+    isActive: boolean;
+    name: string;
+    schema: {
+      fields: {
+        id: string;
+        config?: any;
+        label: string;
+        required: boolean;
+        type: string;
+        variant: TextFieldVariants;
+        options?: string[] | readonly CountryType[];
+        placeholder?: string;
+        helperText?: string;
+        defaultCountry?: string;
+      }[];
+      form_identity: {
+        name: string;
+        timestamp: string;
+        title: string;
+      };
+    };
+  };
+  user_level_template_id: string;
+  participants: {
+    id: string;
+    contest_id: string;
+    submission_id: string;
+    status: string;
+    joined_at: string;
+    submission: {
+      id: string;
+      data: Record<string, string>;
+      createdAt: string;
+    };
+  }[];
 }

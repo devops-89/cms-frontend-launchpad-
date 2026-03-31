@@ -1,19 +1,15 @@
 "use client";
 
-import React, { useCallback, useState } from "react";
-import { Box, Typography, Paper, Stack, Button, Alert } from "@mui/material";
-import {
-  Visibility as PreviewIcon,
-  Save as SaveIcon,
-} from "@mui/icons-material";
 import { useAppTheme } from "@/context/ThemeContext";
-import { FormField, FieldType } from "./types";
-import { createDefaultField, swapArrayItems } from "./utils";
-import FieldPalettePanel from "./FieldPalettePanel";
+import { Box } from "@mui/material";
+import React, { useCallback, useState } from "react";
 import FieldCanvas from "./FieldCanvas";
 import FieldConfigPanel from "./FieldConfigPanel";
+import FieldPalettePanel from "./FieldPalettePanel";
 import FormPreview from "./FormPreview";
 import FormBuilderHeader from "./components/FormBuilderHeader";
+import { FieldType, FormField } from "./types";
+import { createDefaultField, swapArrayItems } from "./utils";
 
 const EntryFormBuilderRoot: React.FC = () => {
   const { colors } = useAppTheme();

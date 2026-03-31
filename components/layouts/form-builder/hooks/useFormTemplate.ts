@@ -124,19 +124,35 @@ export const useFormTemplate = (initialData?: any) => {
 
     try {
       console.log("SENDING TO BACKEND:", payload);
-      const response = await FORM_CONTROLLERS.createForm(payload);
+      
+      let response;
+      if (initialData?.id) {
+        response = await FORM_CONTROLLERS.editTemplate(initialData.id, payload);
+      } else {
+        response = await FORM_CONTROLLERS.createForm(payload);
+      }
       
       if (response.status === 201 || response.status === 200) {
-        addForm({
-          id: response.data?.id || Math.random().toString(36).substr(2, 9),
-          name: formName,
-          title: formTitle,
-          fields,
-        });
-        router.push("/contest-management/contests/add-contest");
+        showSnackbar(
+          initialData?.id ? "Template updated successfully!" : "Template created successfully!",
+          "success"
+        );
+        
+        if (!initialData?.id) {
+          addForm({
+            id: response.data?.id || Math.random().toString(36).substr(2, 9),
+            name: formName,
+            title: formTitle,
+            fields,
+          });
+          router.push("/contest-management/contests/add-contest");
+        } else {
+          // If editing, maybe go back or refresh
+          router.back();
+        }
       }
     } catch (error: any) {
-      console.error("FAILED TO CREATE TEMPLATE:", error);
+      console.error("FAILED TO SAVE TEMPLATE:", error);
       showSnackbar(error.response?.data?.message || "Failed to save template. Please try again.", "error");
     } finally {
       setLoading(false);

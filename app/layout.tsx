@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 import { ThemeContextProvider } from "@/context/ThemeContext";
 import { FormProvider } from "@/context/FormContext";
 import { SnackbarProvider } from "@/context/SnackbarContext";
+import QueryProvider from "@/context/QueryProvider";
 import LayoutWrapper from "@/components/widgets/Layout-Wrapper";
 
 export default function RootLayout({
@@ -18,15 +19,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={science_gothic.variable} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={science_gothic.variable}
+      suppressHydrationWarning
+    >
       <body suppressHydrationWarning>
-        <ThemeContextProvider>
-          <FormProvider>
-            <SnackbarProvider>
-              <LayoutWrapper>{children}</LayoutWrapper>
-            </SnackbarProvider>
-          </FormProvider>
-        </ThemeContextProvider>
+        <QueryProvider>
+          <ThemeContextProvider>
+            <FormProvider>
+              <SnackbarProvider>
+                <LayoutWrapper>{children}</LayoutWrapper>
+              </SnackbarProvider>
+            </FormProvider>
+          </ThemeContextProvider>
+        </QueryProvider>
       </body>
     </html>
   );

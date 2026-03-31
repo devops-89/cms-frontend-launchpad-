@@ -239,28 +239,6 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                 zIndex: 10,
               }}
             >
-              {/* <Tooltip title="View JSON payload in Console (F12)">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<TerminalIcon />}
-                  onClick={() =>
-                    console.log("CURRENT SCHEMA:", {
-                      schema: {
-                        form_identity: {
-                          name: formName,
-                          title: formTitle,
-                          timestamp: new Date().toISOString(),
-                        },
-                        fields,
-                      },
-                    })
-                  }
-                  sx={{ borderRadius: "10px", borderColor: alpha(theme.palette.primary.main, 0.2), color: "text.secondary", textTransform: "none", fontWeight: 700 }}
-                >
-                  Export Payload
-                </Button>
-              </Tooltip> */}
               <Button
                 variant="contained"
                 startIcon={
@@ -277,7 +255,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                   height: 42,
                   borderRadius: "12px",
                   textTransform: "none",
-                  fontWeight: 800,
+                  fontWeight: 600,
                   fontSize: "0.85rem",
                   background: loading
                     ? alpha(theme.palette.primary.main, 0.4)

@@ -16,16 +16,20 @@ import {
   IconButton,
   FormControlLabel,
   Switch,
+  Menu,
+  MenuItem,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   MoreVert as MoreIcon,
+  Assignment as AssignIcon,
 } from "@mui/icons-material";
 import { STATUS_OPTIONS, JUDGES } from "@/utils/constant";
 import { useAppTheme } from "@/context/ThemeContext";
 import JudgesTableHeader from "./components/Judges-Table-header";
 import JudgesTableRow from "./components/JudgesTableRow";
 import { UserStatus } from "@/utils/enum";
+import AssignJudgesDialog from "./components/AssignJudgesDialog";
 
 const JudgesList: React.FC = () => {
   const { colors } = useAppTheme();
@@ -33,6 +37,8 @@ const JudgesList: React.FC = () => {
   const [statusTab, setStatusTab] = useState(UserStatus.ALL);
   const [isDense, setIsDense] = useState(false);
   const [selectedJudges, setSelectedJudges] = useState<string[]>([]);
+  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [isBulkAssignDialogOpen, setIsBulkAssignDialogOpen] = useState(false);
 
   const counts = useMemo(() => {
     const countsMap: Record<string, number> = { All: JUDGES.length };
@@ -66,6 +72,13 @@ const JudgesList: React.FC = () => {
     setSelectedJudges((prev) =>
       prev.includes(id) ? prev.filter((uid) => uid !== id) : [...prev, id],
     );
+  };
+
+  const getSelectedJudgesData = () => {
+    return JUDGES.filter((j) => selectedJudges.includes(j.id)).map((j) => ({
+      id: j.id,
+      name: j.name,
+    }));
   };
 
   return (
@@ -164,11 +177,57 @@ const JudgesList: React.FC = () => {
             }}
           />
 
-          <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
+          <IconButton 
+            size="small" 
+            sx={{ color: colors.TEXT_SECONDARY }}
+            onClick={(e) => setHeaderMenuAnchorEl(e.currentTarget)}
+          >
             <MoreIcon />
           </IconButton>
+          <Menu
+            anchorEl={headerMenuAnchorEl}
+            open={Boolean(headerMenuAnchorEl)}
+            onClose={() => setHeaderMenuAnchorEl(null)}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                mt: 1,
+                minWidth: 160,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                border: `1px solid ${colors.BORDER}`,
+              },
+            }}
+          >
+            <MenuItem
+              disabled={selectedJudges.length === 0}
+              onClick={() => {
+                setHeaderMenuAnchorEl(null);
+                setIsBulkAssignDialogOpen(true);
+              }}
+              sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
+            >
+              <AssignIcon fontSize="small" sx={{ color: colors.PRIMARY }} />
+              Assign selected to Contest
+            </MenuItem>
+            <MenuItem
+              disabled={selectedJudges.length === 0}
+              onClick={() => {
+                setHeaderMenuAnchorEl(null);
+                // Placeholder for other bulk actions
+              }}
+              sx={{ fontSize: "0.85rem", color: colors.ERROR }}
+            >
+              Delete selected
+            </MenuItem>
+          </Menu>
         </Box>
       </Box>
+
+      <AssignJudgesDialog
+        open={isBulkAssignDialogOpen}
+        onClose={() => setIsBulkAssignDialogOpen(false)}
+        judges={getSelectedJudgesData()}
+      />
 
       <Paper
         elevation={0}

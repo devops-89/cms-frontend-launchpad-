@@ -56,3 +56,25 @@ export enum UserStatus {
   PUBLISHED = "Published",
   DRAFT = "Draft",
 }
+
+export enum SEVERITY {
+  SUCCESS = "success",
+  ERROR = "error",
+}
+
+export enum FIELDS_TYPE {
+  TEXTFIELD = "textfield",
+  TEL_INPUT = "telInput",
+  NUMBER_FIELD = "numberField",
+  DATE_PICKER = "datePicker",
+  COUNTRY_SELECTOR = "countrySelector",
+  AUTOCOMPLETE = "autocomplete",
+  SELECT = "select",
+  RADIO = "radio",
+  CHECKBOX = "checkbox",
+  SWITCH = "switch",
+  SLIDER = "slider",
+  RATING = "rating",
+  BUTTON = "button",
+  PASSWORD = "password",
+}

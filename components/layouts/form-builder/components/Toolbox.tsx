@@ -22,6 +22,7 @@ import {
   Star as RatingIcon,
   Public as GlobalIcon,
   SmartButton as ButtonIcon,
+  Password as PasswordIcon,
 } from "@mui/icons-material";
 import { FieldType } from "@/context/FormContext";
 import { montserrat } from "@/utils/fonts";
@@ -34,6 +35,7 @@ export const fieldTypes: {
 }[] = [
   { type: "textfield", label: "Text Input", icon: <TextIcon />, category: "Basic" },
   { type: "numberField", label: "Number Input", icon: <NumbersIcon />, category: "Basic" },
+  { type: "password", label: "Password Input", icon: <PasswordIcon />, category: "Basic" },
   { type: "telInput", label: "Phone Connection", icon: <TelIcon />, category: "Input" },
   { type: "datePicker", label: "Date Selection", icon: <DateIcon />, category: "Input" },
   { type: "autocomplete", label: "Smart Search", icon: <RightIcon />, category: "Selection" },

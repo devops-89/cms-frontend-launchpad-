@@ -17,20 +17,22 @@ import {
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 import { Close as CloseIcon } from "@mui/icons-material";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { countries } from "@/utils/constant";
 import { roboto } from "@/utils/fonts";
 import { useFormik } from "formik";
 import { CONTEST_VALIDATION } from "@/utils/validation";
 import { contestControllers } from "@/api/contestControllers";
-import { AddContestPayload } from "@/types/user";
+import { AddContestPayload, CONTESTDETAILS } from "@/types/user";
 import moment from "moment";
 import { SEVERITY } from "@/utils/enum";
+import { useQuery } from "@tanstack/react-query";
 
-const AddContestForm = () => {
+const EditContestForm = () => {
+  const { id } = useParams() as { id: string };
   const { templates, isLoading: isLoadingTemplates } = useGetAllTemplates();
   const theme = useTheme();
   const router = useRouter();
@@ -44,6 +46,14 @@ const AddContestForm = () => {
     severity: "success",
     message: "",
   });
+
+  const { data: contestData, isLoading: isLoadingContest } = useQuery({
+    queryKey: ["contest", id],
+    queryFn: () => contestControllers.getContestDetails(id),
+    enabled: !!id,
+  });
+
+  const contest = contestData?.data as CONTESTDETAILS;
 
   const formik = useFormik<AddContestPayload>({
     initialValues: {
@@ -63,27 +73,60 @@ const AddContestForm = () => {
           start_date: moment(values.start_date).format("YYYY-MM-DD"),
           end_date: moment(values.end_date).format("YYYY-MM-DD"),
         };
-        await contestControllers.addContest(payload).then((res) => {
+        await contestControllers.updateContest(id, payload).then((res) => {
           setSnackbar({
             open: true,
             severity: SEVERITY.SUCCESS,
-            message: res.message,
+            message: res.message || "Contest updated successfully",
           });
-          formik.resetForm();
           router.push("/contest-management/contests");
         });
       } catch (error) {
-        console.error("Failed to add contest:", error);
+        console.error("Failed to update contest:", error);
         setSnackbar({
           open: true,
           severity: SEVERITY.ERROR,
-          message: "Failed to add contest",
+          message: "Failed to update contest",
         });
       } finally {
         setSubmitting(false);
       }
     },
   });
+
+  useEffect(() => {
+    if (contest) {
+      // Need to handle available_regions which might be string or array in detail API
+      let regions: string[] = [];
+      if (Array.isArray(contest.available_regions)) {
+        regions = contest.available_regions;
+      } else if (typeof contest.available_regions === "string") {
+        try {
+          regions = JSON.parse(contest.available_regions);
+        } catch (e) {
+          regions = contest.available_regions.split(",").map(r => r.trim());
+        }
+      }
+
+      formik.setValues({
+        name: contest.name || "",
+        description: contest.description || "",
+        start_date: contest.start_date || "",
+        end_date: contest.end_date || "",
+        available_regions: regions,
+        user_level_template_id: contest.user_level_template_id || "",
+        entry_level_template_id: contest.entry_level_template_id || "",
+      });
+    }
+  }, [contest]);
+
+  if (isLoadingContest || isLoadingTemplates) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   const availableCountries = countries.filter(
     (c) =>
@@ -96,7 +139,7 @@ const AddContestForm = () => {
     <Box>
       <Box mb={4}>
         <Breadcrumb
-          title="Add Contest"
+          title="Edit Contest"
           data={[
             { title: "Dashboard", href: "/dashboard" },
             {
@@ -104,8 +147,8 @@ const AddContestForm = () => {
               href: "/contest-management/contests",
             },
             {
-              title: "Add Contest",
-              href: "/contest-management/contests/add-contest",
+              title: "Edit Contest",
+              href: `/contest-management/contests/${id}/edit`,
             },
           ]}
         />
@@ -173,7 +216,6 @@ const AddContestForm = () => {
                   },
                 }}
                 format="YYYY/MM/DD"
-                disablePast
               />
             </LocalizationProvider>
           </Grid>
@@ -210,7 +252,7 @@ const AddContestForm = () => {
             <Autocomplete
               multiple
               options={availableCountries}
-              getOptionLabel={(option) => option.label}
+              getOptionLabel={(option) => option.label || ""}
               value={countries.filter((c) =>
                 formik.values.available_regions.includes(c.code),
               )}
@@ -377,14 +419,21 @@ const AddContestForm = () => {
           </Grid>
 
           <Grid size={12}>
-            <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
+            <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+              <Button
+                variant="outlined"
+                onClick={() => router.back()}
+                sx={{ textTransform: "none", minWidth: "120px" }}
+              >
+                Cancel
+              </Button>
               <Button
                 type="submit"
                 variant="contained"
                 disabled={formik.isSubmitting}
                 sx={{
                   textTransform: "none",
-                  fontWeight: 500,
+                  fontWeight: 600,
                   fontSize: "16px",
                   minWidth: "150px",
                 }}
@@ -392,7 +441,7 @@ const AddContestForm = () => {
                 {formik.isSubmitting ? (
                   <CircularProgress size={24} color="inherit" />
                 ) : (
-                  "Launch Contest"
+                  "Update Contest"
                 )}
               </Button>
             </Box>
@@ -420,4 +469,4 @@ const AddContestForm = () => {
   );
 };
 
-export default AddContestForm;
+export default EditContestForm;

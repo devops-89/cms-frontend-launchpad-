@@ -6,29 +6,19 @@ import {
   Typography,
   Button,
   Grid,
-  Card,
-  CardContent,
-  Stack,
-  Chip,
-  IconButton,
   alpha,
   useTheme,
   Skeleton,
-  Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon,
-  MoreVert as MoreIcon,
-  BuildRounded as BuildIcon,
-  CalendarToday as DateIcon,
-  Layers as LayersIcon,
-  ArrowForward as ArrowIcon,
-} from "@mui/icons-material";
+import { Add as AddIcon, BuildRounded as BuildIcon } from "@mui/icons-material";
 import { FORM_CONTROLLERS } from "@/api/formControllers";
-import { montserrat, roboto } from "@/utils/fonts";
-import moment from "moment";
+import { montserrat } from "@/utils/fonts";
+import FormBuilderCard from "./Form-Builder-Card";
 
 interface TemplateListProps {
   onEdit: (template: any) => void;
@@ -48,15 +38,15 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
     try {
       setLoading(true);
       const response = await FORM_CONTROLLERS.getAllTemplates();
-      // Most APIs return data directly, but some might wrap it in a 'templates' key or 'data' key again.
-      // We ensure we set an array to avoid map() errors.
       const rawData = response?.data;
-      const templatesData = Array.isArray(rawData) 
-        ? rawData 
-        : (Array.isArray(rawData?.data) 
-            ? rawData.data 
-            : (Array.isArray(rawData?.templates) ? rawData.templates : []));
-      
+      const templatesData = Array.isArray(rawData)
+        ? rawData
+        : Array.isArray(rawData?.data)
+          ? rawData.data
+          : Array.isArray(rawData?.templates)
+            ? rawData.templates
+            : [];
+
       setTemplates(templatesData);
     } catch (error) {
       console.error("Failed to fetch templates:", error);
@@ -70,14 +60,26 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
     fetchTemplates();
   }, []);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this template?")) return;
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+
+  const handleDeleteClick = (id: string) => {
+    setTemplateToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!templateToDelete) return;
     try {
-      await FORM_CONTROLLERS.deleteTemplate(id);
-      setTemplates(templates.filter((t) => t.id !== id));
+      await FORM_CONTROLLERS.deleteTemplate(templateToDelete);
+      setTemplates(templates.filter((t) => t.id !== templateToDelete));
+      showSnackbar("Template deleted successfully", "success");
     } catch (error) {
       console.error("Failed to delete template:", error);
       showSnackbar("Failed to delete template.", "error");
+    } finally {
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
     }
   };
 
@@ -95,13 +97,13 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
           <Typography
             variant="h4"
             sx={{
-              fontWeight: 900,
+              fontWeight: 700,
               fontFamily: montserrat.style.fontFamily,
               color: "text.primary",
               letterSpacing: -0.5,
             }}
           >
-             Experience Templates
+            Experience Templates
           </Typography>
           <Typography
             variant="body2"
@@ -111,7 +113,7 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
           </Typography>
         </Box>
         <Button
-          variant="contained"
+          variant="outlined"
           startIcon={<AddIcon />}
           onClick={handleCreateNew}
           sx={{
@@ -119,10 +121,8 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
             px: 4,
             borderRadius: "15px",
             textTransform: "none",
-            fontWeight: 800,
+            fontWeight: 600,
             fontSize: "0.95rem",
-            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-            boxShadow: `0px 10px 25px ${alpha(theme.palette.primary.main, 0.3)}`,
             "&:hover": {
               transform: "translateY(-3px)",
               boxShadow: `0px 15px 30px ${alpha(theme.palette.primary.main, 0.4)}`,
@@ -165,7 +165,10 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
               opacity: 0.2,
             }}
           />
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "text.secondary" }}>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 800, color: "text.secondary" }}
+          >
             No templates found
           </Typography>
           <Typography variant="body2" sx={{ color: "text.disabled", mb: 3 }}>
@@ -174,147 +177,74 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
           <Button
             variant="outlined"
             onClick={handleCreateNew}
-            sx={{ borderRadius: "12px", textTransform: "none", fontWeight: 700 }}
+            sx={{
+              borderRadius: "12px",
+              textTransform: "none",
+              fontWeight: 600,
+            }}
           >
             Open Form Builder
           </Button>
         </Box>
       ) : (
         <Grid container spacing={3}>
-          {Array.isArray(templates) && templates.map((template) => (
-            <Grid key={template.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-              <Card
-                sx={{
-                  borderRadius: "24px",
-                  border: "1px solid",
-                  borderColor: alpha(theme.palette.divider, 0.08),
-                  boxShadow: "0px 10px 40px rgba(0,0,0,0.03)",
-                  transition: "all 0.3s ease",
-                  overflow: "visible",
-                  position: "relative",
-                  "&:hover": {
-                    transform: "translateY(-5px)",
-                    borderColor: alpha(theme.palette.primary.main, 0.2),
-                    boxShadow: `0px 20px 50px ${alpha(theme.palette.primary.main, 0.05)}`,
-                  },
-                }}
-              >
-                <CardContent sx={{ p: 3 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      mb: 2,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        p: 1,
-                        borderRadius: "12px",
-                        bgcolor: alpha(theme.palette.primary.main, 0.05),
-                        color: "primary.main",
-                        display: "flex",
-                      }}
-                    >
-                      <LayersIcon sx={{ fontSize: "1.4rem" }} />
-                    </Box>
-                    <Stack direction="row" spacing={0.5}>
-                      <Tooltip title="Edit">
-                        <IconButton
-                          size="small"
-                          onClick={() => onEdit(template)}
-                          sx={{ color: "text.secondary" }}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(template.id)}
-                          sx={{ color: "error.main" }}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  </Box>
-
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 900,
-                      fontFamily: montserrat.style.fontFamily,
-                      mb: 0.5,
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {template.schema?.form_identity?.title || template.title || "Untitled"}
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: "text.disabled",
-                      fontWeight: 700,
-                      display: "block",
-                      mb: 2,
-                      fontFamily: roboto.style.fontFamily,
-                    }}
-                  >
-                    ID: {template.schema?.form_identity?.name || template.name || "N/A"}
-                  </Typography>
-
-                  <Divider sx={{ my: 2, opacity: 0.5 }} />
-
-                  <Stack spacing={1.5}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <BuildIcon sx={{ fontSize: "0.9rem", color: "text.disabled" }} />
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary" }}>
-                        {template.schema?.fields?.length || 0} Components
-                      </Typography>
-                    </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <DateIcon sx={{ fontSize: "0.9rem", color: "text.disabled" }} />
-                      <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary" }}>
-                        {template.schema?.form_identity?.timestamp
-                          ? moment(template.schema.form_identity.timestamp).format("MMM DD, YYYY")
-                          : "Unknown date"}
-                      </Typography>
-                    </Box>
-                  </Stack>
-
-                  <Button
-                    fullWidth
-                    endIcon={<ArrowIcon />}
-                    onClick={() => onEdit(template)}
-                    sx={{
-                      mt: 3,
-                      borderRadius: "12px",
-                      textTransform: "none",
-                      fontWeight: 800,
-                      fontSize: "0.8rem",
-                      py: 1.2,
-                      bgcolor: alpha(theme.palette.primary.main, 0.05),
-                      color: "primary.main",
-                      "&:hover": {
-                        bgcolor: "primary.main",
-                        color: "white",
-                      },
-                    }}
-                  >
-                    Manage Template
-                  </Button>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+          {Array.isArray(templates) &&
+            templates.map((template) => (
+              <Grid key={template.id} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+                <FormBuilderCard
+                  template={template}
+                  onEdit={onEdit}
+                  onDelete={handleDeleteClick}
+                />
+              </Grid>
+            ))}
         </Grid>
       )}
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: "20px",
+            p: 1,
+            boxShadow: "0px 20px 50px rgba(0,0,0,0.1)",
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ color: "text.secondary", fontWeight: 500 }}>
+            Are you sure you want to delete this template? This action cannot be
+            undone and may affect contests using this architecture.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            variant="text"
+            sx={{ borderRadius: "10px", fontWeight: 600, color: "text.secondary" }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            variant="contained"
+            color="error"
+            autoFocus
+            sx={{
+              borderRadius: "10px",
+              fontWeight: 600,
+              boxShadow: "none",
+              "&:hover": { boxShadow: "none", bgcolor: "error.dark" },
+            }}
+          >
+            Delete Template
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
-
-import { Divider } from "@mui/material";
 
 export default TemplateList;

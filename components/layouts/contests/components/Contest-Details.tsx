@@ -3,7 +3,7 @@ import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { montserrat, roboto } from "@/utils/fonts";
 import { Box, Button, Card, Tab, Tabs, Typography } from "@mui/material";
 import { Add } from "@mui/icons-material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ParticipantsList from "./ParticipantsList";
 import EntriesList from "./Entries-List";
 import OverviewTab from "./Overview-Tab";
@@ -14,6 +14,9 @@ import NotificationsTab from "./Notifications-Tab";
 import TransactionsTab from "./Transactions-Tab";
 import { useParams, useRouter } from "next/navigation";
 import { CONTEST_DATA } from "@/utils/constant";
+import { useQuery } from "@tanstack/react-query";
+import { contestControllers } from "@/api/contestControllers";
+import { useContestDetails } from "@/store/useContestDetails";
 
 const ContestDetails = () => {
   const params = useParams();
@@ -22,21 +25,63 @@ const ContestDetails = () => {
   const [tabValue, setTabValue] = useState(0);
 
   const contestId = Array.isArray(id) ? id[0] : id;
-  const contest =
-    CONTEST_DATA.find((c) => c.id === Number(contestId)) || CONTEST_DATA[0];
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
+  const { data, isPending, error } = useQuery({
+    queryKey: ["contest-details", contestId],
+    queryFn: () => contestControllers.getContestDetails(contestId),
+    enabled: !!contestId,
+  });
+  const { setContest } = useContestDetails();
+  const contestData = data?.data;
+  // if (contestData) {
+  //   setContest(contestData);
+  // }
+
+  const contestTabs = [
+    {
+      label: "Overview",
+    },
+    {
+      label: "Participants",
+    },
+    {
+      label: "Entries",
+    },
+    {
+      label: "Category",
+    },
+    {
+      label: "Settings",
+    },
+    {
+      label: "Votes",
+    },
+    {
+      label: "Notifications",
+    },
+    {
+      label: "Transactions",
+    },
+  ];
+
+  useEffect(() => {
+    if (contestData) {
+      setContest(contestData);
+    }
+  }, [contestData]);
+
   return (
     <Box>
       <Breadcrumb
-        title={contest.contestName}
+        title={contestData?.name}
         data={[
           { title: "Dashboard", href: "/dashboard" },
           { title: "Contest Management", href: "/contest-management/contests" },
-          { title: "Contest Details", href: "#" },
+          { title: contestData?.name, href: "#" },
         ]}
       />
       <Card
@@ -59,25 +104,36 @@ const ContestDetails = () => {
             variant="h5"
             sx={{ fontFamily: montserrat.style.fontFamily, fontWeight: 600 }}
           >
-            {contest.contestName}
+            {contestData?.name}
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() =>
-              router.push(`/contest-management/contests/${contestId}/add-user`)
-            }
-            sx={{
-              fontFamily: roboto.style.fontFamily,
-              textTransform: "none",
-              borderRadius: "8px",
-              fontWeight: 600,
-              boxShadow: "none",
-              ":hover": { boxShadow: "0px 2px 4px rgba(0,0,0,0.1)" },
-            }}
-          >
-            Add User
-          </Button>
+
+          {[1, 2, 3].includes(tabValue) && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => {
+                const baseRoute = `/contest-management/contests/${contestId}`;
+                if (tabValue === 1) router.push(`${baseRoute}/add-user`);
+                else if (tabValue === 2) router.push(`${baseRoute}/add-entry`);
+                else if (tabValue === 3)
+                  router.push(`${baseRoute}/add-category`);
+              }}
+              sx={{
+                fontFamily: roboto.style.fontFamily,
+                textTransform: "none",
+                borderRadius: "8px",
+                fontWeight: 600,
+                boxShadow: "none",
+                ":hover": { boxShadow: "0px 2px 4px rgba(0,0,0,0.1)" },
+              }}
+            >
+              {tabValue === 1
+                ? "Add Participant"
+                : tabValue === 2
+                  ? "Add Entry"
+                  : "Add Category"}
+            </Button>
+          )}
         </Box>
         <Typography
           variant="body2"
@@ -87,7 +143,7 @@ const ContestDetails = () => {
             fontFamily: roboto.style.fontFamily,
           }}
         >
-          {contest.description}
+          {contestData?.description}
         </Typography>
 
         <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
@@ -98,43 +154,18 @@ const ContestDetails = () => {
             variant="scrollable"
             scrollButtons="auto"
           >
-            <Tab
-              label="Overview"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Participants"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Entries"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Category"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Settings"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Votes"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Notifications"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
-            <Tab
-              label="Transactions"
-              sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
-            />
+            {contestTabs.map((val, i) => (
+              <Tab
+                key={i}
+                label={val.label}
+                sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 600 }}
+              />
+            ))}
           </Tabs>
         </Box>
 
         <Box sx={{ mt: 2 }}>
-          {tabValue === 0 && <OverviewTab contest={contest} />}
+          {tabValue === 0 && <OverviewTab contest={contestData} />}
           {tabValue === 1 && <ParticipantsList />}
           {tabValue === 2 && <EntriesList />}
           {tabValue === 3 && <CategoryTab />}

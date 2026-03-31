@@ -23,6 +23,7 @@ import {
   Switch,
   FormControlLabel,
   IconButton,
+  Menu,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -30,8 +31,9 @@ import {
   PersonAdd as AddIcon,
   MoreVert as MoreIcon,
   Add,
+  GetApp as ExportIcon,
 } from "@mui/icons-material";
-import { STATUS_OPTIONS, USER_TABLE_HEADER, USERS } from "@/utils/constant";
+import { STATUS_OPTIONS, USER_TABLE_HEADER, USERS, GRADE_OPTIONS } from "@/utils/constant";
 import { useAppTheme } from "@/context/ThemeContext";
 import UserTableRow from "./UserTableRow";
 import { COLORS, UserRole, UserStatus } from "@/utils/enum";
@@ -39,14 +41,37 @@ import Breadcrumb from "@/components/widgets/Breadcrumb";
 import Link from "next/link";
 import { useGetAllUsers } from "@/hooks/user/useGetAllUsers";
 
+const USER_COLUMNS_CONFIG = [
+  { id: "name", label: "Name" },
+  { id: "email", label: "Email" },
+  { id: "id", label: "Id" },
+  { id: "phoneNumber", label: "Phone number" },
+  { id: "grade", label: "Grade" },
+  { id: "joinedAt", label: "Joined" },
+  { id: "lastLogin", label: "Last Visited" },
+  { id: "status", label: "Status" },
+  { id: "actions", label: "Actions" },
+];
+
 const UserTable: React.FC = () => {
   const router = useRouter();
   const { colors } = useAppTheme();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusTab, setStatusTab] = useState(UserStatus.ALL);
-  const [roleFilter, setRoleFilter] = useState(UserRole.ALL);
+  const [schoolFilter, setSchoolFilter] = useState("All");
+  const [gradeFilter, setGradeFilter] = useState("All");
+  const [yearFilter, setYearFilter] = useState("All");
   const [isDense, setIsDense] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [columnAnchorEl, setColumnAnchorEl] = useState<null | HTMLElement>(null);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>([
+    "name",
+    "phoneNumber",
+    "grade",
+    "status",
+    "actions",
+  ]);
   const {
     users,
     isLoading,
@@ -63,15 +88,65 @@ const UserTable: React.FC = () => {
     return countsMap;
   }, [displayUsers]);
 
+  const uniqueSchools = useMemo(() => {
+    const schools = displayUsers
+      .map((u) => u.company)
+      .filter((c): c is string => !!c);
+    return Array.from(new Set(schools)).sort();
+  }, [displayUsers]);
+
+  const uniqueYears = useMemo(() => {
+    const years = displayUsers
+      .map((u) => u.joinedAt?.split("-")[0])
+      .filter((y): y is string => !!y);
+    return Array.from(new Set(years)).sort((a, b) => b.localeCompare(a));
+  }, [displayUsers]);
+
   const filteredUsers = displayUsers.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       u.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus =
       statusTab === UserStatus.ALL || u.status === statusTab;
-    const matchesRole = roleFilter === UserRole.ALL;
-    return matchesSearch && matchesStatus && matchesRole;
+    const matchesSchool = schoolFilter === "All" || u.company === schoolFilter;
+    const matchesGrade = gradeFilter === "All" || u.grade === gradeFilter;
+    const matchesYear = yearFilter === "All" || u.joinedAt?.startsWith(yearFilter);
+    return matchesSearch && matchesStatus && matchesSchool && matchesGrade && matchesYear;
   });
+
+  const handleExportCSV = () => {
+    // Header for CSV
+    const headers = ["ID", "Name", "Email", "Phone", "Grade", "Status", "Joined", "Last Login"];
+    
+    // Rows
+    const rows = filteredUsers.map(user => [
+      user.id,
+      user.name,
+      user.email,
+      user.phoneNumber || "",
+      user.grade || "",
+      user.status,
+      user.joinedAt || "",
+      user.lastLogin || ""
+    ]);
+
+    // Construct CSV content
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    ].join("\n");
+
+    // Browser download trigger
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -86,6 +161,26 @@ const UserTable: React.FC = () => {
       prev.includes(id) ? prev.filter((uid) => uid !== id) : [...prev, id],
     );
   };
+
+  const handleOpenColumnMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setColumnAnchorEl(event.currentTarget);
+  };
+
+  const handleCloseColumnMenu = () => {
+    setColumnAnchorEl(null);
+  };
+
+  const toggleColumn = (columnId: string) => {
+    setVisibleColumns((prev) =>
+      prev.includes(columnId)
+        ? prev.filter((id) => id !== columnId)
+        : [...prev, columnId],
+    );
+  };
+
+  const visibleHeaders = USER_COLUMNS_CONFIG.filter((col) =>
+    visibleColumns.includes(col.id),
+  );
 
   return (
     <Box sx={{ p: 1 }}>
@@ -106,27 +201,52 @@ const UserTable: React.FC = () => {
             { title: "Users", href: "/user-management/users" },
           ]}
         />
-        <Link
-          href="/user-management/users/add-user"
-          style={{ textDecoration: "none" }}
-        >
+        <Box sx={{ display: "flex", gap: 2 }}>
           <Button
             variant="outlined"
+            onClick={handleExportCSV}
+            startIcon={<ExportIcon />}
             sx={{
-              color: colors.PRIMARY,
-              borderColor: colors.PRIMARY,
+              color: colors.TEXT_PRIMARY,
+              borderColor: colors.BORDER,
               borderRadius: 2,
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.85rem",
               "&:hover": {
-                bgcolor: colors.PRIMARY,
-                opacity: 0.9,
-                color: COLORS.SURFACE,
+                bgcolor: "rgba(0,0,0,0.02)",
+                borderColor: colors.TEXT_SECONDARY,
               },
             }}
-            endIcon={<Add />}
           >
-            Add User
+            Export to CSV
           </Button>
-        </Link>
+
+          <Link
+            href="/user-management/users/add-user"
+            style={{ textDecoration: "none" }}
+          >
+            <Button
+              variant="outlined"
+              sx={{
+                color: colors.PRIMARY,
+                borderColor: colors.PRIMARY,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+                "&:hover": {
+                  bgcolor: colors.PRIMARY,
+                  opacity: 0.9,
+                  color: COLORS.SURFACE,
+                },
+              }}
+              endIcon={<Add />}
+            >
+              Add User
+            </Button>
+          </Link>
+        </Box>
       </Box>
       <Box sx={{ mb: 3 }}>
         <Tabs
@@ -221,11 +341,160 @@ const UserTable: React.FC = () => {
               },
             }}
           />
+          
+          <Button
+            onClick={() => setShowFilters(!showFilters)}
+            variant="outlined"
+            size="small"
+            startIcon={<FilterIcon />}
+            sx={{
+              height: 40,
+              px: 2,
+              borderRadius: 2,
+              borderColor: showFilters ? colors.PRIMARY : colors.BORDER,
+              color: showFilters ? colors.PRIMARY : colors.TEXT_SECONDARY,
+              textTransform: "none",
+              fontWeight: 600,
+              "&:hover": {
+                bgcolor: showFilters ? `${colors.PRIMARY}05` : "rgba(0,0,0,0.02)",
+                borderColor: showFilters ? colors.PRIMARY : colors.TEXT_SECONDARY,
+              },
+            }}
+          >
+            Filters
+          </Button>
 
-          <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
+          <IconButton
+            size="small"
+            sx={{ color: colors.TEXT_SECONDARY }}
+            onClick={handleOpenColumnMenu}
+          >
             <MoreIcon />
           </IconButton>
         </Box>
+
+        {showFilters && (
+          <Box
+            sx={{
+              display: "flex",
+              gap: 2,
+              mb: 3,
+              p: 2,
+              borderRadius: 2,
+              bgcolor: "rgba(0,0,0,0.015)",
+              border: `1px solid ${colors.BORDER}`,
+              flexWrap: "wrap",
+            }}
+          >
+            {/* School Filter */}
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel sx={{ fontSize: "0.85rem" }}>School</InputLabel>
+              <Select
+                value={schoolFilter}
+                onChange={(e) => setSchoolFilter(e.target.value)}
+                label="School"
+                sx={{ borderRadius: 2, bgcolor: "white", fontSize: "0.85rem" }}
+              >
+                <MenuItem value="All">All Schools</MenuItem>
+                {uniqueSchools.map((s) => (
+                  <MenuItem key={s} value={s}>
+                    {s}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Grade Filter */}
+            <FormControl size="small" sx={{ minWidth: 150 }}>
+              <InputLabel sx={{ fontSize: "0.85rem" }}>Grade</InputLabel>
+              <Select
+                value={gradeFilter}
+                onChange={(e) => setGradeFilter(e.target.value)}
+                label="Grade"
+                sx={{ borderRadius: 2, bgcolor: "white", fontSize: "0.85rem" }}
+              >
+                <MenuItem value="All">All Grades</MenuItem>
+                {GRADE_OPTIONS.map((g) => (
+                  <MenuItem key={g.label} value={g.label}>
+                    {g.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            {/* Year Filter */}
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <InputLabel sx={{ fontSize: "0.85rem" }}>Year Joined</InputLabel>
+              <Select
+                value={yearFilter}
+                onChange={(e) => setYearFilter(e.target.value)}
+                label="Year Joined"
+                sx={{ borderRadius: 2, bgcolor: "white", fontSize: "0.85rem" }}
+              >
+                <MenuItem value="All">All Years</MenuItem>
+                {uniqueYears.map((y) => (
+                  <MenuItem key={y} value={y}>
+                    {y}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Button
+              size="small"
+              onClick={() => {
+                setSchoolFilter("All");
+                setGradeFilter("All");
+                setYearFilter("All");
+              }}
+              sx={{
+                textTransform: "none",
+                color: colors.TEXT_SECONDARY,
+                "&:hover": { color: colors.ERROR },
+              }}
+            >
+              Clear Filters
+            </Button>
+          </Box>
+        )}
+
+        <Menu
+          anchorEl={columnAnchorEl}
+          open={Boolean(columnAnchorEl)}
+          onClose={handleCloseColumnMenu}
+          PaperProps={{
+            sx: {
+              py: 1,
+              px: 1,
+              border: `1px solid ${colors.BORDER}`,
+              borderRadius: 2,
+              boxShadow: "0 8px 16px rgba(0,0,0,0.08)",
+              minWidth: 200,
+            },
+          }}
+        >
+          {USER_COLUMNS_CONFIG.map((col) => (
+            <MenuItem
+              key={col.id}
+              onClick={() => toggleColumn(col.id)}
+              sx={{
+                borderRadius: 1.5,
+                fontSize: "0.85rem",
+                py: 0.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Checkbox
+                size="small"
+                checked={visibleColumns.includes(col.id)}
+                sx={{ p: 0 }}
+              />
+              <Typography variant="body2">{col.label}</Typography>
+            </MenuItem>
+          ))}
+        </Menu>
       </Box>
 
       {/* Table Container */}
@@ -257,10 +526,10 @@ const UserTable: React.FC = () => {
                     onChange={(e) => handleSelectAll(e.target.checked)}
                   />
                 </TableCell>
-                {USER_TABLE_HEADER.map((h, i) => (
+                {visibleHeaders.map((h, i) => (
                   <TableCell
-                    key={h}
-                    align={i === 5 ? "right" : "left"}
+                    key={h.id}
+                    align={h.id === "actions" ? "right" : "left"}
                     sx={{
                       color: colors.TEXT_PRIMARY,
                       fontWeight: 700,
@@ -272,8 +541,8 @@ const UserTable: React.FC = () => {
                     <Box
                       sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                     >
-                      {h}
-                      {h === "Name" && (
+                      {h.label}
+                      {h.label === "Name" && (
                         <Typography
                           variant="caption"
                           sx={{ color: colors.TEXT_SECONDARY, fontSize: 16 }}
@@ -308,6 +577,7 @@ const UserTable: React.FC = () => {
                     dense={isDense}
                     selected={selectedUsers.includes(user.id)}
                     onSelect={() => handleSelectUser(user.id)}
+                    visibleColumns={visibleColumns}
                   />
                 ))
               ) : (

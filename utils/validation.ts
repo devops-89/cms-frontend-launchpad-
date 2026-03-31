@@ -24,7 +24,7 @@ export const AddUser_Validation = Yup.object({
     .matches(/[0-9]/, "Password must include at least one number")
     .matches(
       /[!@#$%^&*(),.?":{}|<>]/,
-      "Password must include at least one special character"
+      "Password must include at least one special character",
     )
     .required("Please Enter Password"),
   confirmPassword: Yup.string()
@@ -32,4 +32,16 @@ export const AddUser_Validation = Yup.object({
     .required("Please Confirm Your Password"),
   schoolName: Yup.string().required("Please Enter Your School Name"),
   country: Yup.string().required("Please Select Country"),
+});
+
+export const CONTEST_VALIDATION = Yup.object({
+  name: Yup.string().required("Please Enter Contest Name"),
+  description: Yup.string().required("Please Enter Contest Description"),
+  start_date: Yup.date().required("Please Select Start Date"),
+  end_date: Yup.date().required("Please Select End Date"),
+  available_regions: Yup.array().min(1, "Please Select At Least One Country"),
+  user_level_template_id: Yup.string().required("Please Select Form Template"),
+  entry_level_template_id: Yup.string().required(
+    "Please Select Entry Form Template",
+  ),
 });

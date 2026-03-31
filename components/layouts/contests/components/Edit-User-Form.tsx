@@ -2,7 +2,6 @@
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useContestDetails } from "@/store/useContestDetails";
 import { countries } from "@/utils/constant";
-import { CountryType } from "@/types/user";
 import { montserrat, roboto } from "@/utils/fonts";
 import {
   Box,
@@ -27,31 +26,29 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useSnackbar } from "@/context/SnackbarContext";
-import { useParams, useRouter } from "next/navigation";
-import React, { useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import React from "react";
 import { FIELDS_TYPE } from "@/utils/enum";
 import { MuiTelInput } from "mui-tel-input";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import {
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
+import { Save as SaveIcon, ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { FormHelperText } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { contestControllers } from "@/api/contestControllers";
 
-const AddUserForm = () => {
+const EditUserForm = () => {
   const { showSnackbar } = useSnackbar();
   const params = useParams();
+  const searchParams = useSearchParams();
   const id = (Array.isArray(params?.id) ? params.id[0] : params?.id) as string;
+  const participantId = searchParams.get("participantId") as string;
 
   const router = useRouter();
-  const { contest } = useContestDetails();
 
   const { data, isPending, error } = useQuery({
     queryKey: ["Contest Details", id],
@@ -61,26 +58,32 @@ const AddUserForm = () => {
 
   const template_fields = data?.data?.userLevelTemplate?.schema.fields;
 
+  const participantData = React.useMemo(() => {
+    if (!data?.data?.participants || !participantId) return null;
+    return data.data.participants.find((p: any) => p.id === participantId);
+  }, [data?.data?.participants, participantId]);
+
   const initialValues = React.useMemo(() => {
     return (
       template_fields?.reduce((acc: any, field: any) => {
+        const storedValue = participantData?.submission?.data?.[field.id];
+
+        if (storedValue !== undefined) {
+          acc[field.id] = storedValue;
+          return acc;
+        }
+
         acc[field.id] = "";
-        if (
-          field.type === FIELDS_TYPE.CHECKBOX ||
-          field.type === FIELDS_TYPE.SWITCH
-        ) {
+        if (field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH) {
           acc[field.id] = false;
         }
-        if (
-          field.type === FIELDS_TYPE.SLIDER ||
-          field.type === FIELDS_TYPE.RATING
-        ) {
+        if (field.type === FIELDS_TYPE.SLIDER || field.type === FIELDS_TYPE.RATING) {
           acc[field.id] = 0;
         }
         return acc;
       }, {}) || {}
     );
-  }, [template_fields]);
+  }, [template_fields, participantData]);
 
   const validationSchema = React.useMemo(() => {
     return Yup.object().shape(
@@ -106,7 +109,7 @@ const AddUserForm = () => {
         }
         acc[field.id] = validator;
         return acc;
-      }, {}) || {},
+      }, {}) || {}
     );
   }, [template_fields]);
 
@@ -116,13 +119,13 @@ const AddUserForm = () => {
     enableReinitialize: true,
     onSubmit: async (values) => {
       try {
-        await contestControllers.addUserInContest(values, id);
-        showSnackbar("User added successfully!", "success");
+        await contestControllers.updateParticipantDetails(values, id, participantId);
+        showSnackbar("User updated successfully!", "success");
         router.push(`/contest-management/contests/${id}`);
       } catch (err: any) {
         showSnackbar(
-          err?.response?.data?.message || "Failed to add user",
-          "error",
+          err?.response?.data?.message || "Failed to update user",
+          "error"
         );
       }
     },
@@ -130,14 +133,7 @@ const AddUserForm = () => {
 
   if (isPending) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "400px",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "400px" }}>
         <CircularProgress />
       </Box>
     );
@@ -146,15 +142,20 @@ const AddUserForm = () => {
   if (!data && !isPending) {
     return (
       <Box sx={{ p: 4 }}>
-        <Alert severity="error">
-          Contest not found. Please go back and try again.
-        </Alert>
-        <Button
-          startIcon={<ArrowBackIcon />}
-          sx={{ mt: 2 }}
-          onClick={() => router.back()}
-        >
+        <Alert severity="error">Contest not found. Please go back and try again.</Alert>
+        <Button startIcon={<ArrowBackIcon />} sx={{ mt: 2 }} onClick={() => router.back()}>
           Back to Contests
+        </Button>
+      </Box>
+    );
+  }
+
+  if (!participantData && !isPending && participantId) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="warning">Participant details not found. Please go back and try again.</Alert>
+        <Button startIcon={<ArrowBackIcon />} sx={{ mt: 2 }} onClick={() => router.back()}>
+          Back to Contest
         </Button>
       </Box>
     );
@@ -163,7 +164,7 @@ const AddUserForm = () => {
   return (
     <Box>
       <Breadcrumb
-        title="Add User to Contest"
+        title="Edit User"
         data={[
           { title: "Dashboard", href: "/dashboard" },
           { title: "Contest Management", href: "/contest-management/contests" },
@@ -171,15 +172,13 @@ const AddUserForm = () => {
             title: "Contest Details",
             href: `/contest-management/contests/${id}`,
           },
-          { title: "Add User", href: "#" },
+          { title: "Edit User", href: "#" },
         ]}
       />
 
       <Card
         sx={{
           mt: 4,
-          // maxWidth: 600,
-          // mx: "auto",
           p: 4,
           boxShadow: "0px 0px 2px 2px #eeeeee",
           borderRadius: 2,
@@ -194,7 +193,7 @@ const AddUserForm = () => {
             textAlign: "left",
           }}
         >
-          Add New User
+          Edit User
         </Typography>
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -210,8 +209,8 @@ const AddUserForm = () => {
                       val.type === FIELDS_TYPE.NUMBER_FIELD
                         ? "number"
                         : val.type === FIELDS_TYPE.PASSWORD
-                          ? "password"
-                          : "text"
+                        ? "password"
+                        : "text"
                     }
                     variant={val.variant}
                     placeholder={val.placeholder}
@@ -272,8 +271,7 @@ const AddUserForm = () => {
                       slotProps={{
                         textField: {
                           error:
-                            formik.touched[val.id] &&
-                            Boolean(formik.errors[val.id]),
+                            formik.touched[val.id] && Boolean(formik.errors[val.id]),
                           helperText:
                             (formik.touched[val.id] &&
                               (formik.errors[val.id] as string)) ||
@@ -330,8 +328,7 @@ const AddUserForm = () => {
                         variant={val.variant}
                         placeholder={val.placeholder}
                         error={
-                          formik.touched[val.id] &&
-                          Boolean(formik.errors[val.id])
+                          formik.touched[val.id] && Boolean(formik.errors[val.id])
                         }
                         helperText={
                           (formik.touched[val.id] &&
@@ -357,8 +354,7 @@ const AddUserForm = () => {
                           {...params}
                           label={val.label || "Country Of Residence"}
                           error={
-                            formik.touched[val.id] &&
-                            Boolean(formik.errors[val.id])
+                            formik.touched[val.id] && Boolean(formik.errors[val.id])
                           }
                           helperText={
                             (formik.touched[val.id] &&
@@ -382,7 +378,7 @@ const AddUserForm = () => {
                       autoHighlight
                       getOptionLabel={(option) => option.label}
                       renderOption={(props, option) => {
-                        const { key, ...optionProps } = props;
+                        const { key, ...optionProps } = props as any;
                         return (
                           <Box
                             key={key}
@@ -413,8 +409,7 @@ const AddUserForm = () => {
                           }}
                           fullWidth
                           error={
-                            formik.touched[val.id] &&
-                            Boolean(formik.errors[val.id])
+                            formik.touched[val.id] && Boolean(formik.errors[val.id])
                           }
                           helperText={
                             (formik.touched[val.id] &&
@@ -426,7 +421,7 @@ const AddUserForm = () => {
                       )}
                       value={
                         countries.find(
-                          (c) => c.label === formik.values[val.id],
+                          (c) => c.label === formik.values[val.id]
                         ) || null
                       }
                       onChange={(_, newValue) =>
@@ -515,7 +510,7 @@ const AddUserForm = () => {
                     {val.type === FIELDS_TYPE.SLIDER ? (
                       <Slider
                         name={val.id}
-                        value={formik.values[val.id] || 0}
+                        value={Number(formik.values[val.id]) || 0}
                         onChange={(_, value) =>
                           formik.setFieldValue(val.id, value)
                         }
@@ -576,7 +571,7 @@ const AddUserForm = () => {
               },
             }}
           >
-            {formik.isSubmitting ? "Adding..." : "Add User"}
+            {formik.isSubmitting ? "Updating..." : "Update User"}
           </Button>
         </Box>
       </Card>
@@ -584,4 +579,4 @@ const AddUserForm = () => {
   );
 };
 
-export default AddUserForm;
+export default EditUserForm;

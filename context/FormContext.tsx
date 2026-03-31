@@ -2,14 +2,14 @@
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
-export type FieldType = 
-  | "textfield" 
-  | "autocomplete" 
-  | "checkbox" 
-  | "select" 
-  | "countrySelector" 
-  | "radio" 
-  | "switch" 
+export type FieldType =
+  | "textfield"
+  | "autocomplete"
+  | "checkbox"
+  | "select"
+  | "countrySelector"
+  | "radio"
+  | "switch"
   | "slider"
   | "button"
   | "buttonGroup"
@@ -19,7 +19,8 @@ export type FieldType =
   | "toggleButton"
   | "numberField"
   | "telInput"
-  | "datePicker";
+  | "datePicker"
+  | "password";
 export type FieldVariant = "outlined" | "filled" | "standard";
 
 export interface FormField {
@@ -56,7 +57,13 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
       name: "Default Registration",
       title: "New Participant Registration",
       fields: [
-        { id: "f1", type: "textfield", label: "Full Name", required: true, variant: "outlined" },
+        {
+          id: "f1",
+          type: "textfield",
+          label: "Full Name",
+          required: true,
+          variant: "outlined",
+        },
         { id: "f2", type: "checkbox", label: "Accept Terms", required: true },
       ],
     },

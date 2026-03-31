@@ -10,6 +10,7 @@ const FormBuilderPage = () => {
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
 
   const handleEdit = (template: any) => {
+    console.log("template", template);
     setEditingTemplate(template);
     setView("edit");
   };
@@ -23,10 +24,7 @@ const FormBuilderPage = () => {
       {view === "list" ? (
         <TemplateList onEdit={handleEdit} />
       ) : (
-        <FormBuilder 
-          initialData={editingTemplate} 
-          onBack={handleBackToList} 
-        />
+        <FormBuilder initialData={editingTemplate} onBack={handleBackToList} />
       )}
     </Box>
   );

@@ -14,8 +14,10 @@ import {
   Avatar,
 } from "@mui/material";
 import React from "react";
+import { useRouter } from "next/navigation";
 
 const EntriesList = () => {
+  const router = useRouter();
   return (
     <Box>
       <Table sx={{ mt: 2 }}>
@@ -42,10 +44,33 @@ const EntriesList = () => {
           {ENTRIES.map((entry, index) => (
             <TableRow key={index}>
               <TableCell>
-                <Avatar variant="rounded" src={entry.thumbnail} sx={{ width: 50, height: 30 }} />
+                <Avatar
+                    variant="rounded"
+                    src={entry.thumbnail}
+                    onClick={() => router.push(`/contest-management/entries/${entry.id}`)}
+                    sx={{
+                        width: 50,
+                        height: 30,
+                        cursor: "pointer",
+                        "&:hover": { opacity: 0.8, transform: "scale(1.1)" },
+                        transition: "all 0.2s ease",
+                    }}
+                />
               </TableCell>
               <TableCell>
-                <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13, fontWeight: 500 }}>{entry.title}</Typography>
+                <Typography
+                    onClick={() => router.push(`/contest-management/entries/${entry.id}`)}
+                    sx={{
+                        fontFamily: roboto.style.fontFamily,
+                        fontSize: 13,
+                        fontWeight: 500,
+                        cursor: "pointer",
+                        "&:hover": { color: "primary.main", textDecoration: "underline" },
+                        transition: "color 0.2s ease",
+                    }}
+                >
+                    {entry.title}
+                </Typography>
               </TableCell>
               <TableCell>
                 <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}>{entry.author}</Typography>
