@@ -49,6 +49,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
     setFormName,
     formTitle,
     setFormTitle,
+    formSection,
+    setFormSection,
     fields,
     loading,
     isIdentityOpen,
@@ -136,6 +138,8 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                   setFormName={setFormName}
                   formTitle={formTitle}
                   setFormTitle={setFormTitle}
+                  formSection={formSection}
+                  setFormSection={setFormSection}
                   isOpen={isIdentityOpen}
                   setIsOpen={setIsIdentityOpen}
                 />
@@ -204,6 +208,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                       <FieldCard
                         key={field.id}
                         field={field}
+                        allFields={fields}
                         onRemove={removeField}
                         onUpdate={updateField}
                         onUpdateConfig={updateFieldConfig}

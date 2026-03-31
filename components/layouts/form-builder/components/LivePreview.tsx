@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Paper,
@@ -53,6 +53,31 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   setViewMode,
 }) => {
   const theme = useTheme();
+  const [activeStep, setActiveStep] = useState(0);
+  const [formValues, setFormValues] = useState<Record<string, any>>({});
+  const [stepHistory, setStepHistory] = useState<number[]>([]);
+
+  const pages = useMemo(() => {
+    const chunks: FormField[][] = [];
+    let currentChunk: FormField[] = [];
+
+    fields.forEach((field) => {
+      if (field.type === "step_break") {
+        if (currentChunk.length > 0) chunks.push(currentChunk);
+        currentChunk = [field];
+      } else {
+        currentChunk.push(field);
+      }
+    });
+    if (currentChunk.length > 0) chunks.push(currentChunk);
+    return chunks;
+  }, [fields]);
+
+  useEffect(() => {
+    if (activeStep >= pages.length) {
+      setActiveStep(Math.max(0, pages.length - 1));
+    }
+  }, [pages.length, activeStep]);
 
   const renderPreviewField = (field: FormField) => {
     const config = field.config || {};
@@ -124,7 +149,12 @@ const LivePreview: React.FC<LivePreviewProps> = ({
         return (
           <FormControl fullWidth variant={field.variant || "outlined"} sx={commonProps.sx}>
             <InputLabel>{field.label}</InputLabel>
-            <Select label={field.label} required={field.required}>
+            <Select 
+              label={field.label} 
+              required={field.required}
+              value={formValues[field.id] || ""}
+              onChange={(e) => setFormValues((p) => ({ ...p, [field.id]: e.target.value }))}
+            >
               {field.options?.map((opt, i) => (
                 <MenuItem key={i} value={opt}>{opt}</MenuItem>
               ))}
@@ -135,6 +165,8 @@ const LivePreview: React.FC<LivePreviewProps> = ({
         return (
           <Autocomplete
             options={field.options || []}
+            value={formValues[field.id] || null}
+            onChange={(_, val) => setFormValues((p) => ({ ...p, [field.id]: val }))}
             renderInput={(params) => <TextField {...params} {...commonProps} />}
             sx={commonProps.sx}
           />
@@ -157,7 +189,11 @@ const LivePreview: React.FC<LivePreviewProps> = ({
             >
               {field.label}
             </FormLabel>
-            <RadioGroup row>
+            <RadioGroup 
+              row
+              value={formValues[field.id] || ""}
+              onChange={(e) => setFormValues((p) => ({ ...p, [field.id]: e.target.value }))}
+            >
               {field.options?.map((opt, i) => (
                 <FormControlLabel
                   key={i}
@@ -202,8 +238,48 @@ const LivePreview: React.FC<LivePreviewProps> = ({
     }
   };
 
+  const handleNextStep = () => {
+    const currentPageFields = pages[activeStep] || [];
+    let targetStepId: string | null = null;
+
+    for (const field of currentPageFields) {
+      if (["select", "radio", "autocomplete"].includes(field.type)) {
+        if (!field.config?.enableBranching) continue;
+        
+        const val = formValues[field.id];
+        if (val && field.config?.routing?.[val]) {
+          targetStepId = field.config.routing[val];
+        }
+      }
+    }
+
+    setStepHistory((prev) => [...prev, activeStep]);
+
+    if (targetStepId) {
+      const targetPageIndex = pages.findIndex(
+        (page) => page.length > 0 && page[0].type === "step_break" && page[0].id === targetStepId
+      );
+      if (targetPageIndex !== -1) {
+        setActiveStep(targetPageIndex);
+        return;
+      }
+    }
+
+    setActiveStep((p) => p + 1);
+  };
+
+  const handleBackStep = () => {
+    if (stepHistory.length > 0) {
+      const prevStep = stepHistory[stepHistory.length - 1];
+      setStepHistory((prev) => prev.slice(0, -1));
+      setActiveStep(prevStep);
+    } else {
+      setActiveStep((p) => Math.max(0, p - 1));
+    }
+  };
+
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", p: 1, width: "100%", height: "100%" }}>
       <Box sx={{ mb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="overline" sx={{ fontWeight: 900, color: "text.disabled", letterSpacing: 1 }}>
           Live Context
@@ -262,15 +338,69 @@ const LivePreview: React.FC<LivePreviewProps> = ({
             ID: {formName || "draft"}
           </Typography>
           <Stack spacing={2.5}>
-            {fields.map((field) => (
-              <Box key={field.id}>{renderPreviewField(field)}</Box>
-            ))}
+            {pages[activeStep]?.map((field) => {
+              if (field.type === "step_break") {
+                return (
+                  <Box
+                    key={field.id}
+                    sx={{
+                      p: 1.5,
+                      mb: 1,
+                      borderRadius: 2,
+                      bgcolor: alpha(theme.palette.secondary.main, 0.05),
+                      borderLeft: `3px solid ${theme.palette.secondary.main}`,
+                    }}
+                  >
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "secondary.main", fontSize: "0.8rem" }}>
+                      {field.label || "Unnamed Step"}
+                    </Typography>
+                    {field.config?.linkedTemplateId && (
+                      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5, fontWeight: 700 }}>
+                        🔗 Nested Form Template attached
+                      </Typography>
+                    )}
+                  </Box>
+                );
+              }
+              return <Box key={field.id}>{renderPreviewField(field)}</Box>;
+            })}
             {fields.length === 0 && (
               <Box sx={{ py: 6, textAlign: "center", opacity: 0.15 }}>
                 <ConfigIcon sx={{ fontSize: 32, mb: 1 }} />
                 <Typography variant="caption" display="block" fontWeight={800}>
                   Awaiting Building Blocks
                 </Typography>
+              </Box>
+            )}
+
+            {pages.length > 1 && (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mt: 3,
+                  pt: 2,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Button
+                  size="small"
+                  disabled={stepHistory.length === 0 && activeStep === 0}
+                  onClick={handleBackStep}
+                  sx={{ textTransform: "none", fontWeight: 700 }}
+                >
+                  Back
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  disabled={activeStep === pages.length - 1}
+                  onClick={handleNextStep}
+                  sx={{ textTransform: "none", fontWeight: 700 }}
+                >
+                  Next Step
+                </Button>
               </Box>
             )}
           </Stack>

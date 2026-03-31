@@ -5,6 +5,7 @@ import {
   Delete,
   Edit,
   Layers,
+  FolderOpen,
 } from "@mui/icons-material";
 import {
   Box,
@@ -126,6 +127,15 @@ const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
 
           <Stack spacing={1.5}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <FolderOpen sx={{ fontSize: "0.9rem", color: "text.disabled" }} />
+              <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, color: "text.secondary" }}
+              >
+                {template.schema?.form_identity?.section_name || template.section_name || "Uncategorized Section"}
+              </Typography>
+            </Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Build sx={{ fontSize: "0.9rem", color: "text.disabled" }} />
               <Typography
                 variant="caption"
@@ -148,28 +158,6 @@ const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
               </Typography>
             </Box>
           </Stack>
-
-          <Button
-            fullWidth
-            endIcon={<ArrowForwardRounded />}
-            onClick={() => onEdit(template)}
-            sx={{
-              mt: 3,
-              borderRadius: "12px",
-              textTransform: "none",
-              fontWeight: 600,
-              fontSize: "0.8rem",
-              py: 1.2,
-              bgcolor: alpha(theme.palette.primary.main, 0.05),
-              color: "primary.main",
-              "&:hover": {
-                bgcolor: "primary.main",
-                color: "white",
-              },
-            }}
-          >
-            Manage Template
-          </Button>
         </CardContent>
       </Card>
     </Box>

@@ -20,7 +20,8 @@ export type FieldType =
   | "numberField"
   | "telInput"
   | "datePicker"
-  | "password";
+  | "password"
+  | "step_break";
 export type FieldVariant = "outlined" | "filled" | "standard";
 
 export interface FormField {

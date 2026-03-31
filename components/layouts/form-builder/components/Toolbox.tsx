@@ -23,6 +23,7 @@ import {
   Public as GlobalIcon,
   SmartButton as ButtonIcon,
   Password as PasswordIcon,
+  ViewDay as SplitIcon,
 } from "@mui/icons-material";
 import { FieldType } from "@/context/FormContext";
 import { montserrat } from "@/utils/fonts";
@@ -47,6 +48,7 @@ export const fieldTypes: {
   { type: "rating", label: "Visual Rating", icon: <RatingIcon />, category: "Visual" },
   { type: "countrySelector", label: "Global Countries", icon: <GlobalIcon />, category: "Input" },
   { type: "button", label: "Primary Button", icon: <ButtonIcon />, category: "Actions" },
+  { type: "step_break", label: "Step/Page Break", icon: <SplitIcon />, category: "Structure" },
 ];
 
 interface ToolboxProps {
@@ -85,7 +87,7 @@ const Toolbox: React.FC<ToolboxProps> = ({ onAddField }) => {
         }}
       >
         <Stack spacing={0.5}>
-          {["Basic", "Input", "Selection", "Toggle", "Visual", "Actions"].map((cat) => (
+          {["Basic", "Input", "Selection", "Toggle", "Visual", "Structure", "Actions"].map((cat) => (
             <Box key={cat}>
               <Typography
                 variant="caption"

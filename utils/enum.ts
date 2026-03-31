@@ -77,4 +77,5 @@ export enum FIELDS_TYPE {
   RATING = "rating",
   BUTTON = "button",
   PASSWORD = "password",
+  STEP_BREAK = "step_break",
 }

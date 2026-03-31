@@ -11,6 +11,7 @@ export const useFormTemplate = (initialData?: any) => {
   
   const [formName, setFormName] = useState(initialData?.schema?.form_identity?.name || initialData?.name || "");
   const [formTitle, setFormTitle] = useState(initialData?.schema?.form_identity?.title || initialData?.title || "");
+  const [formSection, setFormSection] = useState(initialData?.schema?.form_identity?.section_name || initialData?.section_name || "");
   const [fields, setFields] = useState<FormField[]>(initialData?.schema?.fields || initialData?.fields || []);
   const [loading, setLoading] = useState(false);
   const [isIdentityOpen, setIsIdentityOpen] = useState(false);
@@ -106,6 +107,7 @@ export const useFormTemplate = (initialData?: any) => {
         form_identity: {
           name: formName,
           title: formTitle,
+          section_name: formSection,
           timestamp: new Date().toISOString(),
         },
         fields: fields.map((f) => ({
@@ -164,6 +166,8 @@ export const useFormTemplate = (initialData?: any) => {
     setFormName,
     formTitle,
     setFormTitle,
+    formSection,
+    setFormSection,
     fields,
     loading,
     isIdentityOpen,

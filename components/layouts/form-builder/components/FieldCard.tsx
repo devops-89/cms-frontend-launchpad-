@@ -27,11 +27,13 @@ import {
   Add as AddIcon,
   Phone as TelIcon,
   Event as DateIcon,
+  ViewDay as SplitIcon,
 } from "@mui/icons-material";
 import { FormField, FieldType, FieldVariant } from "@/context/FormContext";
 import { fieldTypes } from "./Toolbox";
 import { countries } from "@/utils/constant";
 import { roboto } from "@/utils/fonts";
+import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 
 interface FieldCardProps {
   field: FormField;
@@ -42,10 +44,12 @@ interface FieldCardProps {
   onRemoveOption: (fieldId: string, option: string) => void;
   newOptionText: string;
   setNewOptionText: (fieldId: string, text: string) => void;
+  allFields?: FormField[];
 }
 
 const FieldCard: React.FC<FieldCardProps> = ({
   field,
+  allFields = [],
   onRemove,
   onUpdate,
   onUpdateConfig,
@@ -55,6 +59,100 @@ const FieldCard: React.FC<FieldCardProps> = ({
   setNewOptionText,
 }) => {
   const theme = useTheme();
+  const { templates } = useGetAllTemplates();
+
+  if (field.type === "step_break") {
+    // Only show preceding fields for condition
+    const fieldIndex = allFields.findIndex((f) => f.id === field.id);
+    const precedingFields = allFields.slice(
+      0,
+      fieldIndex > -1 ? fieldIndex : 0,
+    );
+
+    return (
+      <Grow in timeout={100}>
+        <Paper
+          sx={{
+            p: 2,
+            borderRadius: "20px",
+            position: "relative",
+            bgcolor: alpha(theme.palette.secondary.main, 0.05),
+            border: "2px dashed",
+            borderColor: theme.palette.secondary.main,
+            my: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+            <SplitIcon sx={{ color: "secondary.main" }} />
+            <Typography
+              variant="subtitle2"
+              sx={{
+                fontWeight: 800,
+                color: "secondary.main",
+                textTransform: "uppercase",
+              }}
+            >
+              Step / Page Boundary
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => onRemove(field.id)}
+            sx={{
+              position: "absolute",
+              top: 12,
+              right: 12,
+              color: "error.main",
+              bgcolor: alpha(theme.palette.error.main, 0.05),
+            }}
+          >
+            <DeleteIcon sx={{ fontSize: "1.1rem" }} />
+          </IconButton>
+
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12 }}>
+              <TextField
+                fullWidth
+                size="small"
+                label="Step Title"
+                value={field.label}
+                onChange={(e) => onUpdate(field.id, { label: e.target.value })}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "10px",
+                    bgcolor: "white",
+                  },
+                }}
+              />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+              <FormControl fullWidth size="small">
+                <InputLabel sx={{ bgcolor: "white", px: 0.5 }}>
+                  Link Existing Form (Optional)
+                </InputLabel>
+                <Select
+                  value={field.config?.linkedTemplateId || ""}
+                  onChange={(e) =>
+                    onUpdateConfig(field.id, "linkedTemplateId", e.target.value)
+                  }
+                  sx={{ borderRadius: "10px", bgcolor: "white" }}
+                >
+                  <MenuItem value="">
+                    <em>None (Standard Modular Step)</em>
+                  </MenuItem>
+                  {templates.map((t) => (
+                    <MenuItem key={t.id} value={t.id}>
+                      {t.title || t.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
+        </Paper>
+      </Grow>
+    );
+  }
 
   return (
     <Grow in timeout={100}>
@@ -204,28 +302,66 @@ const FieldCard: React.FC<FieldCardProps> = ({
                 >
                   Options List
                 </Typography>
-                <Stack
-                  direction="row"
-                  spacing={1}
-                  sx={{ mb: 1.5, flexWrap: "wrap", gap: 0.8 }}
-                >
+                <Stack spacing={1} sx={{ mb: 1.5 }}>
                   {(field.options || []).map((opt) => (
-                    <Chip
+                    <Box
                       key={opt}
-                      label={opt}
-                      onDelete={() => onRemoveOption(field.id, opt)}
-                      size="small"
-                      deleteIcon={<CloseIcon style={{ fontSize: "12px" }} />}
                       sx={{
-                        borderRadius: "6px",
-                        fontWeight: 700,
-                        fontSize: "0.65rem",
-                        height: 22,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        p: 0.5,
+                        pl: 1.5,
                         bgcolor: "white",
+                        borderRadius: "8px",
                         border: "1px solid",
-                        borderColor: alpha(theme.palette.primary.main, 0.1),
+                        borderColor: alpha(theme.palette.divider, 0.4),
                       }}
-                    />
+                    >
+                      <Typography
+                        sx={{ flexGrow: 1, fontWeight: 700, fontSize: "0.75rem" }}
+                      >
+                        {opt}
+                      </Typography>
+                      {field.config?.enableBranching && allFields.filter((f) => f.type === "step_break").length > 0 && (
+                        <FormControl size="small" sx={{ minWidth: 160 }}>
+                          <Select
+                            displayEmpty
+                            value={field.config?.routing?.[opt] || ""}
+                            onChange={(e) => {
+                              const newRouting = { ...(field.config?.routing || {}) };
+                              if (e.target.value) newRouting[opt] = e.target.value;
+                              else delete newRouting[opt];
+                              onUpdateConfig(field.id, "routing", newRouting);
+                            }}
+                            sx={{
+                              fontSize: "0.65rem",
+                              height: 28,
+                              bgcolor: alpha(theme.palette.secondary.main, 0.05),
+                              "& .MuiOutlinedInput-notchedOutline": { border: "none" },
+                            }}
+                          >
+                            <MenuItem value="" sx={{ fontSize: "0.7rem", fontStyle: "italic" }}>
+                              Continue to next step
+                            </MenuItem>
+                            {allFields
+                              .filter((sb) => sb.type === "step_break")
+                              .map((sb) => (
+                                <MenuItem key={sb.id} value={sb.id} sx={{ fontSize: "0.7rem" }}>
+                                  Go to: {sb.label || "Unnamed Step"}
+                                </MenuItem>
+                              ))}
+                          </Select>
+                        </FormControl>
+                      )}
+                      <IconButton
+                        size="small"
+                        onClick={() => onRemoveOption(field.id, opt)}
+                        sx={{ color: "text.disabled", "&:hover": { color: "error.main" } }}
+                      >
+                        <CloseIcon sx={{ fontSize: "1rem" }} />
+                      </IconButton>
+                    </Box>
                   ))}
                 </Stack>
                 <Stack direction="row" spacing={1}>
@@ -260,6 +396,20 @@ const FieldCard: React.FC<FieldCardProps> = ({
                     <AddIcon sx={{ fontSize: "1.1rem" }} />
                   </Button>
                 </Stack>
+                
+                {allFields.filter((f) => f.type === "step_break").length > 0 && (
+                  <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed", borderColor: alpha(theme.palette.divider, 0.4), display: "flex", alignItems: "center", gap: 1 }}>
+                    <Switch
+                      size="small"
+                      checked={!!field.config?.enableBranching}
+                      onChange={(e) => onUpdateConfig(field.id, "enableBranching", e.target.checked)}
+                      color="secondary"
+                    />
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                      Enable Branching Logic (Go to step based on answer)
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </Grid>
           )}

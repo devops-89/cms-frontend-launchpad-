@@ -24,6 +24,8 @@ interface FormIdentityProps {
   setFormName: (val: string) => void;
   formTitle: string;
   setFormTitle: (val: string) => void;
+  formSection: string;
+  setFormSection: (val: string) => void;
   isOpen: boolean;
   setIsOpen: (val: boolean) => void;
 }
@@ -33,6 +35,8 @@ const FormIdentity: React.FC<FormIdentityProps> = ({
   setFormName,
   formTitle,
   setFormTitle,
+  formSection,
+  setFormSection,
   isOpen,
   setIsOpen,
 }) => {
@@ -96,7 +100,7 @@ const FormIdentity: React.FC<FormIdentityProps> = ({
       <Collapse in={isOpen}>
         <Divider sx={{ my: 1.5, opacity: 0.5 }} />
         <Grid container spacing={2}>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               size="small"
@@ -107,7 +111,7 @@ const FormIdentity: React.FC<FormIdentityProps> = ({
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
             />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6 }}>
+          <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
               fullWidth
               size="small"
@@ -115,6 +119,17 @@ const FormIdentity: React.FC<FormIdentityProps> = ({
               placeholder="Public Title"
               value={formTitle}
               onChange={(e) => setFormTitle(e.target.value)}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <TextField
+              fullWidth
+              size="small"
+              label="Section Name (Optional)"
+              placeholder="e.g. Onboarding"
+              value={formSection}
+              onChange={(e) => setFormSection(e.target.value)}
               sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
             />
           </Grid>
