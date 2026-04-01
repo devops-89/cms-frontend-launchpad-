@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import {
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -26,8 +25,9 @@ import {
   CheckCircle as SuccessIcon,
 } from "@mui/icons-material";
 import { useSnackbar } from "@/context/SnackbarContext";
-import { CONTESTS } from "@/utils/constant";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
+import { contestControllers } from "@/api/contestControllers";
 
 interface AssignJudgesDialogProps {
   open: boolean;
@@ -44,6 +44,28 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
   const { showSnackbar } = useSnackbar();
   const [selectedContests, setSelectedContests] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  const { data: contestsData, isLoading: contestsLoading } = useQuery({
+    queryKey: ["contests"],
+    queryFn: () => contestControllers.getContest(),
+    enabled: open,
+  });
+
+  const contests = React.useMemo(() => {
+    // API might return the list directly in data or nested in data.data
+    const list = Array.isArray(contestsData?.data) 
+      ? contestsData.data 
+      : Array.isArray(contestsData) 
+        ? contestsData 
+        : [];
+    
+    return list.map((c: any) => ({
+      id: c.id || c._id || Math.random().toString(),
+      title: c.name || c.title || "Untitled Contest",
+      status: c.status || "Unknown",
+      participants: c.participantsCount || c.participants || 0,
+    }));
+  }, [contestsData]);
 
   // Reset selected contests when dialog opens
   useEffect(() => {
@@ -72,18 +94,7 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
   };
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="sm"
-      PaperProps={{
-        sx: {
-          borderRadius: 4,
-          boxShadow: "0 24px 48px rgba(0,0,0,0.1)",
-        },
-      }}
-    >
+    <Box sx={{ minWidth: { xs: 300, sm: 500, md: 600 } }}>
       <DialogTitle
         sx={{
           m: 0,
@@ -129,7 +140,13 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
           <Autocomplete
             multiple
             id="contest-selection"
-            options={CONTESTS}
+            options={contests}
+            loading={contestsLoading}
+            slotProps={{
+              popper: {
+                sx: { zIndex: 3000 }
+              }
+            }}
             getOptionLabel={(option) => option.title}
             value={selectedContests}
             onChange={(_, newValue) => setSelectedContests(newValue)}
@@ -139,6 +156,19 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
                 {...params}
                 placeholder={selectedContests.length > 0 ? "" : "Choose contests..."}
                 variant="outlined"
+                slotProps={{
+                  input: {
+                    ...params.InputProps,
+                    endAdornment: (
+                      <React.Fragment>
+                        {contestsLoading ? (
+                          <CircularProgress color="inherit" size={20} />
+                        ) : null}
+                        {params.InputProps.endAdornment}
+                      </React.Fragment>
+                    ),
+                  },
+                }}
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 3,
@@ -266,7 +296,7 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
           )}
         </Button>
       </DialogActions>
-    </Dialog>
+    </Box>
   );
 };
 

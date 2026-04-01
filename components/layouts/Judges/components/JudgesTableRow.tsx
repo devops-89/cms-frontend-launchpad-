@@ -1,28 +1,29 @@
-import React, { useState } from "react";
+import { UserController } from "@/api/userControllers";
+import { useModal } from "@/store/useModal";
+import { UserStatus } from "@/utils/enum";
 import {
-  TableRow,
-  TableCell,
-  Typography,
-  Avatar,
-  Box,
-  IconButton,
-  Chip,
-  Menu,
-  MenuItem,
-  Checkbox,
-  Select,
-  FormControl,
-} from "@mui/material";
-import {
+  Assignment as AssignIcon,
   Edit as EditIcon,
   MoreVert as MoreIcon,
-  Assignment as AssignIcon,
 } from "@mui/icons-material";
+import {
+  Avatar,
+  Box,
+  Chip,
+  CircularProgress,
+  FormControl,
+  IconButton,
+  Menu,
+  MenuItem,
+  Select,
+  TableCell,
+  TableRow,
+  Typography,
+} from "@mui/material";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { UserRole, UserStatus } from "@/utils/enum";
+import React, { useState } from "react";
 import AssignJudgesDialog from "./AssignJudgesDialog";
-import { useQuery } from "@tanstack/react-query";
-import { UserController } from "@/api/userControllers";
 
 interface JudgesTableRowProps {
   judge: any;
@@ -30,20 +31,22 @@ interface JudgesTableRowProps {
   dense?: boolean;
   selected?: boolean;
   onSelect?: () => void;
+  visibleHeaders: string[];
 }
 
-const getStatusStyles = (status: UserStatus) => {
+const getStatusStyles = (status: UserStatus | string) => {
   switch (status) {
-    case UserStatus.ACTIVE:
-      return { bgcolor: "#dcfce7", color: "#166534", label: "Active" };
-    case UserStatus.PENDING:
-      return { bgcolor: "#fef3c7", color: "#92400e", label: "Pending" };
-    case UserStatus.BANNED:
-      return { bgcolor: "#fee2e2", color: "#991b1b", label: "Banned" };
-    case UserStatus.REJECTED:
-      return { bgcolor: "#f3f4f6", color: "#374151", label: "Rejected" };
+    case "Active":
+    case "Published":
+      return { bgcolor: "#dcfce7", color: "#166534" };
+    case "Pending":
+    case "Draft":
+      return { bgcolor: "#ffedd5", color: "#c2410c" };
+    case "Banned":
+    case "Rejected":
+      return { bgcolor: "#fee2e2", color: "#991b1b" };
     default:
-      return { bgcolor: "#f3f4f6", color: "#374151", label: status };
+      return { bgcolor: "#f3f4f6", color: "#374151" };
   }
 };
 
@@ -53,11 +56,13 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
   dense,
   selected,
   onSelect,
+  visibleHeaders,
 }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { showModal, hideModal } = useModal();
   const [judge, setJudge] = useState(initialJudge);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -68,19 +73,23 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
     setAnchorEl(null);
   };
 
-  const handleStatusChange = (newStatus: UserStatus) => {
-    setJudge({ ...judge, status: newStatus });
-  };
-
-  const { data, isPending, error } = useQuery({
-    queryKey: ["judge-list"],
-    queryFn: () => UserController.getAllUser(UserRole.JUDGE),
+  const mutation = useMutation({
+    mutationFn: (newStatus: string) =>
+      UserController.updateUserStatus(judge.id, newStatus),
+    onSuccess: (_, newStatus) => {
+      setJudge({ ...judge, status: newStatus as UserStatus });
+      queryClient.invalidateQueries({ queryKey: ["judge-list"] });
+    },
+    onError: () => {
+      console.error("Failed to update status");
+    },
   });
 
-  const statusStyle = getStatusStyles(judge.status);
+  const handleStatusChange = (newStatus: UserStatus) => {
+    mutation.mutate(newStatus);
+  };
 
-  console.log("dasta", data);
-  console.log("error", error);
+  const statusStyle = getStatusStyles(judge.status);
 
   return (
     <TableRow
@@ -95,183 +104,233 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
         },
       }}
     >
-      {/* Checkbox */}
-      <TableCell padding="checkbox">
-        <Checkbox size="small" checked={selected} onChange={onSelect} />
-      </TableCell>
-
-      {/* Name / Judge Details */}
-      <TableCell>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 2,
-            cursor: "pointer",
-            width: "fit-content",
-            "&:hover": {
-              "& .MuiTypography-body2": {
-                color: colors.PRIMARY,
-                textDecoration: "underline",
-              },
-              "& .MuiAvatar-root": {
-                opacity: 0.8,
-                transform: "scale(1.05)",
-                transition: "all 0.2s ease",
-              },
-            },
-          }}
-          onClick={() => router.push(`/user-management/judges/${judge.id}`)}
-        >
-          <Avatar
-            src={judge.avatar}
+      {visibleHeaders.includes("Name") && (
+        <TableCell sx={{ whiteSpace: "nowrap" }}>
+          <Box
             sx={{
-              width: 36,
-              height: 36,
-              bgcolor: colors.PRIMARY,
-              fontSize: "0.8rem",
-              fontWeight: 600,
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              cursor: "pointer",
+              width: "fit-content",
+              "&:hover": {
+                "& .MuiTypography-body2": {
+                  color: colors.PRIMARY,
+                  textDecoration: "underline",
+                },
+                "& .MuiAvatar-root": {
+                  opacity: 0.8,
+                  transform: "scale(1.05)",
+                  transition: "all 0.2s ease",
+                },
+              },
             }}
+            onClick={() => router.push(`/user-management/judges/${judge.id}`)}
           >
-            {judge.name
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")}
-          </Avatar>
-          <Box>
-            <Typography
-              variant="body2"
+            <Avatar
+              src={judge.avatar}
               sx={{
-                fontWeight: 700,
-                color: colors.TEXT_PRIMARY,
-                lineHeight: 1.2,
-                transition: "color 0.2s ease",
+                width: 36,
+                height: 36,
+                bgcolor: colors.PRIMARY,
+                fontSize: "0.8rem",
+                fontWeight: 600,
               }}
             >
-              {judge.name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY }}>
-              {judge.email}
-            </Typography>
+              {judge.name
+                .split(" ")
+                .filter(Boolean)
+                .map((n: string) => n[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2)}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: colors.TEXT_PRIMARY,
+                  lineHeight: 1.2,
+                  transition: "color 0.2s ease",
+                }}
+              >
+                {judge.name}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{ color: colors.TEXT_SECONDARY }}
+              >
+                {judge.email}
+              </Typography>
+            </Box>
           </Box>
-        </Box>
-      </TableCell>
+        </TableCell>
+      )}
 
       {/* Phone Number */}
-      <TableCell>
-        <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
-          {judge.phoneNumber || "—"}
-        </Typography>
-      </TableCell>
+      {visibleHeaders.includes("Phone number") && (
+        <TableCell sx={{ whiteSpace: "nowrap" }}>
+          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+            {judge.phoneNumber || "—"}
+          </Typography>
+        </TableCell>
+      )}
 
       {/* Expertise */}
-      <TableCell>
-        <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
-          {judge.expertise || "—"}
-        </Typography>
-      </TableCell>
-
-      {/* Status Selector */}
-      <TableCell>
-        <FormControl variant="standard" fullWidth>
-          <Select
-            value={judge.status}
-            onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
-            disableUnderline
-            sx={{
-              fontSize: "0.75rem",
-              fontWeight: 700,
-              width: "fit-content",
-              "& .MuiSelect-select": {
-                py: 0.5,
-                px: 1,
-                borderRadius: "6px",
-                bgcolor: statusStyle.bgcolor,
-                color: statusStyle.color,
-              },
-            }}
-          >
-            {Object.values(UserStatus)
-              .filter((s) => s !== UserStatus.ALL)
-              .map((status) => (
-                <MenuItem
-                  key={status}
-                  value={status}
-                  sx={{ fontSize: "0.85rem" }}
-                >
-                  {status}
-                </MenuItem>
-              ))}
-          </Select>
-        </FormControl>
-      </TableCell>
-
-      {/* Actions */}
-      <TableCell align="right">
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-          <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
-            <EditIcon fontSize="small" />
-          </IconButton>
-          <IconButton
-            size="small"
-            sx={{ color: colors.TEXT_SECONDARY }}
-            onClick={handleOpenMenu}
-          >
-            <MoreIcon fontSize="small" />
-          </IconButton>
-          <Menu
-            anchorEl={anchorEl}
-            open={open}
-            onClose={handleCloseMenu}
-            transformOrigin={{ horizontal: "right", vertical: "top" }}
-            anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-            PaperProps={{
-              elevation: 0,
-              sx: {
-                minWidth: 120,
-                border: `1px solid ${colors.BORDER}`,
-                borderRadius: 2,
-                mt: 0.5,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-              },
-            }}
-          >
-            <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
-              View Details
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleCloseMenu();
-                setIsAssignDialogOpen(true);
-              }}
+      {visibleHeaders.includes("Expertise") && (
+        <TableCell sx={{ whiteSpace: "nowrap" }}>
+          {judge.expertise &&
+          judge.expertise !== "N/A" &&
+          judge.expertise !== "—" ? (
+            <Box
               sx={{
-                fontSize: "0.85rem",
                 display: "flex",
-                gap: 1,
-                alignItems: "center",
+                gap: 0.5,
+                flexWrap: "wrap",
+                maxWidth: 250,
               }}
             >
-              <AssignIcon
-                fontSize="small"
-                sx={{ color: colors.PRIMARY, fontSize: 16 }}
-              />
-              Assign to Contest
-            </MenuItem>
-            <MenuItem
-              onClick={handleCloseMenu}
-              sx={{ fontSize: "0.85rem", color: colors.ERROR }}
-            >
-              Delete Judge
-            </MenuItem>
-          </Menu>
+              {judge.expertise.split(", ").map((exp: string, idx: number) => (
+                <Chip
+                  key={idx}
+                  label={exp}
+                  size="small"
+                  sx={{
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    color: colors.TEXT_PRIMARY,
+                    fontSize: "0.75rem",
+                  }}
+                />
+              ))}
+            </Box>
+          ) : (
+            <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY }}>
+              —
+            </Typography>
+          )}
+        </TableCell>
+      )}
 
-          <AssignJudgesDialog
-            open={isAssignDialogOpen}
-            onClose={() => setIsAssignDialogOpen(false)}
-            judges={[{ id: judge.id, name: judge.name }]}
-          />
-        </Box>
-      </TableCell>
+      {visibleHeaders.includes("Status") && (
+        <TableCell sx={{ whiteSpace: "nowrap" }}>
+          <FormControl variant="standard" fullWidth>
+            <Select
+              value={judge.status}
+              onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
+              disableUnderline
+              disabled={mutation.isPending}
+              IconComponent={
+                mutation.isPending
+                  ? () => (
+                      <CircularProgress
+                        size={14}
+                        sx={{ mr: 1, ml: 0.5, color: statusStyle.color }}
+                      />
+                    )
+                  : undefined
+              }
+              sx={{
+                fontSize: "0.75rem",
+                fontWeight: 500,
+                width: "fit-content",
+                "& .MuiSelect-select": {
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: "6px",
+                  bgcolor: statusStyle.bgcolor,
+                  color: statusStyle.color,
+                  display: "flex",
+                  alignItems: "center",
+                },
+                "& .MuiSvgIcon-root": {
+                  color: statusStyle.color,
+                },
+              }}
+            >
+              {Object.values(UserStatus)
+                .filter((s) => s !== UserStatus.ALL)
+                .map((status) => (
+                  <MenuItem
+                    key={status}
+                    value={status}
+                    sx={{ fontSize: "0.85rem" }}
+                  >
+                    {status}
+                  </MenuItem>
+                ))}
+            </Select>
+          </FormControl>
+        </TableCell>
+      )}
+
+      {visibleHeaders.includes("Actions") && (
+        <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+            <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton
+              size="small"
+              sx={{ color: colors.TEXT_SECONDARY }}
+              onClick={handleOpenMenu}
+            >
+              <MoreIcon fontSize="small" />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleCloseMenu}
+              transformOrigin={{ horizontal: "right", vertical: "top" }}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+              PaperProps={{
+                elevation: 0,
+                sx: {
+                  minWidth: 120,
+                  border: `1px solid ${colors.BORDER}`,
+                  borderRadius: 2,
+                  mt: 0.5,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                },
+              }}
+            >
+              <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
+                View Details
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleCloseMenu();
+                  showModal(
+                    <AssignJudgesDialog
+                      open={true}
+                      onClose={hideModal}
+                      judges={[{ id: judge.id, name: judge.name }]}
+                    />,
+                  );
+                }}
+                sx={{
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  gap: 1,
+                  alignItems: "center",
+                }}
+              >
+                <AssignIcon
+                  fontSize="small"
+                  sx={{ color: colors.PRIMARY, fontSize: 16 }}
+                />
+                Assign to Contest
+              </MenuItem>
+              <MenuItem
+                onClick={handleCloseMenu}
+                sx={{ fontSize: "0.85rem", color: colors.ERROR }}
+              >
+                Delete Judge
+              </MenuItem>
+            </Menu>
+          </Box>
+        </TableCell>
+      )}
     </TableRow>
   );
 };

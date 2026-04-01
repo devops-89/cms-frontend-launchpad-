@@ -73,10 +73,28 @@ contestSecuredApi.interceptors.request.use(
   },
 );
 
+const entrySecuredApi = axios.create({
+  baseURL: SERVER_ENDPOINTS.ENTRY_BASEURL,
+});
+
+entrySecuredApi.interceptors.request.use(
+  (config: InternalAxiosRequestConfig<any>) => {
+    let token = localStorage.getItem("token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
 export {
   authSecuredApi,
   authPublicApi,
   userSecuredApi,
   formSecuredApi,
   contestSecuredApi,
+  entrySecuredApi,
 };

@@ -10,4 +10,12 @@ export const UserController = {
       throw error;
     }
   },
+  updateUserStatus: async (id: string, status: string) => {
+    try {
+      let result = await userSecuredApi.patch(`/${id}`, { status });
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

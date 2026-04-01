@@ -62,7 +62,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({
     let currentChunk: FormField[] = [];
 
     fields.forEach((field) => {
-      if (field.type === "step_break") {
+      if (field.type === "step_break" && !field.config?.isInline) {
         if (currentChunk.length > 0) chunks.push(currentChunk);
         currentChunk = [field];
       } else {
@@ -279,7 +279,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   };
 
   return (
-    <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", p: 1, width: "100%", height: "100%" }}>
+    <Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column", p: 1, height: "100%", overflowX: "hidden" }}>
       <Box sx={{ mb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Typography variant="overline" sx={{ fontWeight: 900, color: "text.disabled", letterSpacing: 1 }}>
           Live Context
@@ -340,23 +340,46 @@ const LivePreview: React.FC<LivePreviewProps> = ({
           <Stack spacing={2.5}>
             {pages[activeStep]?.map((field) => {
               if (field.type === "step_break") {
+                const isInline = !!field.config?.isInline;
                 return (
                   <Box
                     key={field.id}
                     sx={{
-                      p: 1.5,
-                      mb: 1,
-                      borderRadius: 2,
-                      bgcolor: alpha(theme.palette.secondary.main, 0.05),
-                      borderLeft: `3px solid ${theme.palette.secondary.main}`,
+                      p: isInline ? 1.2 : 1.5,
+                      mb: 0.5,
+                      mt: isInline ? 1 : 0,
+                      borderRadius: isInline ? "10px" : "12px",
+                      bgcolor: isInline
+                        ? alpha(theme.palette.secondary.main, 0.03)
+                        : alpha(theme.palette.secondary.main, 0.05),
+                      borderLeft: `4px solid ${theme.palette.secondary.main}`,
+                      transition: "all 0.3s ease",
                     }}
                   >
-                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "secondary.main", fontSize: "0.8rem" }}>
-                      {field.label || "Unnamed Step"}
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 900,
+                        color: "secondary.main",
+                        fontSize: isInline ? "0.7rem" : "0.8rem",
+                        textTransform: isInline ? "uppercase" : "none",
+                        letterSpacing: isInline ? 0.5 : 0,
+                      }}
+                    >
+                      {field.label || (isInline ? "Section" : "Unnamed Step")}
                     </Typography>
                     {field.config?.linkedTemplateId && (
-                      <Typography variant="caption" sx={{ display: "block", color: "text.secondary", mt: 0.5, fontWeight: 700 }}>
-                        🔗 Nested Form Template attached
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: "block",
+                          color: "text.secondary",
+                          mt: 0.5,
+                          fontWeight: 700,
+                          fontSize: "0.6rem",
+                        }}
+                      >
+                        🔗 Linked Form: {field.config.linkedTemplateId}
                       </Typography>
                     )}
                   </Box>

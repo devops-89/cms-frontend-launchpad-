@@ -14,7 +14,10 @@ export const useLogin = () => {
     try {
       const result = await AuthControllers.login(data);
       console.log("login result", result);
+      const token = result.data.data.accessToken;
 
+      localStorage.setItem("token", token);
+      // console.log("token", token);
       router.push("/dashboard");
     } catch (err: any) {
       console.error("login error", err);

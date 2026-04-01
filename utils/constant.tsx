@@ -185,16 +185,6 @@ export const STATUS_OPTIONS = [
   UserStatus.REJECTED,
 ];
 
-export const USER_TABLE_HEADER = [
-  "Name",
-  "Phone number",
-  // "Company",
-  // "Role",
-  "Grade",
-  "Status",
-  "Actions",
-];
-
 export const JUDGES_TABLE_HEADER = [
   "Name",
   "Phone number",
@@ -772,45 +762,6 @@ export const JUDGES = [
   },
 ];
 
-export const CONTEST_DATA = [
-  {
-    id: 1,
-    contestName: "UAE' Top Young Innovators 2025",
-    description: "A Nationwide Hunt to Find UAE's Most Innovative Young Minds!",
-    start: "2025-12-10, 00:01:00",
-    end: "2026-03-06, 23:59:00",
-    status: UserStatus.OFFLINE,
-    entries: 4,
-  },
-  {
-    id: 2,
-    contestName: "UAE' Top Young Innovators 2025",
-    description: "A Nationwide Hunt to Find UAE's Most Innovative Young Minds!",
-    start: "2025-12-10, 00:01:00",
-    end: "2026-03-06, 23:59:00",
-    status: UserStatus.PUBLISHED,
-    entries: 4,
-  },
-  {
-    id: 1,
-    contestName: "UAE' Top Young Innovators 2025",
-    description: "A Nationwide Hunt to Find UAE's Most Innovative Young Minds!",
-    start: "2025-12-10, 00:01:00",
-    end: "2026-03-06, 23:59:00",
-    status: UserStatus.PUBLISHED,
-    entries: 4,
-  },
-  {
-    id: 1,
-    contestName: "UAE' Top Young Innovators 2025",
-    description: "A Nationwide Hunt to Find UAE's Most Innovative Young Minds!",
-    start: "2025-12-10, 00:01:00",
-    end: "2026-03-06, 23:59:00",
-    status: UserStatus.DRAFT,
-    entries: 4,
-  },
-];
-
 export const CONTEST_TABLE_HEADER = [
   // "Id",
   "Contest Name",
@@ -849,4 +800,19 @@ export const EXPERTISE_OPTIONS = [
   "Music",
   "Art",
   "Other",
+];
+
+export const USER_STATUS_TABS = [
+  {
+    label: UserStatus.ALL,
+  },
+  {
+    label: UserStatus.ACTIVE,
+  },
+  {
+    label: UserStatus.PENDING,
+  },
+  {
+    label: UserStatus.BANNED,
+  },
 ];

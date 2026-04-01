@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 import LayoutProvider from "./Layout-Provider";
+import Modal from "./Modal";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -18,13 +19,19 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
   const isLoginPage = hideLayoutPaths.includes(pathname);
 
   if (isLoginPage) {
-    return <LayoutProvider isFullWidth>{children}</LayoutProvider>;
+    return (
+      <>
+        <Modal />
+        <LayoutProvider isFullWidth>{children}</LayoutProvider>
+      </>
+    );
   }
 
   return (
     <>
       <Sidebar />
       <Header />
+      <Modal />
       <LayoutProvider>{children}</LayoutProvider>
     </>
   );

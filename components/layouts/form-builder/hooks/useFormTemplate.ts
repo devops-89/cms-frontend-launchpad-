@@ -14,7 +14,7 @@ export const useFormTemplate = (initialData?: any) => {
   const [formSection, setFormSection] = useState(initialData?.schema?.form_identity?.section_name || initialData?.section_name || "");
   const [fields, setFields] = useState<FormField[]>(initialData?.schema?.fields || initialData?.fields || []);
   const [loading, setLoading] = useState(false);
-  const [isIdentityOpen, setIsIdentityOpen] = useState(false);
+  const [isIdentityOpen, setIsIdentityOpen] = useState(true);
   const [newOptionTexts, setNewOptionTexts] = useState<Record<string, string>>({});
   
   const scrollEndRef = useRef<HTMLDivElement>(null);
@@ -65,6 +65,37 @@ export const useFormTemplate = (initialData?: any) => {
         return f;
       }),
     );
+  };
+
+  const duplicateField = (id: string) => {
+    const originalField = fields.find((f) => f.id === id);
+    if (!originalField) return;
+
+    const newField: FormField = {
+      ...JSON.parse(JSON.stringify(originalField)),
+      id: Math.random().toString(36).substr(2, 9),
+      label: `${originalField.label} (Copy)`,
+    };
+
+    const index = fields.findIndex((f) => f.id === id);
+    const newFields = [...fields];
+    newFields.splice(index + 1, 0, newField);
+    setFields(newFields);
+  };
+
+  const moveField = (id: string, direction: "up" | "down") => {
+    const index = fields.findIndex((f) => f.id === id);
+    if (index === -1) return;
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === fields.length - 1) return;
+
+    const newFields = [...fields];
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    [newFields[index], newFields[targetIndex]] = [
+      newFields[targetIndex],
+      newFields[index],
+    ];
+    setFields(newFields);
   };
 
   const addOption = (fieldId: string) => {
@@ -181,6 +212,8 @@ export const useFormTemplate = (initialData?: any) => {
     updateFieldConfig,
     addOption,
     removeOption,
+    duplicateField,
+    moveField,
     handleSave,
   };
 };

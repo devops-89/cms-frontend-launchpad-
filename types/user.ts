@@ -144,3 +144,22 @@ export interface JUDGEPAYLOAD {
   phone: string;
   expertise: string[];
 }
+
+export interface USER_DATA {
+  avatarUrl: string | null;
+  email: string;
+  firstName: string;
+  lastName: string;
+  id: string;
+  participantProfile: {
+    country: string;
+    createdAt: string;
+    dateOfBirth: string;
+    grade: string;
+    id: string;
+    schoolName: string;
+  };
+  phone: string;
+  role: string;
+  status: string;
+}

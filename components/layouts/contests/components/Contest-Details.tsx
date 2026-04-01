@@ -13,7 +13,6 @@ import VotesTab from "./Votes-Tab";
 import NotificationsTab from "./Notifications-Tab";
 import TransactionsTab from "./Transactions-Tab";
 import { useParams, useRouter } from "next/navigation";
-import { CONTEST_DATA } from "@/utils/constant";
 import { useQuery } from "@tanstack/react-query";
 import { contestControllers } from "@/api/contestControllers";
 import { useContestDetails } from "@/store/useContestDetails";
@@ -37,9 +36,6 @@ const ContestDetails = () => {
   });
   const { setContest } = useContestDetails();
   const contestData = data?.data;
-  // if (contestData) {
-  //   setContest(contestData);
-  // }
 
   const contestTabs = [
     {
@@ -114,7 +110,8 @@ const ContestDetails = () => {
               onClick={() => {
                 const baseRoute = `/contest-management/contests/${contestId}`;
                 if (tabValue === 1) router.push(`${baseRoute}/add-user`);
-                else if (tabValue === 2) router.push(`${baseRoute}/add-entry`);
+                else if (tabValue === 2)
+                  router.push(`${baseRoute}/entries/add-entries`);
                 else if (tabValue === 3)
                   router.push(`${baseRoute}/add-category`);
               }}

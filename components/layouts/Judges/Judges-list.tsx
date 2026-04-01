@@ -18,38 +18,75 @@ import {
   Switch,
   Menu,
   MenuItem,
+  Checkbox,
+  ListItemText,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   MoreVert as MoreIcon,
   Assignment as AssignIcon,
 } from "@mui/icons-material";
-import { STATUS_OPTIONS, JUDGES } from "@/utils/constant";
+import { STATUS_OPTIONS, JUDGES_TABLE_HEADER } from "@/utils/constant";
 import { useAppTheme } from "@/context/ThemeContext";
 import JudgesTableHeader from "./components/Judges-Table-header";
 import JudgesTableRow from "./components/JudgesTableRow";
-import { UserStatus } from "@/utils/enum";
+import { UserRole, UserStatus } from "@/utils/enum";
 import AssignJudgesDialog from "./components/AssignJudgesDialog";
+import { UserController } from "@/api/userControllers";
+import { useQuery } from "@tanstack/react-query";
+import { useModal } from "@/store/useModal";
 
 const JudgesList: React.FC = () => {
   const { colors } = useAppTheme();
+
+  const { data, isPending, error } = useQuery({
+    queryKey: ["judge-list"],
+    queryFn: () => UserController.getAllUser(UserRole.JUDGE),
+    enabled: true,
+  });
+
+  const apiJudges = useMemo(() => {
+    const users = data?.data?.data?.users || [];
+    return users.map((u: any) => ({
+      id: u.id,
+      name: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
+      email: u.email,
+      phoneNumber: u.phone,
+      expertise:
+        u.judgeProfile?.expertise?.join(", ") ||
+        u.expertise?.join(", ") ||
+        "N/A",
+      avatar: u.avatarUrl,
+      status: u.status,
+      joinedAt: u.createdAt,
+    }));
+  }, [data]);
+
+  const { showModal, hideModal } = useModal();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusTab, setStatusTab] = useState(UserStatus.ALL);
   const [isDense, setIsDense] = useState(false);
   const [selectedJudges, setSelectedJudges] = useState<string[]>([]);
-  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] = useState<null | HTMLElement>(null);
-  const [isBulkAssignDialogOpen, setIsBulkAssignDialogOpen] = useState(false);
+  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const [columnsMenuAnchorEl, setColumnsMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+
+  const [visibleHeaders, setVisibleHeaders] =
+    useState<string[]>(JUDGES_TABLE_HEADER);
 
   const counts = useMemo(() => {
-    const countsMap: Record<string, number> = { All: JUDGES.length };
+    const countsMap: Record<string, number> = { All: apiJudges.length };
     STATUS_OPTIONS.slice(1).forEach((status) => {
-      countsMap[status] = JUDGES.filter((j) => j.status === status).length;
+      countsMap[status] = apiJudges.filter(
+        (j: any) => j.status === status,
+      ).length;
     });
     return countsMap;
-  }, []);
+  }, [apiJudges]);
 
   const filteredJudges = useMemo(() => {
-    return JUDGES.filter((j) => {
+    return apiJudges.filter((j: any) => {
       const matchesSearch =
         j.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         j.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -58,11 +95,11 @@ const JudgesList: React.FC = () => {
         statusTab === UserStatus.ALL || j.status === statusTab;
       return matchesSearch && matchesStatus;
     });
-  }, [searchTerm, statusTab]);
+  }, [apiJudges, searchTerm, statusTab]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedJudges(filteredJudges.map((j) => j.id));
+      setSelectedJudges(filteredJudges.map((j: any) => j.id));
     } else {
       setSelectedJudges([]);
     }
@@ -75,10 +112,23 @@ const JudgesList: React.FC = () => {
   };
 
   const getSelectedJudgesData = () => {
-    return JUDGES.filter((j) => selectedJudges.includes(j.id)).map((j) => ({
-      id: j.id,
-      name: j.name,
-    }));
+    return apiJudges
+      .filter((j: any) => selectedJudges.includes(j.id))
+      .map((j: any) => ({
+        id: j.id,
+        name: j.name,
+      }));
+  };
+
+  const handleToggleHeader = (header: string) => {
+    setVisibleHeaders((prev) => {
+      if (prev.includes(header)) {
+        return prev.filter((h) => h !== header);
+      } else {
+        const next = [...prev, header];
+        return JUDGES_TABLE_HEADER.filter((h) => next.includes(h));
+      }
+    });
   };
 
   return (
@@ -177,13 +227,56 @@ const JudgesList: React.FC = () => {
             }}
           />
 
-          <IconButton 
-            size="small" 
+          <IconButton
+            size="small"
             sx={{ color: colors.TEXT_SECONDARY }}
-            onClick={(e) => setHeaderMenuAnchorEl(e.currentTarget)}
+            onClick={(e) => setColumnsMenuAnchorEl(e.currentTarget)}
           >
             <MoreIcon />
           </IconButton>
+
+          <IconButton
+            size="small"
+            sx={{ color: colors.TEXT_SECONDARY }}
+            onClick={(e) => setHeaderMenuAnchorEl(e.currentTarget)}
+            disabled={selectedJudges.length === 0}
+          >
+            <AssignIcon />
+          </IconButton>
+          <Menu
+            anchorEl={columnsMenuAnchorEl}
+            open={Boolean(columnsMenuAnchorEl)}
+            onClose={() => setColumnsMenuAnchorEl(null)}
+            PaperProps={{
+              sx: {
+                borderRadius: 2,
+                mt: 1,
+                minWidth: 160,
+                boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                border: `1px solid ${colors.BORDER}`,
+              },
+            }}
+          >
+            {JUDGES_TABLE_HEADER.map((header) => (
+              <MenuItem
+                key={header}
+                onClick={() => handleToggleHeader(header)}
+                sx={{
+                  fontSize: "0.85rem",
+                  display: "flex",
+                  gap: 1,
+                  alignItems: "center",
+                }}
+              >
+                <Checkbox
+                  size="small"
+                  checked={visibleHeaders.includes(header)}
+                />
+                <ListItemText primary={header} />
+              </MenuItem>
+            ))}
+          </Menu>
+
           <Menu
             anchorEl={headerMenuAnchorEl}
             open={Boolean(headerMenuAnchorEl)}
@@ -202,7 +295,13 @@ const JudgesList: React.FC = () => {
               disabled={selectedJudges.length === 0}
               onClick={() => {
                 setHeaderMenuAnchorEl(null);
-                setIsBulkAssignDialogOpen(true);
+                showModal(
+                  <AssignJudgesDialog
+                    open={true}
+                    onClose={hideModal}
+                    judges={getSelectedJudgesData()}
+                  />
+                );
               }}
               sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
             >
@@ -213,7 +312,6 @@ const JudgesList: React.FC = () => {
               disabled={selectedJudges.length === 0}
               onClick={() => {
                 setHeaderMenuAnchorEl(null);
-                // Placeholder for other bulk actions
               }}
               sx={{ fontSize: "0.85rem", color: colors.ERROR }}
             >
@@ -222,12 +320,6 @@ const JudgesList: React.FC = () => {
           </Menu>
         </Box>
       </Box>
-
-      <AssignJudgesDialog
-        open={isBulkAssignDialogOpen}
-        onClose={() => setIsBulkAssignDialogOpen(false)}
-        judges={getSelectedJudgesData()}
-      />
 
       <Paper
         elevation={0}
@@ -239,17 +331,18 @@ const JudgesList: React.FC = () => {
           boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
         }}
       >
-        <TableContainer>
-          <Table size={isDense ? "small" : "medium"}>
+        <TableContainer sx={{ overflowX: "auto" }}>
+          <Table size={isDense ? "small" : "medium"} sx={{ minWidth: 800 }}>
             <JudgesTableHeader
               colors={colors}
               selectedCount={selectedJudges.length}
               totalCount={filteredJudges.length}
               onSelectAll={handleSelectAll}
+              visibleHeaders={visibleHeaders}
             />
             <TableBody>
               {filteredJudges.length > 0 ? (
-                filteredJudges.map((judge) => (
+                filteredJudges.map((judge: any) => (
                   <JudgesTableRow
                     key={judge.id}
                     judge={judge}
@@ -257,16 +350,22 @@ const JudgesList: React.FC = () => {
                     dense={isDense}
                     selected={selectedJudges.includes(judge.id)}
                     onSelect={() => handleSelectJudge(judge.id)}
+                    visibleHeaders={visibleHeaders}
                   />
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ py: 10, textAlign: "center" }}>
+                  <TableCell
+                    colSpan={visibleHeaders.length + 1}
+                    sx={{ py: 10, textAlign: "center" }}
+                  >
                     <Typography
                       variant="body2"
                       sx={{ color: colors.TEXT_SECONDARY }}
                     >
-                      No judges found matching "{searchTerm}"
+                      {isPending
+                        ? "Loading judges..."
+                        : `No judges found matching "${searchTerm}"`}
                     </Typography>
                   </TableCell>
                 </TableRow>
