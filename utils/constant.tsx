@@ -833,3 +833,20 @@ export const CONTEST_TABLE_STATUS = [
     label: UserStatus.OFFLINE,
   },
 ];
+
+export const EXPERTISE_OPTIONS = [
+  "AI",
+  "Machine Learning",
+  "Data Science",
+  "Web Development",
+  "Mobile Development",
+  "UI/UX Design",
+  "Graphic Design",
+  "Digital Marketing",
+  "Content Writing",
+  "Video Editing",
+  "Photography",
+  "Music",
+  "Art",
+  "Other",
+];

@@ -135,3 +135,12 @@ export interface CONTESTDETAILS {
     };
   }[];
 }
+
+export interface JUDGEPAYLOAD {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+  expertise: string[];
+}

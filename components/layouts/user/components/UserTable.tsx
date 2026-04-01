@@ -33,13 +33,20 @@ import {
   Add,
   GetApp as ExportIcon,
 } from "@mui/icons-material";
-import { STATUS_OPTIONS, USER_TABLE_HEADER, USERS, GRADE_OPTIONS } from "@/utils/constant";
+import {
+  STATUS_OPTIONS,
+  USER_TABLE_HEADER,
+  USERS,
+  GRADE_OPTIONS,
+} from "@/utils/constant";
 import { useAppTheme } from "@/context/ThemeContext";
 import UserTableRow from "./UserTableRow";
 import { COLORS, UserRole, UserStatus } from "@/utils/enum";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import Link from "next/link";
 import { useGetAllUsers } from "@/hooks/user/useGetAllUsers";
+import { useQuery } from "@tanstack/react-query";
+import { UserController } from "@/api/userControllers";
 
 const USER_COLUMNS_CONFIG = [
   { id: "name", label: "Name" },
@@ -64,7 +71,9 @@ const UserTable: React.FC = () => {
   const [isDense, setIsDense] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [columnAnchorEl, setColumnAnchorEl] = useState<null | HTMLElement>(null);
+  const [columnAnchorEl, setColumnAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
   const [visibleColumns, setVisibleColumns] = useState<string[]>([
     "name",
     "phoneNumber",
@@ -83,7 +92,9 @@ const UserTable: React.FC = () => {
   const counts = useMemo(() => {
     const countsMap: Record<string, number> = { All: displayUsers.length };
     STATUS_OPTIONS.slice(1).forEach((status) => {
-      countsMap[status] = displayUsers.filter((u) => u.status === status).length;
+      countsMap[status] = displayUsers.filter(
+        (u) => u.status === status,
+      ).length;
     });
     return countsMap;
   }, [displayUsers]);
@@ -110,16 +121,32 @@ const UserTable: React.FC = () => {
       statusTab === UserStatus.ALL || u.status === statusTab;
     const matchesSchool = schoolFilter === "All" || u.company === schoolFilter;
     const matchesGrade = gradeFilter === "All" || u.grade === gradeFilter;
-    const matchesYear = yearFilter === "All" || u.joinedAt?.startsWith(yearFilter);
-    return matchesSearch && matchesStatus && matchesSchool && matchesGrade && matchesYear;
+    const matchesYear =
+      yearFilter === "All" || u.joinedAt?.startsWith(yearFilter);
+    return (
+      matchesSearch &&
+      matchesStatus &&
+      matchesSchool &&
+      matchesGrade &&
+      matchesYear
+    );
   });
 
   const handleExportCSV = () => {
     // Header for CSV
-    const headers = ["ID", "Name", "Email", "Phone", "Grade", "Status", "Joined", "Last Login"];
-    
+    const headers = [
+      "ID",
+      "Name",
+      "Email",
+      "Phone",
+      "Grade",
+      "Status",
+      "Joined",
+      "Last Login",
+    ];
+
     // Rows
-    const rows = filteredUsers.map(user => [
+    const rows = filteredUsers.map((user) => [
       user.id,
       user.name,
       user.email,
@@ -127,22 +154,27 @@ const UserTable: React.FC = () => {
       user.grade || "",
       user.status,
       user.joinedAt || "",
-      user.lastLogin || ""
+      user.lastLogin || "",
     ]);
 
     // Construct CSV content
     const csvContent = [
       headers.join(","),
-      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      ...rows.map((row) =>
+        row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","),
+      ),
     ].join("\n");
 
     // Browser download trigger
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+    link.setAttribute(
+      "download",
+      `users_export_${new Date().toISOString().split("T")[0]}.csv`,
+    );
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -181,6 +213,14 @@ const UserTable: React.FC = () => {
   const visibleHeaders = USER_COLUMNS_CONFIG.filter((col) =>
     visibleColumns.includes(col.id),
   );
+
+  const { data, isPending, error } = useQuery({
+    queryKey: ["user-list"],
+    queryFn: () => UserController.getAllUser(UserRole.PARTICIPANT),
+    enabled: true,
+  });
+
+  console.log("data", data);
 
   return (
     <Box sx={{ p: 1 }}>
@@ -341,7 +381,7 @@ const UserTable: React.FC = () => {
               },
             }}
           />
-          
+
           <Button
             onClick={() => setShowFilters(!showFilters)}
             variant="outlined"
@@ -356,8 +396,12 @@ const UserTable: React.FC = () => {
               textTransform: "none",
               fontWeight: 600,
               "&:hover": {
-                bgcolor: showFilters ? `${colors.PRIMARY}05` : "rgba(0,0,0,0.02)",
-                borderColor: showFilters ? colors.PRIMARY : colors.TEXT_SECONDARY,
+                bgcolor: showFilters
+                  ? `${colors.PRIMARY}05`
+                  : "rgba(0,0,0,0.02)",
+                borderColor: showFilters
+                  ? colors.PRIMARY
+                  : colors.TEXT_SECONDARY,
               },
             }}
           >

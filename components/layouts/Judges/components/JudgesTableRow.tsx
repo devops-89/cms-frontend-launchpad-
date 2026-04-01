@@ -13,10 +13,16 @@ import {
   Select,
   FormControl,
 } from "@mui/material";
-import { Edit as EditIcon, MoreVert as MoreIcon, Assignment as AssignIcon } from "@mui/icons-material";
+import {
+  Edit as EditIcon,
+  MoreVert as MoreIcon,
+  Assignment as AssignIcon,
+} from "@mui/icons-material";
 import { useRouter } from "next/navigation";
-import { UserStatus } from "@/utils/enum";
+import { UserRole, UserStatus } from "@/utils/enum";
 import AssignJudgesDialog from "./AssignJudgesDialog";
+import { useQuery } from "@tanstack/react-query";
+import { UserController } from "@/api/userControllers";
 
 interface JudgesTableRowProps {
   judge: any;
@@ -66,7 +72,15 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
     setJudge({ ...judge, status: newStatus });
   };
 
+  const { data, isPending, error } = useQuery({
+    queryKey: ["judge-list"],
+    queryFn: () => UserController.getAllUser(UserRole.JUDGE),
+  });
+
   const statusStyle = getStatusStyles(judge.status);
+
+  console.log("dasta", data);
+  console.log("error", error);
 
   return (
     <TableRow
@@ -225,14 +239,22 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
             <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
               View Details
             </MenuItem>
-            <MenuItem 
+            <MenuItem
               onClick={() => {
                 handleCloseMenu();
                 setIsAssignDialogOpen(true);
-              }} 
-              sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
+              }}
+              sx={{
+                fontSize: "0.85rem",
+                display: "flex",
+                gap: 1,
+                alignItems: "center",
+              }}
             >
-              <AssignIcon fontSize="small" sx={{ color: colors.PRIMARY, fontSize: 16 }} />
+              <AssignIcon
+                fontSize="small"
+                sx={{ color: colors.PRIMARY, fontSize: 16 }}
+              />
               Assign to Contest
             </MenuItem>
             <MenuItem
