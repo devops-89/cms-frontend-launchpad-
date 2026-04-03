@@ -16,9 +16,10 @@ import {
   DialogActions,
 } from "@mui/material";
 import { Add as AddIcon, BuildRounded as BuildIcon } from "@mui/icons-material";
-import { FORM_CONTROLLERS } from "@/api/formControllers";
 import { montserrat } from "@/utils/fonts";
 import FormBuilderCard from "./Form-Builder-Card";
+import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
+import { FORM_CONTROLLERS } from "@/api/formControllers";
 
 interface TemplateListProps {
   onEdit: (template: any) => void;
@@ -26,39 +27,17 @@ interface TemplateListProps {
 
 const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
   const theme = useTheme();
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { templates, isLoading: loading, refetch } = useGetAllTemplates();
 
   const { showSnackbar } = useSnackbar();
   const router = useRouter();
 
   const handleCreateNew = () => router.push("/form-builder/add");
 
-  const fetchTemplates = async () => {
-    try {
-      setLoading(true);
-      const response = await FORM_CONTROLLERS.getAllTemplates();
-      const rawData = response?.data;
-      const templatesData = Array.isArray(rawData)
-        ? rawData
-        : Array.isArray(rawData?.data)
-          ? rawData.data
-          : Array.isArray(rawData?.templates)
-            ? rawData.templates
-            : [];
-
-      setTemplates(templatesData);
-    } catch (error) {
-      console.error("Failed to fetch templates:", error);
-      setTemplates([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchTemplates();
-  }, []);
+    // Force a fresh fetch when the component mounts to ensure the list is up to date
+    refetch();
+  }, [refetch]);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
@@ -72,8 +51,8 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
     if (!templateToDelete) return;
     try {
       await FORM_CONTROLLERS.deleteTemplate(templateToDelete);
-      setTemplates(templates.filter((t) => t.id !== templateToDelete));
       showSnackbar("Template deleted successfully", "success");
+      refetch();
     } catch (error) {
       console.error("Failed to delete template:", error);
       showSnackbar("Failed to delete template.", "error");
@@ -212,7 +191,9 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
           },
         }}
       >
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Confirm Deletion</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+          Confirm Deletion
+        </DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ color: "text.secondary", fontWeight: 500 }}>
             Are you sure you want to delete this template? This action cannot be
@@ -223,7 +204,11 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
           <Button
             onClick={() => setDeleteDialogOpen(false)}
             variant="text"
-            sx={{ borderRadius: "10px", fontWeight: 600, color: "text.secondary" }}
+            sx={{
+              borderRadius: "10px",
+              fontWeight: 600,
+              color: "text.secondary",
+            }}
           >
             Cancel
           </Button>

@@ -19,6 +19,7 @@ import {
   alpha,
   useTheme,
   Grow,
+  Divider,
 } from "@mui/material";
 import {
   DragIndicator as DragIcon,
@@ -501,23 +502,61 @@ const FieldCard: React.FC<FieldCardProps> = ({
                                 },
                               }}
                             >
-                              <MenuItem
+                               <MenuItem
                                 value=""
                                 sx={{ fontSize: "0.7rem", fontStyle: "italic" }}
                               >
                                 Continue to next step
                               </MenuItem>
                               {allFields
-                                .filter((sb) => sb.type === "step_break")
-                                .map((sb) => (
+                                .filter(
+                                  (sb) =>
+                                    sb.type === "step_break" &&
+                                    sb.id !== field.id,
+                                )
+                                .map((sb, idx) => (
                                   <MenuItem
                                     key={sb.id}
                                     value={sb.id}
                                     sx={{ fontSize: "0.7rem" }}
                                   >
-                                    Go to: {sb.label || "Unnamed Step"}
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                      }}
+                                    >
+                                      <Chip
+                                        label={`Step ${idx + 1}`}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{
+                                          height: 16,
+                                          fontSize: "0.55rem",
+                                          fontWeight: 800,
+                                          borderColor: alpha(
+                                            theme.palette.secondary.main,
+                                            0.3,
+                                          ),
+                                          color: "secondary.main",
+                                        }}
+                                      />
+                                      Go to: {sb.label || "Unnamed Step"}
+                                    </Box>
                                   </MenuItem>
                                 ))}
+                              <Divider />
+                              <MenuItem
+                                value="end_of_form"
+                                sx={{
+                                  fontSize: "0.7rem",
+                                  color: "primary.main",
+                                  fontWeight: 800,
+                                }}
+                              >
+                                🏁 Jump to: End of Form
+                              </MenuItem>
                             </Select>
                           </FormControl>
                         )}

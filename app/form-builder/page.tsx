@@ -1,31 +1,21 @@
 "use client";
 
-import React, { useState } from "react";
-import FormBuilder from "@/components/layouts/form-builder/FormBuilder";
+import React from "react";
 import TemplateList from "@/components/layouts/form-builder/components/TemplateList";
 import { Box } from "@mui/material";
+import { useRouter } from "next/navigation";
 
 const FormBuilderPage = () => {
-  const [view, setView] = useState<"list" | "create" | "edit">("list");
-  const [editingTemplate, setEditingTemplate] = useState<any>(null);
+  const router = useRouter();
 
   const handleEdit = (template: any) => {
-    console.log("template", template);
-    setEditingTemplate(template);
-    setView("edit");
-  };
-
-  const handleBackToList = () => {
-    setView("list");
+    // Navigate to the new edit-template page under form-builder
+    router.push(`/form-builder/edit-template/${template.id}`);
   };
 
   return (
     <Box>
-      {view === "list" ? (
-        <TemplateList onEdit={handleEdit} />
-      ) : (
-        <FormBuilder initialData={editingTemplate} onBack={handleBackToList} />
-      )}
+      <TemplateList onEdit={handleEdit} />
     </Box>
   );
 };

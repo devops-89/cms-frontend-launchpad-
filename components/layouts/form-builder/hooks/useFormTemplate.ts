@@ -8,15 +8,27 @@ export const useFormTemplate = (initialData?: any) => {
   const { addForm } = useForms();
   const { showSnackbar } = useSnackbar();
   const router = useRouter();
-  
-  const [formName, setFormName] = useState(initialData?.schema?.form_identity?.name || initialData?.name || "");
-  const [formTitle, setFormTitle] = useState(initialData?.schema?.form_identity?.title || initialData?.title || "");
-  const [formSection, setFormSection] = useState(initialData?.schema?.form_identity?.section_name || initialData?.section_name || "");
-  const [fields, setFields] = useState<FormField[]>(initialData?.schema?.fields || initialData?.fields || []);
+
+  const [formName, setFormName] = useState(
+    initialData?.schema?.form_identity?.name || initialData?.name || "",
+  );
+  const [formTitle, setFormTitle] = useState(
+    initialData?.schema?.form_identity?.title || initialData?.title || "",
+  );
+  const [formSection, setFormSection] = useState(
+    initialData?.schema?.form_identity?.section_name ||
+      initialData?.section_name ||
+      "",
+  );
+  const [fields, setFields] = useState<FormField[]>(
+    initialData?.schema?.fields || initialData?.fields || [],
+  );
   const [loading, setLoading] = useState(false);
   const [isIdentityOpen, setIsIdentityOpen] = useState(true);
-  const [newOptionTexts, setNewOptionTexts] = useState<Record<string, string>>({});
-  
+  const [newOptionTexts, setNewOptionTexts] = useState<Record<string, string>>(
+    {},
+  );
+
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -157,20 +169,22 @@ export const useFormTemplate = (initialData?: any) => {
 
     try {
       console.log("SENDING TO BACKEND:", payload);
-      
+
       let response;
       if (initialData?.id) {
         response = await FORM_CONTROLLERS.editTemplate(initialData.id, payload);
       } else {
         response = await FORM_CONTROLLERS.createForm(payload);
       }
-      
+
       if (response.status === 201 || response.status === 200) {
         showSnackbar(
-          initialData?.id ? "Template updated successfully!" : "Template created successfully!",
-          "success"
+          initialData?.id
+            ? "Template updated successfully!"
+            : "Template created successfully!",
+          "success",
         );
-        
+
         if (!initialData?.id) {
           addForm({
             id: response.data?.id || Math.random().toString(36).substr(2, 9),
@@ -180,13 +194,16 @@ export const useFormTemplate = (initialData?: any) => {
           });
           router.push("/contest-management/contests/add-contest");
         } else {
-          // If editing, maybe go back or refresh
           router.back();
         }
       }
     } catch (error: any) {
       console.error("FAILED TO SAVE TEMPLATE:", error);
-      showSnackbar(error.response?.data?.message || "Failed to save template. Please try again.", "error");
+      showSnackbar(
+        error.response?.data?.message ||
+          "Failed to save template. Please try again.",
+        "error",
+      );
     } finally {
       setLoading(false);
     }
