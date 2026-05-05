@@ -1,43 +1,43 @@
-import React from "react";
-import {
-  Box,
-  Paper,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  IconButton,
-  Typography,
-  Stack,
-  Chip,
-  Button,
-  FormControlLabel,
-  Switch,
-  Autocomplete,
-  alpha,
-  useTheme,
-  Grow,
-  Divider,
-} from "@mui/material";
-import {
-  DragIndicator as DragIcon,
-  Delete as DeleteIcon,
-  Close as CloseIcon,
-  Add as AddIcon,
-  Phone as TelIcon,
-  Event as DateIcon,
-  ViewDay as SplitIcon,
-  ContentCopy as DuplicateIcon,
-  KeyboardArrowUp as UpIcon,
-  KeyboardArrowDown as DownIcon,
-} from "@mui/icons-material";
-import { FormField, FieldType, FieldVariant } from "@/context/FormContext";
-import { fieldTypes } from "./Toolbox";
+import { FieldType, FieldVariant, FormField } from "@/context/FormContext";
+import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 import { countries } from "@/utils/constant";
 import { roboto } from "@/utils/fonts";
-import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
+import {
+  Add as AddIcon,
+  Close as CloseIcon,
+  Event as DateIcon,
+  Delete as DeleteIcon,
+  KeyboardArrowDown as DownIcon,
+  DragIndicator as DragIcon,
+  ContentCopy as DuplicateIcon,
+  ViewDay as SplitIcon,
+  Phone as TelIcon,
+  KeyboardArrowUp as UpIcon,
+} from "@mui/icons-material";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  FormControl,
+  FormControlLabel,
+  Grid,
+  Grow,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Paper,
+  Select,
+  Stack,
+  Switch,
+  TextField,
+  Typography,
+  alpha,
+  useTheme,
+} from "@mui/material";
+import React from "react";
+import { fieldTypes } from "./Toolbox";
 
 interface FieldCardProps {
   field: FormField;
@@ -53,11 +53,13 @@ interface FieldCardProps {
   index: number;
   totalFields: number;
   allFields?: FormField[];
+  formValues?: any;
 }
 
 const FieldCard: React.FC<FieldCardProps> = ({
   field,
   allFields = [],
+  formValues,
   onRemove,
   onUpdate,
   onUpdateConfig,
@@ -74,6 +76,13 @@ const FieldCard: React.FC<FieldCardProps> = ({
   const { templates } = useGetAllTemplates();
 
   if (field.type === "step_break") {
+    // ✅ CHECK USER SELECTION
+const showMember2 = formValues?.add_more_members === "Yes";
+
+// 🚫 HIDE MEMBER 2 COMPLETELY
+if (field.id === "member_2_step" && !showMember2) {
+  return null;
+}
     const fieldIndex = allFields.findIndex((f) => f.id === field.id);
     const precedingFields = allFields.slice(
       0,

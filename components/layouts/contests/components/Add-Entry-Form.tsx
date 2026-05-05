@@ -1,48 +1,48 @@
 "use client";
+import { contestControllers } from "@/api/contestControllers";
+import { entryControllers } from "@/api/entryControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { countries } from "@/utils/constant";
+import { FIELDS_TYPE } from "@/utils/enum";
 import { montserrat } from "@/utils/fonts";
 import {
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+} from "@mui/icons-material";
+import {
+  Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
+  Checkbox,
+  CircularProgress,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
   Grid,
+  InputLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Rating,
+  Select,
+  Slider,
+  Switch,
   TextField,
   Typography,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Checkbox,
-  FormControlLabel,
-  Switch,
-  RadioGroup,
-  Radio,
-  Slider,
-  Rating,
-  Autocomplete,
-  Alert,
-  CircularProgress,
-  FormHelperText,
 } from "@mui/material";
-import { useSnackbar } from "@/context/SnackbarContext";
-import { useParams, useRouter } from "next/navigation";
-import React from "react";
-import { FIELDS_TYPE } from "@/utils/enum";
-import { MuiTelInput } from "mui-tel-input";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
-import {
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
-import { useFormik } from "formik";
-import * as Yup from "yup";
 import { useQuery } from "@tanstack/react-query";
-import { contestControllers } from "@/api/contestControllers";
-import { entryControllers } from "@/api/entryControllers";
+import dayjs from "dayjs";
+import { useFormik } from "formik";
+import { MuiTelInput } from "mui-tel-input";
+import { useParams, useRouter } from "next/navigation";
+import React from "react";
+import * as Yup from "yup";
 
 const AddEntryForm = () => {
   const { showSnackbar } = useSnackbar();
@@ -127,6 +127,24 @@ const AddEntryForm = () => {
     },
   });
 
+      const addMemberField = template_fields?.find(
+      (f: any) =>
+        f.type === FIELDS_TYPE.SELECT &&
+        f.label?.toLowerCase().includes("add another member")
+      );
+
+      const showMember2 =addMemberField && formik.values[addMemberField.id] === "Yes";
+
+      React.useEffect(() => {
+      if (!showMember2) {
+        template_fields?.forEach((field: any) => {
+          if (field.label?.toLowerCase().includes("member 2")) {
+            formik.setFieldValue(field.id, "");
+          }
+        });
+      }
+      }, [showMember2, template_fields]);
+
   if (isPending) {
     return (
       <Box
@@ -159,6 +177,8 @@ const AddEntryForm = () => {
     );
   }
 
+  let hideMember2=false;
+  
   return (
     <Box>
       <Breadcrumb
@@ -196,7 +216,36 @@ const AddEntryForm = () => {
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <Grid container spacing={4}>
-            {template_fields?.map((val: any) => (
+            {template_fields?.map((val: any) => {
+              if (val.type === FIELDS_TYPE.STEP_BREAK) {
+      const label = val.label?.toLowerCase() || "";
+
+      // 👉 START Member 2
+      if (label.includes("second")) {
+        hideMember2 = !showMember2;
+      }
+
+      // 👉 END Member 2 (next section only)
+      else if (hideMember2) {
+        hideMember2 = false;
+      }
+    }
+
+    // 🚫 HIDE MEMBER 2 BLOCK
+    if (hideMember2) return null;
+
+    // ✅ STEP BREAK UI
+    if (val.type === FIELDS_TYPE.STEP_BREAK) {
+      return (
+        <Grid key={val.id} size={{ xs: 12 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            {val.label}
+          </Typography>
+        </Grid>
+      );
+    }
+
+              return(
               <Grid key={val.id} size={{ xs: 12, md: 6 }}>
                 {(val.type === FIELDS_TYPE.TEXTFIELD ||
                   val.type === FIELDS_TYPE.NUMBER_FIELD ||
@@ -537,7 +586,8 @@ const AddEntryForm = () => {
                   </Box>
                 )}
               </Grid>
-            ))}
+              );
+            })}
           </Grid>
         </LocalizationProvider>
 
