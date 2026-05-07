@@ -1,20 +1,18 @@
-import React from "react";
+import { CountryType } from "@/types/user";
 import {
   Add as AddIcon,
-  RemoveRedEye as ViewsIcon,
-  Poll as VotesIcon,
-  AttachMoney as RevenueIcon,
-  ErrorOutline as ModerationIcon,
+  BuildRounded,
   Dashboard,
+  EmojiEvents,
+  Gavel,
+  ErrorOutline as ModerationIcon,
   People,
   PersonSharp,
-  AddBusinessRounded,
-  Gavel,
-  EmojiEvents,
-  BuildRounded,
+  AttachMoney as RevenueIcon,
+  RemoveRedEye as ViewsIcon,
+  Poll as VotesIcon
 } from "@mui/icons-material";
-import { UserRole, UserStatus } from "./enum";
-import { CountryType } from "@/types/user";
+import { UserStatus } from "./enum";
 
 export const STATS = [
   {
@@ -64,6 +62,7 @@ export const STATS = [
 export const ENTRIES = [
   {
     id: 1,
+    contest_Id: "contest-uuid-1",
     title: "Current of Consequences",
     score: 0,
     uploaded: "2026-03-06 13:18:26",
@@ -73,6 +72,7 @@ export const ENTRIES = [
   },
   {
     id: 2,
+    contest_Id: "contest-uuid-2",
     title: "test",
     score: 0,
     uploaded: "2026-03-05 03:04:54",
@@ -82,6 +82,7 @@ export const ENTRIES = [
   },
   {
     id: 3,
+    contest_Id: "contest-uuid-3",
     title: "Revolt AI - REVOLUTIONIZING EV BATTERY LIFE WITH AI",
     score: 0,
     uploaded: "2026-03-01 04:21:05",
@@ -91,6 +92,7 @@ export const ENTRIES = [
   },
   {
     id: 4,
+    contest_Id: "contest-uuid-4",
     title: "Luminora",
     score: 0,
     uploaded: "2026-02-25 10:35:53",

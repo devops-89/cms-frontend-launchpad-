@@ -1,25 +1,25 @@
 "use client";
 
-import React from "react";
+import { useAppTheme } from "@/context/ThemeContext";
+import { useLogin } from "@/hooks/auth/useLogin";
+import { Login_Validation } from "@/utils/validation";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
+  Alert,
   Box,
   Button,
+  Collapse,
   Container,
-  TextField,
-  Typography,
-  Paper,
-  Link,
   IconButton,
   InputAdornment,
-  Alert,
-  Collapse,
+  Link,
+  Paper,
+  TextField,
+  Typography,
 } from "@mui/material";
-import { useRouter } from "next/navigation";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useAppTheme } from "@/context/ThemeContext";
 import { useFormik } from "formik";
-import { Login_Validation } from "@/utils/validation";
-import { useLogin } from "@/hooks/auth/useLogin";
+import { useRouter } from "next/navigation";
+import React from "react";
 
 const Login = () => {
   const { colors, mode } = useAppTheme();
@@ -161,7 +161,7 @@ const Login = () => {
                 }}
               >
                 <Link
-                  href="#"
+                  href="/forgot-password"
                   variant="body2"
                   sx={{
                     color: colors.PRIMARY,

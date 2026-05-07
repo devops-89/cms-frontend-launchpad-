@@ -163,3 +163,30 @@ export interface USER_DATA {
   role: string;
   status: string;
 }
+
+export interface REGISTERPAYLOAD {
+  email: string;
+  password: string;
+  role: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+}
+
+export interface LOGOUTPAYLOAD {
+  refreshToken: string;
+}
+
+export interface FORGOTPASSWORDPAYLOAD {
+  email: string;
+}
+
+export interface RESETPASSWORDPAYLOAD {
+  email: string;
+  otp: string;
+  password: string;
+}
+
+export interface ASSIGNJUDGEPAYLOAD {
+  judge_id: string;
+}

@@ -1,49 +1,48 @@
 "use client";
+import { contestControllers } from "@/api/contestControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { useContestDetails } from "@/store/useContestDetails";
 import { countries } from "@/utils/constant";
-import { CountryType } from "@/types/user";
-import { montserrat, roboto } from "@/utils/fonts";
+import { FIELDS_TYPE } from "@/utils/enum";
+import { montserrat } from "@/utils/fonts";
 import {
+  ArrowBack as ArrowBackIcon,
+  Save as SaveIcon,
+} from "@mui/icons-material";
+import {
+  Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
+  Checkbox,
+  CircularProgress,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
   Grid,
+  InputLabel,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Rating,
+  Select,
+  Slider,
+  Switch,
   TextField,
   Typography,
-  MenuItem,
-  Select,
-  FormControl,
-  InputLabel,
-  Checkbox,
-  FormControlLabel,
-  Switch,
-  RadioGroup,
-  Radio,
-  Slider,
-  Rating,
-  Autocomplete,
-  Alert,
-  CircularProgress,
 } from "@mui/material";
-import { useSnackbar } from "@/context/SnackbarContext";
-import { useParams, useRouter } from "next/navigation";
-import React, { useState } from "react";
-import { FIELDS_TYPE } from "@/utils/enum";
-import { MuiTelInput } from "mui-tel-input";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import dayjs from "dayjs";
-import {
-  Save as SaveIcon,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
-import { useFormik } from "formik";
-import * as Yup from "yup";
-import { FormHelperText } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { contestControllers } from "@/api/contestControllers";
+import dayjs from "dayjs";
+import { useFormik } from "formik";
+import { MuiTelInput } from "mui-tel-input";
+import { useParams, useRouter } from "next/navigation";
+import React from "react";
+import * as Yup from "yup";
 
 const AddUserForm = () => {
   const { showSnackbar } = useSnackbar();
@@ -115,17 +114,28 @@ const AddUserForm = () => {
     validationSchema,
     enableReinitialize: true,
     onSubmit: async (values) => {
-      try {
-        await contestControllers.addUserInContest(values, id);
-        showSnackbar("User added successfully!", "success");
-        router.push(`/contest-management/contests/${id}`);
-      } catch (err: any) {
-        showSnackbar(
-          err?.response?.data?.message || "Failed to add user",
-          "error",
-        );
-      }
-    },
+  try {
+    await contestControllers.addUserInContest(
+      values,
+      id,
+    );
+
+    showSnackbar(
+      "User added successfully!",
+      "success",
+    );
+
+    router.push(
+      `/contest-management/contests/${id}`,
+    );
+  } catch (err: any) {
+    showSnackbar(
+      err?.response?.data?.message ||
+        "Failed to add user",
+      "error",
+    );
+  }
+},
   });
 
   if (isPending) {

@@ -124,7 +124,7 @@ const UserTable: React.FC = () => {
   const tabChangeHandler = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
   };
-
+  console.log(user_data);
   const ALL_HEADERS = [
     "Id",
     "Name",

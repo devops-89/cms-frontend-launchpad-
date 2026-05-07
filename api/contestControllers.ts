@@ -1,4 +1,4 @@
-import { AddContestPayload } from "@/types/user";
+import { AddContestPayload, ASSIGNJUDGEPAYLOAD } from "@/types/user";
 import { contestSecuredApi } from "./config";
 
 export const contestControllers = {
@@ -40,6 +40,7 @@ export const contestControllers = {
         `/${id}/participants`,
         data,
       );
+      console.log(response);
       return response.data;
     } catch (error) {
       throw error;
@@ -68,4 +69,60 @@ export const contestControllers = {
       throw error;
     }
   },
+
+  getAllParticipants: async (contestId: string) => {
+  try {
+    const response = await contestSecuredApi.get(
+      `/${contestId}/participants/`,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+  },
+
+  getParticipantById: async (
+  contestId: string,
+  participantId: string,
+  ) => {
+  try {
+    const response = await contestSecuredApi.get(
+      `/${contestId}/participants/${participantId}`,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+  },
+
+  assignJudgeToContest: async (
+  contestId: string,
+  data: ASSIGNJUDGEPAYLOAD,
+  ) => {
+  try {
+    const response = await contestSecuredApi.post(
+      `/${contestId}/judges/`,
+      data,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+  },
+
+  getAllJudges: async (contestId: string) => {
+  try {
+    const response = await contestSecuredApi.get(
+      `/${contestId}/judges/`,
+    );
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+  },
+
 };

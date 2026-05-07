@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
 import { usePathname } from "next/navigation";
-import Sidebar from "./Sidebar";
+import React from "react";
 import Header from "./Header";
 import LayoutProvider from "./Layout-Provider";
 import Modal from "./Modal";
+import Sidebar from "./Sidebar";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -15,7 +15,11 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
   const pathname = usePathname();
   
   // Define paths where Sidebar and Header should be hidden
-  const hideLayoutPaths = ["/"];
+  const hideLayoutPaths = ["/",
+                          "/forgot-password",
+                          "/reset-password",
+                          "/verify-otp",
+                          ];
   const isLoginPage = hideLayoutPaths.includes(pathname);
 
   if (isLoginPage) {

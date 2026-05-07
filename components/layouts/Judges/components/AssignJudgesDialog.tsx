@@ -1,33 +1,28 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import {
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Box,
-  Typography,
-  Autocomplete,
-  TextField,
-  Chip,
-  IconButton,
-  CircularProgress,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Checkbox,
-  Divider,
-} from "@mui/material";
-import {
-  Close as CloseIcon,
-  EmojiEvents as ContestIcon,
-  CheckCircle as SuccessIcon,
-} from "@mui/icons-material";
+import { contestControllers } from "@/api/contestControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { useAppTheme } from "@/context/ThemeContext";
+import {
+  Close as CloseIcon,
+  EmojiEvents as ContestIcon
+} from "@mui/icons-material";
+import {
+  Autocomplete,
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  CircularProgress,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Divider,
+  IconButton,
+  TextField,
+  Typography
+} from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { contestControllers } from "@/api/contestControllers";
+import React, { useEffect, useState } from "react";
 
 interface AssignJudgesDialogProps {
   open: boolean;
@@ -74,24 +69,55 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
     }
   }, [open]);
 
-  const handleAssign = () => {
-    if (selectedContests.length === 0) {
-      showSnackbar("Please select at least one contest", "warning");
-      return;
-    }
+  const handleAssign = async () => {
+  if (selectedContests.length === 0) {
+    showSnackbar(
+      "Please select at least one contest",
+      "warning",
+    );
 
+    return;
+  }
+
+  try {
     setLoading(true);
 
-    // Simulating API call
-    setTimeout(() => {
-      setLoading(false);
-      showSnackbar(
-        `Successfully assigned ${judges.length} judge${judges.length > 1 ? "s" : ""} to ${selectedContests.length} contest${selectedContests.length > 1 ? "s" : ""}`,
-        "success"
-      );
-      onClose();
-    }, 1200);
-  };
+    for (const contest of selectedContests) {
+      for (const judge of judges) {
+        await contestControllers.assignJudgeToContest(
+          contest.id,
+          {
+            judge_id: judge.id,
+          },
+        );
+      }
+    }
+
+    showSnackbar(
+      `Successfully assigned ${judges.length} judge${
+        judges.length > 1 ? "s" : ""
+      } to ${
+        selectedContests.length
+      } contest${
+        selectedContests.length > 1
+          ? "s"
+          : ""
+      }`,
+      "success",
+    );
+
+    onClose();
+  } catch (error) {
+    console.error(error);
+
+    showSnackbar(
+      "Failed to assign judges",
+      "error",
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <Box sx={{ minWidth: { xs: 300, sm: 500, md: 600 } }}>

@@ -51,11 +51,32 @@ const AddEntryForm = () => {
 
   const router = useRouter();
 
+  const [selectedParticipant,setSelectedParticipant] = React.useState("");
+
   const { data, isPending } = useQuery({
     queryKey: ["Contest Details", id],
     queryFn: () => contestControllers.getContestDetails(id),
     enabled: !!id,
   });
+  const {
+  data: participantsData,
+} = useQuery({
+  queryKey: [
+    "participants",
+    id,
+  ],
+
+  queryFn: () =>
+    contestControllers.getAllParticipants(
+      id,
+    ),
+
+  enabled: !!id,
+});
+console.log(
+  "participantsData",
+  participantsData,
+);
 
   const template_fields = data?.data?.entryLevelTemplate?.schema.fields;
   console.log("fields", template_fields);
@@ -81,50 +102,49 @@ const AddEntryForm = () => {
     );
   }, [template_fields]);
 
-  const validationSchema = React.useMemo(() => {
-    return Yup.object().shape(
-      template_fields?.reduce((acc: any, field: any) => {
-        let validator;
-        if (
-          field.type === FIELDS_TYPE.NUMBER_FIELD ||
-          field.type === FIELDS_TYPE.SLIDER ||
-          field.type === FIELDS_TYPE.RATING
-        ) {
-          validator = Yup.number();
-        } else if (
-          field.type === FIELDS_TYPE.CHECKBOX ||
-          field.type === FIELDS_TYPE.SWITCH
-        ) {
-          validator = Yup.boolean();
-        } else {
-          validator = Yup.string();
-        }
-
-        if (field.required) {
-          validator = validator.required(`${field.label} is required`);
-        }
-        acc[field.id] = validator;
-        return acc;
-      }, {}) || {},
-    );
-  }, [template_fields]);
+  const validationSchema =Yup.object({});
 
   const formik = useFormik({
     initialValues,
     validationSchema,
     enableReinitialize: true,
-    onSubmit: async (values) => {
-      try {
-        await entryControllers.addEntry(values, id);
-        showSnackbar("Entry added successfully!", "success");
-        router.push(`/contest-management/contests/${id}`);
-      } catch (err: any) {
-        showSnackbar(
-          err?.response?.data?.message || "Failed to add entry",
-          "error",
-        );
-      }
-    },
+   onSubmit: async (values) => {
+    console.log("FORM SUBMITTED");
+console.log(values);
+  try {
+    const participantId =selectedParticipant;
+    console.log(
+      "Selected Participant",
+      participantId,
+    );
+
+    await entryControllers.createEntry(
+      id,
+      {
+        participant_id:
+          participantId,
+        data: values,
+      },
+    );
+
+    showSnackbar(
+      "Entry added successfully!",
+      "success",
+    );
+
+    router.push(
+      `/contest-management/contests/${id}`,
+    );
+  } catch (err: any) {
+    console.log(err);
+
+    showSnackbar(
+      err?.response?.data?.message ||
+        "Failed to add entry",
+      "error",
+    );
+  }
+},
   });
 
       const addMemberField = template_fields?.find(
@@ -178,7 +198,7 @@ const AddEntryForm = () => {
   }
 
   let hideMember2=false;
-  
+
   return (
     <Box>
       <Breadcrumb
@@ -213,28 +233,54 @@ const AddEntryForm = () => {
         >
           Add New Entry
         </Typography>
-
+        <form onSubmit={formik.handleSubmit}>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <Grid container spacing={4}>
+            <Grid
+  size={{ xs: 12, md: 6 }}
+>
+  <FormControl fullWidth>
+  <InputLabel>
+    Select User
+  </InputLabel>
+
+  <Select
+    value={
+      selectedParticipant
+    }
+    label="Select User"
+    onChange={(e) => {
+      setSelectedParticipant(
+        e.target.value,
+      );
+    }}
+  >
+   {participantsData?.data?.map(
+  (participant: any) => (
+    <MenuItem
+      key={participant.id}
+      value={participant.id}
+    >
+      {participant?.submission?.data?.yg9snrxlh}
+    </MenuItem>
+  ),
+)}
+  </Select>
+</FormControl>
+</Grid>
             {template_fields?.map((val: any) => {
               if (val.type === FIELDS_TYPE.STEP_BREAK) {
-      const label = val.label?.toLowerCase() || "";
+              const label = val.label?.toLowerCase() || "";
 
-      // 👉 START Member 2
-      if (label.includes("second")) {
-        hideMember2 = !showMember2;
-      }
-
-      // 👉 END Member 2 (next section only)
-      else if (hideMember2) {
-        hideMember2 = false;
-      }
-    }
-
-    // 🚫 HIDE MEMBER 2 BLOCK
-    if (hideMember2) return null;
-
-    // ✅ STEP BREAK UI
+              if (label.includes("second")) {
+                hideMember2 = !showMember2;
+              }
+              else if (hideMember2) {
+                hideMember2 = false;
+              }
+          }
+          if (hideMember2) return null;
+          
     if (val.type === FIELDS_TYPE.STEP_BREAK) {
       return (
         <Grid key={val.id} size={{ xs: 12 }}>
@@ -602,16 +648,19 @@ const AddEntryForm = () => {
             Cancel
           </Button>
           <Button
-            variant="contained"
-            disabled={formik.isSubmitting}
-            startIcon={
-              formik.isSubmitting ? (
-                <CircularProgress size={20} color="inherit" />
+  type="submit"
+  variant="contained"
+  disabled={formik.isSubmitting}
+  startIcon={
+    formik.isSubmitting ? (
+      <CircularProgress
+        size={20}
+        color="inherit"
+      />
               ) : (
                 <SaveIcon />
               )
             }
-            onClick={() => formik.handleSubmit()}
             sx={{
               borderRadius: 2,
               px: 6,
@@ -626,6 +675,7 @@ const AddEntryForm = () => {
             {formik.isSubmitting ? "Adding..." : "Add Entry"}
           </Button>
         </Box>
+        </form>
       </Card>
     </Box>
   );

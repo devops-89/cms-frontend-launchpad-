@@ -1,45 +1,41 @@
 "use client";
-import React, { useState, useMemo, useEffect } from "react";
-import { USERS, GRADE_OPTIONS, STATUS_OPTIONS } from "@/utils/constant";
+import { useAppTheme } from "@/context/ThemeContext";
+import { useContestDetails } from "@/store/useContestDetails";
+import { GRADE_OPTIONS, USERS } from "@/utils/constant";
 import { roboto } from "@/utils/fonts";
 import {
   Delete,
   Edit,
-  Search as SearchIcon,
+  GetApp as ExportIcon,
   FilterList as FilterIcon,
   MoreVert as MoreIcon,
-  GetApp as ExportIcon,
+  Search as SearchIcon,
 } from "@mui/icons-material";
 import {
   Box,
+  Button,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
   IconButton,
+  InputAdornment,
+  InputLabel,
+  Menu,
+  MenuItem,
+  Paper,
+  Select,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableRow,
-  Typography,
   TextField,
-  InputAdornment,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Checkbox,
-  Switch,
-  FormControlLabel,
-  Menu,
-  Paper,
-  Tabs,
-  Tab,
+  Typography
 } from "@mui/material";
-import { useAppTheme } from "@/context/ThemeContext";
-import { useRouter } from "next/navigation";
-import { UserStatus } from "@/utils/enum";
-import UserTableRow from "@/components/layouts/user/components/UserTableRow";
-import { useContestDetails } from "@/store/useContestDetails";
 import moment from "moment";
+import { useRouter } from "next/navigation";
+import React, { useEffect, useMemo, useState } from "react";
 
 const USER_COLUMNS_CONFIG = [
   { id: "name", label: "Name" },
