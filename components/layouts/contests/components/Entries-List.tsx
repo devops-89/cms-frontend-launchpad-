@@ -284,7 +284,7 @@ const EntriesList = () => {
                         color="info"
                         onClick={() =>
                           router.push(
-                            `/contest-management/entries/${entry.id}`,
+                            `/contest-management/entries/${entry.id}?contestId=${entry.contest_id}`,
                           )
                         }
                       >

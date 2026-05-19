@@ -1,21 +1,17 @@
 "use client";
+import { contestControllers } from "@/api/contestControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { useContestDetails } from "@/store/useContestDetails";
 import { montserrat, roboto } from "@/utils/fonts";
-import { Box, Button, Card, Tab, Tabs, Typography } from "@mui/material";
 import { Add } from "@mui/icons-material";
+import { Box, Button, Card, Tab, Tabs, Typography } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
+import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import ParticipantsList from "./ParticipantsList";
 import EntriesList from "./Entries-List";
 import OverviewTab from "./Overview-Tab";
-import CategoryTab from "./Category-Tab";
+import ParticipantsList from "./ParticipantsList";
 import SettingsTab from "./Settings-Tab";
-import VotesTab from "./Votes-Tab";
-import NotificationsTab from "./Notifications-Tab";
-import TransactionsTab from "./Transactions-Tab";
-import { useParams, useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { contestControllers } from "@/api/contestControllers";
-import { useContestDetails } from "@/store/useContestDetails";
 
 const ContestDetails = () => {
   const params = useParams();
@@ -47,21 +43,21 @@ const ContestDetails = () => {
     {
       label: "Entries",
     },
-    {
-      label: "Category",
-    },
+    // {
+    //   label: "Category",
+    // },
     {
       label: "Settings",
     },
-    {
-      label: "Votes",
-    },
-    {
-      label: "Notifications",
-    },
-    {
-      label: "Transactions",
-    },
+    // {
+    //   label: "Votes",
+    // },
+    // {
+    //   label: "Notifications",
+    // },
+    // {
+    //   label: "Transactions",
+    // },
   ];
 
   useEffect(() => {
@@ -165,11 +161,11 @@ const ContestDetails = () => {
           {tabValue === 0 && <OverviewTab contest={contestData} />}
           {tabValue === 1 && <ParticipantsList />}
           {tabValue === 2 && <EntriesList />}
-          {tabValue === 3 && <CategoryTab />}
-          {tabValue === 4 && <SettingsTab />}
-          {tabValue === 5 && <VotesTab />}
+          {/* {tabValue === 3 && <CategoryTab />} */}
+          {tabValue === 3 && <SettingsTab />}
+          {/* {tabValue === 5 && <VotesTab />}
           {tabValue === 6 && <NotificationsTab />}
-          {tabValue === 7 && <TransactionsTab />}
+          {tabValue === 7 && <TransactionsTab />} */}
         </Box>
       </Card>
     </Box>
