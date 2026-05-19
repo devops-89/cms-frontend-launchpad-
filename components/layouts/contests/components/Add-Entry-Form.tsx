@@ -102,7 +102,109 @@ console.log(
     );
   }, [template_fields]);
 
-  const validationSchema =Yup.object({});
+        const addMemberField = template_fields?.find(
+      (f: any) =>
+        f.type === FIELDS_TYPE.SELECT &&
+        f.label?.toLowerCase().includes("add another member")
+      );
+
+  const validationSchema = React.useMemo(() => {
+  const schemaFields: Record< string, Yup.AnySchema> = {};
+  template_fields?.forEach(
+    (field: any) => {
+      let validator: any;
+      switch (field.type) {
+        case FIELDS_TYPE.TEXTFIELD:
+        case FIELDS_TYPE.PASSWORD:
+        case FIELDS_TYPE.TEL_INPUT:
+        case FIELDS_TYPE.SELECT:
+        case FIELDS_TYPE.RADIO:
+        case FIELDS_TYPE.AUTOCOMPLETE:
+        case FIELDS_TYPE.COUNTRY_SELECTOR:
+        validator = Yup.string();
+          break;
+        case FIELDS_TYPE.NUMBER_FIELD:
+        case FIELDS_TYPE.SLIDER:
+        case FIELDS_TYPE.RATING:
+        validator = Yup.number();
+          break;
+        case FIELDS_TYPE.DATE_PICKER:
+        validator = Yup.string();
+          break;
+        case FIELDS_TYPE.CHECKBOX:
+        case FIELDS_TYPE.SWITCH:
+        validator = Yup.boolean();
+          break;
+        default: return;
+      }
+    
+      let isSecondMemberSection = false;
+      template_fields?.forEach((field: any) => {
+      if (field.type === FIELDS_TYPE.STEP_BREAK) {
+        const label =field.label?.toLowerCase() || "";
+        if (label.includes("second")) {
+          isSecondMemberSection = true;
+        } else {
+          isSecondMemberSection = false;
+        }
+      }
+      let validator: any;
+      switch (field.type) {
+        case FIELDS_TYPE.TEXTFIELD:
+        case FIELDS_TYPE.PASSWORD:
+        case FIELDS_TYPE.TEL_INPUT:
+        case FIELDS_TYPE.SELECT:
+        case FIELDS_TYPE.RADIO:
+        case FIELDS_TYPE.AUTOCOMPLETE:
+        case FIELDS_TYPE.COUNTRY_SELECTOR:
+        validator = Yup.string();
+        break;
+        case FIELDS_TYPE.NUMBER_FIELD:
+        case FIELDS_TYPE.SLIDER:
+        case FIELDS_TYPE.RATING:
+        validator = Yup.number();
+        break;
+        case FIELDS_TYPE.DATE_PICKER:
+        validator = Yup.string();
+        break;
+        case FIELDS_TYPE.CHECKBOX:
+        case FIELDS_TYPE.SWITCH:
+        validator = Yup.boolean();
+        break;
+        default: return;
+      }
+      if (field.required) {
+        if (
+          isSecondMemberSection &&
+          addMemberField
+        ) {
+          validator = validator.when(
+            addMemberField.id,
+            {
+              is: "Yes",
+              then: (schema: any) =>
+                schema.required(
+                  `${field.label} is required`,
+                ),
+              otherwise: (
+                schema: any,
+              ) =>
+                schema.notRequired(),
+            },
+          );
+        } else {
+          validator = validator.required(
+            `${field.label} is required`,
+          );
+        }
+      }
+      schemaFields[field.id] = validator;
+      });
+      schemaFields[field.id] = validator;
+    },
+  );
+  return Yup.object(schemaFields);
+}, [ template_fields, addMemberField]);
 
   const formik = useFormik({
     initialValues,
@@ -146,12 +248,6 @@ console.log(values);
   }
 },
   });
-
-      const addMemberField = template_fields?.find(
-      (f: any) =>
-        f.type === FIELDS_TYPE.SELECT &&
-        f.label?.toLowerCase().includes("add another member")
-      );
 
       const showMember2 =addMemberField && formik.values[addMemberField.id] === "Yes";
 
@@ -308,7 +404,7 @@ console.log(values);
                     variant={val.variant}
                     placeholder={val.placeholder}
                     fullWidth
-                    required={val.required}
+                    required={val.false}
                     name={val.id}
                     value={formik.values[val.id] || ""}
                     onChange={formik.handleChange}
@@ -330,7 +426,7 @@ console.log(values);
                       label={val.label}
                       variant={val.variant}
                       fullWidth
-                      required={val.required}
+                      required={val.false}
                       name={val.id}
                       value={formik.values[val.id] || ""}
                       onChange={(value) => formik.setFieldValue(val.id, value)}
@@ -370,7 +466,7 @@ console.log(values);
                             (formik.touched[val.id] &&
                               (formik.errors[val.id] as string)) ||
                             val.helperText,
-                          required: val.required,
+                          required: val.false,
                         },
                       }}
                       disablePast={val.config?.disablePast}
@@ -430,7 +526,7 @@ console.log(values);
                             (formik.errors[val.id] as string)) ||
                           val.helperText
                         }
-                        required={val.required}
+                        required={val.false}
                       />
                     )}
                     value={formik.values[val.id] || null}
@@ -457,7 +553,7 @@ console.log(values);
                               (formik.errors[val.id] as string)) ||
                             val.helperText
                           }
-                          required={val.required}
+                          required={val.false}
                         />
                       )}
                       options={val.options}
@@ -513,7 +609,7 @@ console.log(values);
                               (formik.errors[val.id] as string)) ||
                             val.helperText
                           }
-                          required={val.required}
+                          required={val.false}
                         />
                       )}
                       value={

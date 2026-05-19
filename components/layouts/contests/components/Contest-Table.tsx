@@ -1,6 +1,7 @@
 "use client";
+import { contestControllers } from "@/api/contestControllers";
+import { useSnackbar } from "@/context/SnackbarContext";
 import {
-  CONTEST_DATA,
   CONTEST_TABLE_HEADER,
   CONTEST_TABLE_STATUS,
 } from "@/utils/constant";
@@ -10,6 +11,8 @@ import { Delete, Edit, RemoveRedEye } from "@mui/icons-material";
 import {
   Box,
   IconButton,
+  MenuItem,
+  Select,
   Tab,
   Table,
   TableBody,
@@ -19,18 +22,13 @@ import {
   Tabs,
   TextField,
   Typography,
-  Select,
-  MenuItem,
-  CircularProgress,
   alpha,
-  useTheme,
+  useTheme
 } from "@mui/material";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import moment from "moment";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { contestControllers } from "@/api/contestControllers";
-import { useSnackbar } from "@/context/SnackbarContext";
-import moment from "moment";
 
 const ContestTable = () => {
   const theme = useTheme();
