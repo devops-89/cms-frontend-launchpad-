@@ -2,21 +2,49 @@ import React from "react";
 import { Box, Paper, Typography, Grid } from "@mui/material";
 import { LineChart, BarChart } from "@mui/x-charts";
 import { useAppTheme } from "@/context/ThemeContext";
+import moment from "moment";
 
-const AnalyticsCharts = () => {
+interface AnalyticsChartsProps {
+  contests?: any[];
+  participants?: any[];
+}
+
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ contests = [], participants = [] }) => {
   const { colors } = useAppTheme();
 
-  const uData = [4000, 3000, 2000, 2780, 1890, 2390, 3490];
-  const pData = [2400, 1398, 9800, 3908, 4800, 3800, 4300];
-  const xLabels = [
-    "Page A",
-    "Page B",
-    "Page C",
-    "Page D",
-    "Page E",
-    "Page F",
-    "Page G",
-  ];
+  // Generate labels for the last 7 days
+  const last7Days = Array.from({ length: 7 }).map((_, i) => 
+    moment().subtract(6 - i, 'days').format('MMM DD')
+  );
+  
+  // Group users by joined date for the last 7 days
+  const newUsersData = last7Days.map(dateStr => {
+    return participants.filter(p => {
+      const date = p.joinedAt || (p.participantProfile && p.participantProfile.createdAt) || p.createdAt;
+      if (!date) return false;
+      return moment(date).format('MMM DD') === dateStr;
+    }).length;
+  });
+  
+  // Mock sessions data based on new users for demonstration
+  const sessionsData = newUsersData.map(v => 
+    v === 0 ? Math.floor(Math.random() * 5) + 2 : v * (Math.floor(Math.random() * 3) + 2)
+  );
+
+  const xLabels = last7Days;
+
+  // Process contest data for engagement
+  const topContests = [...contests]
+    .sort((a, b) => (b.entries || b.total_entries || 0) - (a.entries || a.total_entries || 0))
+    .slice(0, 4);
+
+  const contestLabels = topContests.length > 0 
+    ? topContests.map((c) => c.name.length > 10 ? c.name.substring(0,10) + "..." : c.name) 
+    : ["No Contests"];
+    
+  const contestData = topContests.length > 0 
+    ? topContests.map((c) => c.entries || c.total_entries || 0) 
+    : [0];
 
   return (
     <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -37,12 +65,12 @@ const AnalyticsCharts = () => {
             <LineChart
               series={[
                 {
-                  data: pData,
+                  data: sessionsData,
                   label: "Sessions",
                   color: colors.PRIMARY,
                   area: true,
                 },
-                { data: uData, label: "New Users", color: colors.SECONDARY },
+                { data: newUsersData, label: "New Users", color: colors.SECONDARY },
               ]}
               xAxis={[{ scaleType: "point", data: xLabels }]}
               sx={{
@@ -71,15 +99,15 @@ const AnalyticsCharts = () => {
             <BarChart
               series={[
                 {
-                  data: [35, 44, 24, 34],
-                  label: "Participants",
+                  data: contestData,
+                  label: "Entries",
                   color: colors.ACCENT,
                 },
               ]}
               xAxis={[
                 {
                   scaleType: "band",
-                  data: ["Contest 1", "Contest 2", "Contest 3", "Contest 4"],
+                  data: contestLabels,
                 },
               ]}
             />
