@@ -13,7 +13,8 @@ export const useGetAllUsers = (role: UserRole) => {
     setError(null);
     try {
       const result = await UserController.getAllUser(role);
-      setUsers(result.data.data);
+      const data = result?.data?.data;
+      setUsers(data?.users ? data.users : (Array.isArray(data) ? data : []));
     } catch (err: any) {
       console.error("fetch users error", err);
       setError(

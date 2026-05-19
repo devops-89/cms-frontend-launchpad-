@@ -10,7 +10,7 @@ import {
   PersonSharp,
   AttachMoney as RevenueIcon,
   RemoveRedEye as ViewsIcon,
-  Poll as VotesIcon
+  Poll as VotesIcon,
 } from "@mui/icons-material";
 import { UserStatus } from "./enum";
 
