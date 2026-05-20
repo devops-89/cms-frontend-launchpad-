@@ -1,11 +1,7 @@
 "use client";
-import { contestControllers } from "@/api/contestControllers";
-import { useSnackbar } from "@/context/SnackbarContext";
-import { useAppTheme } from "@/context/ThemeContext";
-import {
-  Close as CloseIcon,
-  EmojiEvents as ContestIcon
-} from "@mui/icons-material";
+
+import React, { useEffect, useMemo, useState } from "react";
+
 import {
   Autocomplete,
   Box,
@@ -19,17 +15,26 @@ import {
   Divider,
   IconButton,
   TextField,
-  Typography
+  Typography,
 } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
-import React, { useEffect, useState } from "react";
 
+import {
+  Close as CloseIcon,
+  EmojiEvents as ContestIcon,
+} from "@mui/icons-material";
+
+import { contestControllers } from "@/api/contestControllers";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { useAppTheme } from "@/context/ThemeContext";
+import { useQueries, useQuery } from "@tanstack/react-query";
 interface AssignJudgesDialogProps {
   open: boolean;
   onClose: () => void;
-  judges: { id: string; name: string }[];
+  judges: {
+    id: string;
+    name: string;
+  }[];
 }
-
 const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
   open,
   onClose,
@@ -37,255 +42,271 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
 }) => {
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
-  const [selectedContests, setSelectedContests] = useState<any[]>([]);
+  const [selectedContestId, setSelectedContestId] = useState<string | null>(
+    null,
+  );
+  const [selectedParticipants, setSelectedParticipants] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
   const { data: contestsData, isLoading: contestsLoading } = useQuery({
     queryKey: ["contests"],
     queryFn: () => contestControllers.getContest(),
     enabled: open,
   });
-
-  const contests = React.useMemo(() => {
-    // API might return the list directly in data or nested in data.data
-    const list = Array.isArray(contestsData?.data) 
-      ? contestsData.data 
-      : Array.isArray(contestsData) 
-        ? contestsData 
+  const publishedContests = useMemo(() => {
+    const list = Array.isArray(contestsData?.data)
+      ? contestsData.data
+      : Array.isArray(contestsData)
+        ? contestsData
         : [];
-    
-    return list.map((c: any) => ({
-      id: c.id || c._id || Math.random().toString(),
-      title: c.name || c.title || "Untitled Contest",
-      status: c.status || "Unknown",
-      participants: c.participantsCount || c.participants || 0,
-    }));
+    return list.filter(
+      (contest: any) => contest.status?.toLowerCase() === "published",
+    );
   }, [contestsData]);
 
-  // Reset selected contests when dialog opens
+  const participantsQueries = useQueries({
+    queries: publishedContests.map((contest: any) => ({
+      queryKey: ["participants", contest.id || contest._id],
+      queryFn: () =>
+        contestControllers.getAllParticipants(contest.id || contest._id),
+      enabled: open && !!(contest.id || contest._id),
+    })),
+  });
+
+  const participantsLoading = participantsQueries.some((q) => q.isLoading);
+  const contests = useMemo(() => {
+    return publishedContests.map((contest: any, index: number) => {
+      const participantsData = participantsQueries[index]?.data as any;
+      const participantsList = Array.isArray(participantsData?.data)
+        ? participantsData.data
+        : Array.isArray(participantsData)
+          ? participantsData
+          : [];
+      const mappedParticipants = participantsList.map((participant: any) => {
+        const data = participant?.submission?.data || {};
+        return {
+          id: participant.id,
+          fullName: `${data.yg9snrxlh || ""} ${data.os87u0nm1 || ""}`.trim(),
+          grade: data["47am7ohch"] || "N/A",
+          email: data.ftzrxhfpd || "",
+          school: data["01gvl1b7e"] || "",
+          country: data["u3ibxwa6w"] || "",
+        };
+      });
+      return {
+        id: contest.id || contest._id,
+        title: contest.name || contest.title || "Untitled Contest",
+        status: contest.status,
+        totalParticipants: mappedParticipants.length,
+        participants: mappedParticipants,
+      };
+    });
+  }, [publishedContests, participantsQueries]);
+
+  const selectedContest = useMemo(() => {
+    if (!selectedContestId) return null;
+    return contests.find((c: any) => c.id === selectedContestId) || null;
+  }, [selectedContestId, contests]);
   useEffect(() => {
     if (open) {
-      setSelectedContests([]);
+      setSelectedContestId(null);
+      setSelectedParticipants([]);
     }
   }, [open]);
-
   const handleAssign = async () => {
-  if (selectedContests.length === 0) {
-    showSnackbar(
-      "Please select at least one contest",
-      "warning",
-    );
-
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    for (const contest of selectedContests) {
-      for (const judge of judges) {
-        await contestControllers.assignJudgeToContest(
-          contest.id,
-          {
-            judge_id: judge.id,
-          },
-        );
-      }
+    if (!selectedContest) {
+      showSnackbar("Please select a contest", "warning");
+      return;
     }
-
-    showSnackbar(
-      `Successfully assigned ${judges.length} judge${
-        judges.length > 1 ? "s" : ""
-      } to ${
-        selectedContests.length
-      } contest${
-        selectedContests.length > 1
-          ? "s"
-          : ""
-      }`,
-      "success",
-    );
-
-    onClose();
-  } catch (error) {
-    console.error(error);
-
-    showSnackbar(
-      "Failed to assign judges",
-      "error",
-    );
-  } finally {
-    setLoading(false);
-  }
-};
-
+    if (selectedParticipants.length === 0) {
+      showSnackbar("Please select participants", "warning");
+      return;
+    }
+    try {
+      setLoading(true);
+      for (const judge of judges) {
+        await contestControllers.assignJudgeToContest(selectedContest.id, {
+          judge_id: judge.id,
+          participant_ids: selectedParticipants.map((participant: any) => participant.id),
+        });
+      }
+      showSnackbar("Judges assigned successfully", "success");
+      onClose();
+    } catch (error) {
+      console.error(error);
+      showSnackbar("Failed to assign judges", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
   return (
-    <Box sx={{ minWidth: { xs: 300, sm: 500, md: 600 } }}>
+    <Box sx={{ minWidth: { xs: 320, sm: 550, md: 720 } }}>
       <DialogTitle
         sx={{
-          m: 0,
           p: 3,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          bgcolor: "white",
         }}
       >
         <Box>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY }}>
-            Assign to Contest
+          <Typography variant="h6" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY }} >
+            Assign Judges
           </Typography>
           <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY }}>
-            {judges.length === 1
-              ? `Select contests for ${judges[0].name}`
-              : `Select contests for ${judges.length} selected judges`}
+            Assign judges to contests and participants
           </Typography>
         </Box>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{
-            color: colors.TEXT_SECONDARY,
-            "&:hover": { bgcolor: "rgba(0,0,0,0.05)" },
-          }}
-        >
+        <IconButton onClick={onClose}>
           <CloseIcon />
         </IconButton>
       </DialogTitle>
-
       <Divider />
-
       <DialogContent sx={{ p: 4 }}>
         <Box sx={{ mb: 4 }}>
-          <Typography
-            variant="subtitle2"
-            sx={{ mb: 1.5, fontWeight: 700, color: colors.TEXT_PRIMARY }}
-          >
-            Search and Select Contests
+          <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700 }}>
+            Select Published Contest
           </Typography>
           <Autocomplete
-            multiple
-            id="contest-selection"
             options={contests}
-            loading={contestsLoading}
-            slotProps={{
-              popper: {
-                sx: { zIndex: 3000 }
-              }
-            }}
+            loading={contestsLoading || participantsLoading}
+            value={selectedContest}
+            onChange={(_, newValue) => {
+              setSelectedContestId(newValue ? newValue.id : null);
+              setSelectedParticipants([]);
+              }}
             getOptionLabel={(option) => option.title}
-            value={selectedContests}
-            onChange={(_, newValue) => setSelectedContests(newValue)}
-            disableCloseOnSelect
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                placeholder={selectedContests.length > 0 ? "" : "Choose contests..."}
-                variant="outlined"
-                slotProps={{
-                  input: {
-                    ...params.InputProps,
-                    endAdornment: (
-                      <React.Fragment>
-                        {contestsLoading ? (
-                          <CircularProgress color="inherit" size={20} />
-                        ) : null}
-                        {params.InputProps.endAdornment}
-                      </React.Fragment>
-                    ),
-                  },
-                }}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 3,
-                    bgcolor: "rgba(0,0,0,0.02)",
-                    "& fieldset": { borderColor: colors.BORDER },
-                  },
-                }}
-              />
-            )}
-            renderOption={(props, option, { selected }) => (
+            renderInput={(params) => (<TextField {...params} placeholder="Choose contest..." />)}
+            renderOption={(props, option) => (
               <li {...props}>
-                <Checkbox
-                  size="small"
-                  checked={selected}
-                  sx={{ mr: 1, color: colors.PRIMARY }}
-                />
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }} >
                     {option.title}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY }}>
-                    {option.status} • {option.participants} participants
+                  <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY}} >
+                    Published • {option.totalParticipants} participants
                   </Typography>
                 </Box>
               </li>
             )}
-            renderTags={(tagValue, getTagProps) =>
-              tagValue.map((option, index) => (
-                <Chip
-                  label={option.title}
-                  {...getTagProps({ index })}
-                  key={option.id}
-                  size="small"
-                  sx={{
-                    borderRadius: 2,
-                    fontWeight: 600,
-                    bgcolor: `${colors.PRIMARY}15`,
-                    color: colors.PRIMARY,
-                    border: `1px solid ${colors.PRIMARY}30`,
-                  }}
-                />
-              ))
-            }
           />
         </Box>
-
-        {selectedContests.length > 0 && (
+        {selectedContest && (
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 700}}>
+              Select Participants
+            </Typography>
+            <Autocomplete
+              multiple
+              disableCloseOnSelect
+              options={selectedContest.participants || []}
+              value={selectedParticipants}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, newValue) => setSelectedParticipants(newValue)}
+              getOptionLabel={(option: any) =>`${option.fullName} (${option.grade})`}
+              renderTags={() => null}
+              renderInput={(params) => (
+                <TextField {...params} placeholder="Choose participants..." />
+              )}
+              renderOption={(props, option, { selected }) => {
+                const { key, ...optionProps } = props;
+                return (
+                  <li key={key} {...optionProps}>
+                    <Checkbox checked={selected} sx={{ mr: 1}}/>
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }} >
+                        {option.fullName}
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", color: colors.TEXT_SECONDARY }}>
+                        Grade: {option.grade}
+                      </Typography>
+                      <Typography variant="caption" sx={{display: "block",color: colors.TEXT_SECONDARY }} >
+                        {option.school}
+                      </Typography>
+                    </Box>
+                  </li>
+                );
+              }}
+            />
+            {selectedParticipants.length > 0 && (
+              <Box
+                sx={{
+                  mt: 2,
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
+                {selectedParticipants.map((participant: any) => (
+                  <Chip
+                    key={participant.id}
+                    label={`${participant.fullName} (${participant.grade})`}
+                    onDelete={() => setSelectedParticipants((prev) => prev.filter((p: any) => p.id !== participant.id))}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+        )}
+        {selectedContest && selectedParticipants.length > 0 && (
           <Box
             sx={{
               p: 3,
               borderRadius: 4,
-              bgcolor: "rgba(99, 102, 241, 0.04)",
+              bgcolor: "rgba(99,102,241,0.04)",
               border: `1px dashed ${colors.PRIMARY}30`,
             }}
           >
             <Typography
               variant="subtitle2"
-              sx={{ mb: 2, fontWeight: 800, color: colors.PRIMARY, display: "flex", alignItems: "center", gap: 1 }}
+              sx={{
+                mb: 2,
+                fontWeight: 800,
+                color: colors.PRIMARY,
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
             >
-              <ContestIcon sx={{ fontSize: 18 }} />
-              Summary of Assignment
+              <ContestIcon sx={{ fontSize: 18}}/>
+              Assignment Summary
             </Typography>
-            <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY, mb: 1 }}>
-              Assigning <strong>{judges.length}</strong> judge{judges.length > 1 ? "s" : ""} to:
+            <Typography variant="body2" sx={{ mb: 1}}>
+              Contest:
+              <strong> {selectedContest.title}</strong>
             </Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {selectedContests.map((c) => (
-                <Typography
-                  key={c.id}
-                  variant="caption"
-                  sx={{
-                    px: 1,
-                    py: 0.5,
-                    bgcolor: "white",
-                    borderRadius: 1,
-                    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-                    fontWeight: 700,
-                    color: colors.TEXT_PRIMARY,
-                  }}
-                >
-                  {c.title}
-                </Typography>
+            <Typography variant="body2" sx={{ mb: 1}} >
+              Total Participants:
+              <strong> {selectedContest.totalParticipants}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 1}}>
+              Selected Participants:
+              <strong> {selectedParticipants.length}</strong>
+            </Typography>
+            <Typography variant="body2" sx={{ mb: 2 }}>
+              Judges:
+              <strong> {judges.length}</strong>
+            </Typography>
+            <Box
+              sx={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 1,
+              }}
+            >
+              {selectedParticipants.map((participant: any) => (
+                <Chip
+                  key={participant.id}
+                  label={`${participant.fullName} (${participant.grade})`}
+                  size="small"
+                />
               ))}
             </Box>
           </Box>
         )}
       </DialogContent>
-
       <Divider />
-
-      <DialogActions sx={{ p: 3, gap: 1 }}>
+      <DialogActions
+        sx={{ p: 3,gap: 1 }}>
         <Button
           onClick={onClose}
           sx={{
@@ -293,7 +314,6 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
             borderRadius: 3,
             textTransform: "none",
             fontWeight: 700,
-            color: colors.TEXT_SECONDARY,
           }}
         >
           Cancel
@@ -301,25 +321,15 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
         <Button
           variant="contained"
           onClick={handleAssign}
-          disabled={loading || selectedContests.length === 0}
+          disabled={loading || !selectedContest || selectedParticipants.length === 0}
           sx={{
             px: 5,
             borderRadius: 3,
             textTransform: "none",
             fontWeight: 700,
-            background: `linear-gradient(135deg, ${colors.PRIMARY} 0%, ${colors.PRIMARY} 100%)`,
-            boxShadow: `0 8px 20px ${colors.PRIMARY}30`,
-            "&:hover": {
-              transform: "translateY(-1px)",
-              boxShadow: `0 12px 24px ${colors.PRIMARY}40`,
-            },
           }}
         >
-          {loading ? (
-            <CircularProgress size={20} color="inherit" />
-          ) : (
-            "Assign Judges"
-          )}
+          {loading ? (<CircularProgress size={20} color="inherit" />) : ("Assign Judges")}
         </Button>
       </DialogActions>
     </Box>

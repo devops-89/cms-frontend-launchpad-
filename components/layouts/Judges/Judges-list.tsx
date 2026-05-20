@@ -1,49 +1,50 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import { UserController } from "@/api/userControllers";
+import { useAppTheme } from "@/context/ThemeContext";
+import { useModal } from "@/store/useModal";
+import { JUDGES_TABLE_HEADER, STATUS_OPTIONS } from "@/utils/constant";
+import { UserStatus } from "@/utils/enum";
+import {
+  Assignment as AssignIcon,
+  MoreVert as MoreIcon,
+  Search as SearchIcon,
+} from "@mui/icons-material";
 import {
   Box,
-  Typography,
+  Checkbox,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Switch,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableRow,
-  Paper,
-  TextField,
-  InputAdornment,
   Tabs,
-  Tab,
-  IconButton,
-  FormControlLabel,
-  Switch,
-  Menu,
-  MenuItem,
-  Checkbox,
-  ListItemText,
+  TextField,
+  Typography,
 } from "@mui/material";
-import {
-  Search as SearchIcon,
-  MoreVert as MoreIcon,
-  Assignment as AssignIcon,
-} from "@mui/icons-material";
-import { STATUS_OPTIONS, JUDGES_TABLE_HEADER } from "@/utils/constant";
-import { useAppTheme } from "@/context/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
+import React, { useMemo, useState } from "react";
+import AssignJudgesDialog from "./components/AssignJudgesDialog";
 import JudgesTableHeader from "./components/Judges-Table-header";
 import JudgesTableRow from "./components/JudgesTableRow";
-import { UserRole, UserStatus } from "@/utils/enum";
-import AssignJudgesDialog from "./components/AssignJudgesDialog";
-import { UserController } from "@/api/userControllers";
-import { useQuery } from "@tanstack/react-query";
-import { useModal } from "@/store/useModal";
 
 const JudgesList: React.FC = () => {
   const { colors } = useAppTheme();
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["judge-list"],
-    queryFn: () => UserController.getAllUser(UserRole.JUDGE),
-    enabled: true,
-  });
+  queryKey: ["judge-list"],
+  queryFn: () =>
+    UserController.getAllJudges(),
+  enabled: true,
+});
 
   const apiJudges = useMemo(() => {
     const users = data?.data?.data?.users || [];

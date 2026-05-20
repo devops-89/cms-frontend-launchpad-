@@ -4,7 +4,7 @@ import { userSecuredApi } from "./config";
 export const UserController = {
   getAllUser: async (role: UserRole) => {
     try {
-      let result = await userSecuredApi.get(`all?role=${role}`);
+      let result = await userSecuredApi.get(`all`);
       return result;
     } catch (error){
       throw error;
@@ -46,4 +46,16 @@ updateUserStatus: async (
     throw error;
   }
   },
+  getAllJudges: async () => {
+  try {
+    const result =
+      await userSecuredApi.get(
+        `all?role=judge`,
+      );
+
+    return result;
+  } catch (error) {
+    throw error;
+  }
+},
 };

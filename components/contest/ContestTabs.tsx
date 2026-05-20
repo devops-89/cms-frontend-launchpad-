@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
-import { Tabs, Tab, Paper } from "@mui/material";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Paper, Tab, Tabs } from "@mui/material";
+import React from "react";
 
 interface ContestTabsProps {
   value: number;

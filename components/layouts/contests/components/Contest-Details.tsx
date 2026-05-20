@@ -100,7 +100,7 @@ const ContestDetails = () => {
             {contestData?.name}
           </Typography>
 
-          {[1, 2, 3].includes(tabValue) && (
+          {[1, 2].includes(tabValue) && (
             <Button
               variant="contained"
               startIcon={<Add />}
@@ -109,8 +109,8 @@ const ContestDetails = () => {
                 if (tabValue === 1) router.push(`${baseRoute}/add-user`);
                 else if (tabValue === 2)
                   router.push(`${baseRoute}/entries/add-entries`);
-                else if (tabValue === 3)
-                  router.push(`${baseRoute}/add-category`);
+                // else if (tabValue === 3)
+                //   router.push(`${baseRoute}/add-category`);
               }}
               sx={{
                 fontFamily: roboto.style.fontFamily,
@@ -123,9 +123,8 @@ const ContestDetails = () => {
             >
               {tabValue === 1
                 ? "Add Participant"
-                : tabValue === 2
-                  ? "Add Entry"
-                  : "Add Category"}
+                :"Add Entry"
+                }
             </Button>
           )}
         </Box>

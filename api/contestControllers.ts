@@ -113,16 +113,4 @@ export const contestControllers = {
   }
   },
 
-  getAllJudges: async (contestId: string) => {
-  try {
-    const response = await contestSecuredApi.get(
-      `/${contestId}/judges/`,
-    );
-
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-  },
-
 };

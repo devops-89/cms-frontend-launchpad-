@@ -52,8 +52,8 @@ export const entryControllers = {
     data: any,
   ) => {
     try {
-      const response = await entrySecuredApi.patch(
-        `/contest/${contestId}/entries/${entryId}`,
+      const response = await contestSecuredApi.patch(
+        `/${contestId}/entries/${entryId}`,
         data,
       );
 
