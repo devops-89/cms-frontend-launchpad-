@@ -79,3 +79,8 @@ export enum FIELDS_TYPE {
   PASSWORD = "password",
   STEP_BREAK = "step_break",
 }
+
+export enum VOTING_PERIOD_TYPE {
+  PUBLIC_VOTING = "PUBLIC_VOTING",
+  JUDGE_VOTING = "JUDGE_VOTING",
+}

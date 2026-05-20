@@ -12,7 +12,7 @@ import {
   RemoveRedEye as ViewsIcon,
   Poll as VotesIcon,
 } from "@mui/icons-material";
-import { UserStatus } from "./enum";
+import { UserStatus, VOTING_PERIOD_TYPE } from "./enum";
 
 export const STATS = [
   {
@@ -816,5 +816,16 @@ export const USER_STATUS_TABS = [
   },
   {
     label: UserStatus.BANNED,
+  },
+];
+
+export const VOTING_PERIOD_TYPE_DATA = [
+  {
+    label: "Public Voting",
+    value: VOTING_PERIOD_TYPE.PUBLIC_VOTING,
+  },
+  {
+    label: "Judge Voting",
+    value: VOTING_PERIOD_TYPE.JUDGE_VOTING,
   },
 ];

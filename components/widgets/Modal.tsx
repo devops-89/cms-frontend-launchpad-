@@ -18,15 +18,15 @@ export default function Modal() {
         },
       }}
       sx={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 2000,
+        zIndex: 1000,
       }}
     >
       <Box
         sx={{
-          position: "relative",
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
           bgcolor: "white",
           borderRadius: "20px",
           p: "40px",

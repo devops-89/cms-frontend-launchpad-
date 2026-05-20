@@ -36,7 +36,7 @@ const Sidebar = () => {
           position: "fixed",
           top: 0,
           left: 0,
-          zIndex: 1200,
+          zIndex: 999,
         }}
       >
         <Box sx={{ textAlign: "center", pt: 2 }}>

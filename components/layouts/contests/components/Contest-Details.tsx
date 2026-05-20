@@ -12,6 +12,7 @@ import EntriesList from "./Entries-List";
 import OverviewTab from "./Overview-Tab";
 import ParticipantsList from "./ParticipantsList";
 import SettingsTab from "./Settings-Tab";
+import VotesTab from "./Votes-Tab";
 
 const ContestDetails = () => {
   const params = useParams();
@@ -49,9 +50,9 @@ const ContestDetails = () => {
     {
       label: "Settings",
     },
-    // {
-    //   label: "Votes",
-    // },
+    {
+      label: "Votes",
+    },
     // {
     //   label: "Notifications",
     // },
@@ -161,10 +162,9 @@ const ContestDetails = () => {
           {tabValue === 0 && <OverviewTab contest={contestData} />}
           {tabValue === 1 && <ParticipantsList />}
           {tabValue === 2 && <EntriesList />}
-          {/* {tabValue === 3 && <CategoryTab />} */}
           {tabValue === 3 && <SettingsTab />}
-          {/* {tabValue === 5 && <VotesTab />}
-          {tabValue === 6 && <NotificationsTab />}
+          {tabValue === 4 && <VotesTab />}
+          {/* {tabValue === 6 && <NotificationsTab />}
           {tabValue === 7 && <TransactionsTab />} */}
         </Box>
       </Card>

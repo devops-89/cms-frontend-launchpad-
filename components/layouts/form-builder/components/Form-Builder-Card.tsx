@@ -38,9 +38,12 @@ const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
   const theme = useTheme();
 
   return (
-    <Box>
+    <Box sx={{ height: "100%" }}>
       <Card
         sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
           borderRadius: "24px",
           border: "1px solid",
           borderColor: alpha(theme.palette.divider, 0.08),
@@ -55,7 +58,7 @@ const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
           },
         }}
       >
-        <CardContent sx={{ p: 3 }}>
+        <CardContent sx={{ p: 3, flexGrow: 1, display: "flex", flexDirection: "column" }}>
           <Box
             sx={{
               display: "flex",
@@ -123,7 +126,7 @@ const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
             ID: {template.schema?.form_identity?.name || template.name || "N/A"}
           </Typography>
 
-          <Divider sx={{ my: 2, opacity: 0.5 }} />
+          <Divider sx={{ my: 2, opacity: 0.5, mt: "auto" }} />
 
           <Stack spacing={1.5}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>

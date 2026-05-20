@@ -9,42 +9,56 @@ interface AnalyticsChartsProps {
   participants?: any[];
 }
 
-const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ contests = [], participants = [] }) => {
+const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
+  contests = [],
+  participants = [],
+}) => {
   const { colors } = useAppTheme();
 
-  // Generate labels for the last 7 days
-  const last7Days = Array.from({ length: 7 }).map((_, i) => 
-    moment().subtract(6 - i, 'days').format('MMM DD')
+  const last7Days = Array.from({ length: 7 }).map((_, i) =>
+    moment()
+      .subtract(6 - i, "days")
+      .format("MMM DD"),
   );
-  
-  // Group users by joined date for the last 7 days
-  const newUsersData = last7Days.map(dateStr => {
-    return participants.filter(p => {
-      const date = p.joinedAt || (p.participantProfile && p.participantProfile.createdAt) || p.createdAt;
+
+  const newUsersData = last7Days.map((dateStr) => {
+    return participants.filter((p) => {
+      const date =
+        p.joinedAt ||
+        (p.participantProfile && p.participantProfile.createdAt) ||
+        p.createdAt;
       if (!date) return false;
-      return moment(date).format('MMM DD') === dateStr;
+      return moment(date).format("MMM DD") === dateStr;
     }).length;
   });
-  
-  // Mock sessions data based on new users for demonstration
-  const sessionsData = newUsersData.map(v => 
-    v === 0 ? Math.floor(Math.random() * 5) + 2 : v * (Math.floor(Math.random() * 3) + 2)
+
+  const sessionsData = newUsersData.map((v) =>
+    v === 0
+      ? Math.floor(Math.random() * 5) + 2
+      : v * (Math.floor(Math.random() * 3) + 2),
   );
 
   const xLabels = last7Days;
 
-  // Process contest data for engagement
   const topContests = [...contests]
-    .sort((a, b) => (b.entries || b.total_entries || 0) - (a.entries || a.total_entries || 0))
+    .sort(
+      (a, b) =>
+        (b.entries || b.total_entries || 0) -
+        (a.entries || a.total_entries || 0),
+    )
     .slice(0, 4);
 
-  const contestLabels = topContests.length > 0 
-    ? topContests.map((c) => c.name.length > 10 ? c.name.substring(0,10) + "..." : c.name) 
-    : ["No Contests"];
-    
-  const contestData = topContests.length > 0 
-    ? topContests.map((c) => c.entries || c.total_entries || 0) 
-    : [0];
+  const contestLabels =
+    topContests.length > 0
+      ? topContests.map((c) =>
+          c.name.length > 10 ? c.name.substring(0, 10) + "..." : c.name,
+        )
+      : ["No Contests"];
+
+  const contestData =
+    topContests.length > 0
+      ? topContests.map((c) => c.entries || c.total_entries || 0)
+      : [0];
 
   return (
     <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -70,7 +84,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({ contests = [], partic
                   color: colors.PRIMARY,
                   area: true,
                 },
-                { data: newUsersData, label: "New Users", color: colors.SECONDARY },
+                {
+                  data: newUsersData,
+                  label: "New Users",
+                  color: colors.SECONDARY,
+                },
               ]}
               xAxis={[{ scaleType: "point", data: xLabels }]}
               sx={{
