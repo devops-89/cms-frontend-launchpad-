@@ -189,5 +189,5 @@ export interface RESETPASSWORDPAYLOAD {
 
 export interface ASSIGNJUDGEPAYLOAD {
   judge_id: string;
-  participant_ids: string[];
+  entry_ids: string[];
 }

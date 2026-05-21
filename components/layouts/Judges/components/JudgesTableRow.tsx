@@ -297,30 +297,32 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
               <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
                 View Details
               </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  handleCloseMenu();
-                  showModal(
-                    <AssignJudgesDialog
-                      open={true}
-                      onClose={hideModal}
-                      judges={[{ id: judge.id, name: judge.name }]}
-                    />,
-                  );
-                }}
-                sx={{
-                  fontSize: "0.85rem",
-                  display: "flex",
-                  gap: 1,
-                  alignItems: "center",
-                }}
-              >
-                <AssignIcon
-                  fontSize="small"
-                  sx={{ color: colors.PRIMARY, fontSize: 16 }}
-                />
-                Assign to Contest
-              </MenuItem>
+              {judge.status === "Active" && (
+                <MenuItem
+                  onClick={() => {
+                    handleCloseMenu();
+                    showModal(
+                      <AssignJudgesDialog
+                        open={true}
+                        onClose={hideModal}
+                        judges={[{ id: judge.id, name: judge.name }]}
+                      />,
+                    );
+                  }}
+                  sx={{
+                    fontSize: "0.85rem",
+                    display: "flex",
+                    gap: 1,
+                    alignItems: "center",
+                  }}
+                >
+                  <AssignIcon
+                    fontSize="small"
+                    sx={{ color: colors.PRIMARY, fontSize: 16 }}
+                  />
+                  Assign to Contest
+                </MenuItem>
+              )}
               <MenuItem
                 onClick={handleCloseMenu}
                 sx={{ fontSize: "0.85rem", color: colors.ERROR }}

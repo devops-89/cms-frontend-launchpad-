@@ -18,8 +18,13 @@ import { roboto } from "@/utils/fonts";
 import { COLORS } from "@/utils/enum";
 import { useModal } from "@/store/useModal";
 import AddVotingPeriod from "@/components/widgets/modals/Add-Voting-Period";
+import { useQuery } from "@tanstack/react-query";
+import { contestControllers } from "@/api/contestControllers";
+import moment from "moment";
+import { CircularProgress, IconButton } from "@mui/material";
+import { Edit } from "@mui/icons-material";
 
-const VotesTab = () => {
+const VotesTab = ({ contestId }: { contestId: string }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { showModal } = useModal();
@@ -28,44 +33,29 @@ const VotesTab = () => {
     showModal(<AddVotingPeriod />);
   };
 
-  const voteData = [
-    {
-      voting_type: "Public Voting",
-      start_date: "10/12/2026",
-      end_date: "01/01/2027",
-    },
-    {
-      voting_type: "Public Voting",
-      start_date: "10/12/2026",
-      end_date: "01/01/2027",
-    },
-    {
-      voting_type: "Public Voting",
-      start_date: "10/12/2026",
-      end_date: "01/01/2027",
-      userEmail: "user2@example.com",
-    },
-    {
-      voting_type: "Judge Voting",
-      start_date: "10/12/2026",
-      end_date: "01/01/2027",
-    },
-    {
-      voting_type: "Judge Voting",
-      start_date: "10/12/2026",
-      end_date: "01/01/2027",
-    },
-  ];
+  const handleEditClick = (row: any) => {
+    showModal(<AddVotingPeriod votingPeriod={row} />);
+  };
 
-  const headers = ["Voting Type", "Start Date", "End Date"];
+  const { data: votingPeriodsData, isPending } = useQuery({
+    queryKey: ["votingPeriods", contestId],
+    queryFn: () => contestControllers.getAllVotingPeriods(contestId),
+    enabled: !!contestId,
+  });
+
+  const voteData = votingPeriodsData?.data || [];
+
+  const headers = ["Voting Type", "Start Date", "End Date", "Actions"];
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
   };
 
-  const filteredData = voteData.filter((item) =>
-    Object.values(item).some((val) =>
-      val.toString().toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredData = voteData.filter((item: any) =>
+    Object.values(item).some(
+      (val) =>
+        val &&
+        val.toString().toLowerCase().includes(searchQuery.toLowerCase()),
     ),
   );
 
@@ -118,7 +108,7 @@ const VotesTab = () => {
         component={Paper}
         sx={{ boxShadow: "none", border: "1px solid #eeeeee" }}
       >
-        <Table sx={{ minWidth: 1200 }}>
+        <Table sx={{ width: "100%" }}>
           <TableHead sx={{ backgroundColor: "#f9f9f9" }}>
             <TableRow>
               {headers.map((header) => (
@@ -138,23 +128,40 @@ const VotesTab = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredData.length > 0 ? (
-              filteredData.map((row, index) => (
-                <TableRow key={index} hover>
+            {isPending ? (
+              <TableRow>
+                <TableCell colSpan={headers.length} align="center" sx={{ py: 3 }}>
+                  <CircularProgress size={24} />
+                </TableCell>
+              </TableRow>
+            ) : filteredData.length > 0 ? (
+              filteredData.map((row: any, index: number) => (
+                <TableRow key={row.id || index} hover>
                   <TableCell
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}
                   >
-                    {row.voting_type}
+                    {row.voting_type === "PUBLIC" ? "Public Voting" : row.voting_type === "JUDGE" ? "Judge Voting" : row.voting_type}
                   </TableCell>
                   <TableCell
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}
                   >
-                    {row.start_date}
+                    {moment(row.start_date).format("YYYY-MM-DD")}
                   </TableCell>
                   <TableCell
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}
                   >
-                    {row.end_date}
+                    {moment(row.end_date).format("YYYY-MM-DD")}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="small"
+                      color="primary"
+                      startIcon={<Edit fontSize="small" />}
+                      onClick={() => handleEditClick(row)}
+                      sx={{ textTransform: "capitalize", fontFamily: roboto.style.fontFamily }}
+                    >
+                      Edit
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))

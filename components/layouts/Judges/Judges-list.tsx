@@ -112,6 +112,14 @@ const JudgesList: React.FC = () => {
     );
   };
 
+  const allSelectedActive = useMemo(() => {
+    if (selectedJudges.length === 0) return false;
+    return selectedJudges.every((id) => {
+      const j = apiJudges.find((judge: any) => judge.id === id);
+      return j && j.status === "Active";
+    });
+  }, [selectedJudges, apiJudges]);
+
   const getSelectedJudgesData = () => {
     return apiJudges
       .filter((j: any) => selectedJudges.includes(j.id))
@@ -236,14 +244,16 @@ const JudgesList: React.FC = () => {
             <MoreIcon />
           </IconButton>
 
-          <IconButton
-            size="small"
-            sx={{ color: colors.TEXT_SECONDARY }}
-            onClick={(e) => setHeaderMenuAnchorEl(e.currentTarget)}
-            disabled={selectedJudges.length === 0}
-          >
-            <AssignIcon />
-          </IconButton>
+          {allSelectedActive && (
+            <IconButton
+              size="small"
+              sx={{ color: colors.TEXT_SECONDARY }}
+              onClick={(e) => setHeaderMenuAnchorEl(e.currentTarget)}
+              disabled={selectedJudges.length === 0}
+            >
+              <AssignIcon />
+            </IconButton>
+          )}
           <Menu
             anchorEl={columnsMenuAnchorEl}
             open={Boolean(columnsMenuAnchorEl)}
@@ -292,23 +302,25 @@ const JudgesList: React.FC = () => {
               },
             }}
           >
-            <MenuItem
-              disabled={selectedJudges.length === 0}
-              onClick={() => {
-                setHeaderMenuAnchorEl(null);
-                showModal(
-                  <AssignJudgesDialog
-                    open={true}
-                    onClose={hideModal}
-                    judges={getSelectedJudgesData()}
-                  />
-                );
-              }}
-              sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
-            >
-              <AssignIcon fontSize="small" sx={{ color: colors.PRIMARY }} />
-              Assign selected to Contest
-            </MenuItem>
+            {allSelectedActive && (
+              <MenuItem
+                disabled={selectedJudges.length === 0}
+                onClick={() => {
+                  setHeaderMenuAnchorEl(null);
+                  showModal(
+                    <AssignJudgesDialog
+                      open={true}
+                      onClose={hideModal}
+                      judges={getSelectedJudgesData()}
+                    />
+                  );
+                }}
+                sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
+              >
+                <AssignIcon fontSize="small" sx={{ color: colors.PRIMARY }} />
+                Assign selected to Contest
+              </MenuItem>
+            )}
             <MenuItem
               disabled={selectedJudges.length === 0}
               onClick={() => {

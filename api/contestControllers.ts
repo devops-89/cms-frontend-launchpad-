@@ -98,19 +98,67 @@ export const contestControllers = {
   },
 
   assignJudgeToContest: async (
-  contestId: string,
-  data: ASSIGNJUDGEPAYLOAD,
+    contestId: string,
+    data: ASSIGNJUDGEPAYLOAD,
   ) => {
-  try {
-    const response = await contestSecuredApi.post(
-      `/${contestId}/judges/`,
-      data,
-    );
-
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
+    try {
+      const response = await contestSecuredApi.post(
+        `/${contestId}/judges/`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
   },
-
+  updateJudgeAssignments: async (
+    contestId: string,
+    data: ASSIGNJUDGEPAYLOAD,
+  ) => {
+    try {
+      const response = await contestSecuredApi.patch(
+        `/${contestId}/judges/assignments`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  addVotingPeriod: async (
+    contestId: string,
+    data: { voting_type: string; start_date: string; end_date: string },
+  ) => {
+    try {
+      const response = await contestSecuredApi.post(
+        `/${contestId}/voting-period`,
+        data,
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getAllVotingPeriods: async (contestId: string) => {
+    try {
+      const response = await contestSecuredApi.get(`/${contestId}/voting-period`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  updateVotingPeriod: async (
+    votingPeriodId: string,
+    data: { start_date: string; end_date: string }
+  ) => {
+    try {
+      const response = await contestSecuredApi.put(
+        `/voting-period/${votingPeriodId}`,
+        data
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

@@ -20,7 +20,7 @@ const ContestDetails = () => {
   const id = params?.id;
   const [tabValue, setTabValue] = useState(0);
 
-  const contestId = Array.isArray(id) ? id[0] : id;
+  const contestId = (Array.isArray(id) ? id[0] : id) as string;
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -161,8 +161,8 @@ const ContestDetails = () => {
           {tabValue === 0 && <OverviewTab contest={contestData} />}
           {tabValue === 1 && <ParticipantsList />}
           {tabValue === 2 && <EntriesList />}
-          {tabValue === 3 && <SettingsTab />}
-          {tabValue === 4 && <VotesTab />}
+          {tabValue === 3 && <SettingsTab/>}
+          {tabValue === 4 && <VotesTab contestId={contestId} />}
           {/* {tabValue === 6 && <NotificationsTab />}
           {tabValue === 7 && <TransactionsTab />} */}
         </Box>
