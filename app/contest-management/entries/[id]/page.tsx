@@ -28,7 +28,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 
-import { contestControllers } from "@/api/contestControllers";
 import { entryControllers } from "@/api/entryControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useAppTheme } from "@/context/ThemeContext";
@@ -40,31 +39,18 @@ const EntryDetailsPage = () => {
   const router = useRouter();
   const { colors } = useAppTheme();
 
-  const { data: entryData, isPending } = useQuery({
-    queryKey: ["entry", contestId, id],
-    queryFn: () =>
-      entryControllers.getEntryById(
-        contestId as string,
-        id as string
-      ),
+  const { data: entryData, isPending: isEntryLoading } = useQuery({
+    queryKey: ["entry", id],
+    queryFn: () => entryControllers.getEntryById(contestId as string, id as string),
     enabled: !!contestId && !!id,
   });
 
+  const isLoading = isEntryLoading;
   const entry = entryData?.data;
-
-  const effectiveContestId = contestId || entry?.contest_id;
-
-  const { data: contestData, isPending: isContestPending } = useQuery({
-    queryKey: ["contest", effectiveContestId],
-    queryFn: () =>
-      contestControllers.getContestDetails(effectiveContestId as string),
-    enabled: !!effectiveContestId,
-  });
+  const effectiveContestId = contestId;
 
   const template_fields =
-    contestData?.data?.entryLevelTemplate?.schema?.fields || [];
-
-  const isLoading = isPending || (!!effectiveContestId && isContestPending);
+    entry?.contest?.entryLevelTemplate?.schema?.fields || [];
 
   const getFieldIcon = (type: string, label: string) => {
     const lowercaseLabel = label.toLowerCase();

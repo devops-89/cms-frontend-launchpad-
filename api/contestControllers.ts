@@ -70,6 +70,17 @@ export const contestControllers = {
     }
   },
 
+  deleteParticipant: async (contestId: string, participantId: string) => {
+    try {
+      const response = await contestSecuredApi.delete(
+        `/${contestId}/participants/${participantId}`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   getAllParticipants: async (contestId: string) => {
   try {
     const response = await contestSecuredApi.get(
@@ -155,6 +166,16 @@ export const contestControllers = {
       const response = await contestSecuredApi.put(
         `/voting-period/${votingPeriodId}`,
         data
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  deleteJudgeAssignments: async (contestId: string, judgeId: string) => {
+    try {
+      const response = await contestSecuredApi.delete(
+        `/${contestId}/judges/assignee-entities/${judgeId}`
       );
       return response.data;
     } catch (error) {

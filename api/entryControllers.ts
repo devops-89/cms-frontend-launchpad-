@@ -68,8 +68,8 @@ export const entryControllers = {
     entryId: string,
   ) => {
     try {
-      const response = await entrySecuredApi.delete(
-        `/contest/${contestId}/entries/${entryId}`,
+      const response = await contestSecuredApi.delete(
+        `/${contestId}/entries/${entryId}`,
       );
 
       return response.data;

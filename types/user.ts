@@ -59,6 +59,49 @@ export interface AddContestPayload {
   entry_level_template_id: string;
 }
 
+export interface ContestParticipant {
+  id: string;
+  contest_id: string;
+  submission_id: string;
+  status: string;
+  joined_at: string;
+  submission: {
+    id: string;
+    data: Record<string, string>;
+    createdAt: string;
+  };
+}
+
+export interface ContestEntry {
+  id: string;
+  contest_id: string;
+  participant_id: string;
+  submission_id: string;
+  score: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  participant?: ContestParticipant;
+  submission?: {
+    id: string;
+    data: Record<string, string>;
+    createdAt: string;
+  };
+}
+
+export interface ContestTemplateField {
+  id: string;
+  config?: any;
+  label: string;
+  required: boolean;
+  type: string;
+  variant: TextFieldVariants;
+  options?: string[] | readonly CountryType[];
+  placeholder?: string;
+  helperText?: string;
+  defaultCountry?: string;
+}
+
 export interface CONTESTDETAILS {
   available_regions: string;
   description: string;
@@ -69,18 +112,7 @@ export interface CONTESTDETAILS {
     isActive: boolean;
     name: string;
     schema: {
-      fields: {
-        id: string;
-        config?: any;
-        label: string;
-        required: boolean;
-        type: string;
-        variant: TextFieldVariants;
-        options?: string[] | readonly CountryType[];
-        placeholder?: string;
-        helperText?: string;
-        defaultCountry?: string;
-      }[];
+      fields: ContestTemplateField[];
       form_identity: {
         name: string;
         timestamp: string;
@@ -102,18 +134,7 @@ export interface CONTESTDETAILS {
     isActive: boolean;
     name: string;
     schema: {
-      fields: {
-        id: string;
-        config?: any;
-        label: string;
-        required: boolean;
-        type: string;
-        variant: TextFieldVariants;
-        options?: string[] | readonly CountryType[];
-        placeholder?: string;
-        helperText?: string;
-        defaultCountry?: string;
-      }[];
+      fields: ContestTemplateField[];
       form_identity: {
         name: string;
         timestamp: string;
@@ -122,18 +143,8 @@ export interface CONTESTDETAILS {
     };
   };
   user_level_template_id: string;
-  participants: {
-    id: string;
-    contest_id: string;
-    submission_id: string;
-    status: string;
-    joined_at: string;
-    submission: {
-      id: string;
-      data: Record<string, string>;
-      createdAt: string;
-    };
-  }[];
+  participants: ContestParticipant[];
+  entries?: ContestEntry[];
 }
 
 export interface JUDGEPAYLOAD {

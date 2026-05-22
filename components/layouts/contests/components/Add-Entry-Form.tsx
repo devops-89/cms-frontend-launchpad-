@@ -3,6 +3,7 @@ import { contestControllers } from "@/api/contestControllers";
 import { entryControllers } from "@/api/entryControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { ContestParticipant } from "@/types/user";
 import { countries } from "@/utils/constant";
 import { FIELDS_TYPE } from "@/utils/enum";
 import { montserrat } from "@/utils/fonts";
@@ -55,14 +56,8 @@ const AddEntryForm = () => {
     queryFn: () => contestControllers.getContestDetails(id),
     enabled: !!id,
   });
-  const { data: participantsData } = useQuery({
-    queryKey: ["participants", id],
-    queryFn: () => contestControllers.getAllParticipants(id),
-    enabled: !!id,
-  });
-  console.log("participantsData", participantsData);
+
   const template_fields = data?.data?.entryLevelTemplate?.schema.fields;
-  console.log("fields", template_fields);
   const initialValues = React.useMemo(() => {
     return (
       template_fields?.reduce((acc: any, field: any) => {
@@ -260,7 +255,7 @@ const AddEntryForm = () => {
                     label="Select User"
                     onChange={(e) => { setSelectedParticipant(e.target.value)}}
                   >
-                    {participantsData?.data?.map((participant: any) => (
+                    {data?.data?.participants?.map((participant: ContestParticipant) => (
                       <MenuItem key={participant.id} value={participant.id}>
                         {participant?.submission?.data?.yg9snrxlh}
                       </MenuItem>

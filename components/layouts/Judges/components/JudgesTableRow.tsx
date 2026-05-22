@@ -1,4 +1,5 @@
 import { UserController } from "@/api/userControllers";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { useModal } from "@/store/useModal";
 import { UserStatus } from "@/utils/enum";
 import {
@@ -9,8 +10,13 @@ import {
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   IconButton,
   Menu,
@@ -61,8 +67,10 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
   const router = useRouter();
   const queryClient = useQueryClient();
   const { showModal, hideModal } = useModal();
+  const { showSnackbar } = useSnackbar();
   const [judge, setJudge] = useState(initialJudge);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -85,6 +93,21 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
     },
   });
 
+  const deleteJudgeMutation = useMutation({
+    mutationFn: () => UserController.deleteUserById(judge.id),
+    onSuccess: () => {
+      showSnackbar("Judge deleted successfully", "success");
+      queryClient.invalidateQueries({ queryKey: ["judge-list"] });
+      queryClient.invalidateQueries({ queryKey: ["judges"] });
+      setDeleteDialogOpen(false);
+    },
+    onError: (error: any) => {
+      console.error(error);
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete judge";
+      showSnackbar(errorMessage, "error");
+    },
+  });
+
   const handleStatusChange = (newStatus: UserStatus) => {
     mutation.mutate(newStatus);
   };
@@ -92,248 +115,299 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
   const statusStyle = getStatusStyles(judge.status);
 
   return (
-    <TableRow
-      sx={{
-        bgcolor: selected ? "rgba(99, 102, 241, 0.04)" : "transparent",
-        "&:hover": {
-          bgcolor: selected ? "rgba(99, 102, 241, 0.08)" : "rgba(0,0,0,0.01)",
-        },
-        "& .MuiTableCell-root": {
-          borderBottom: `1px solid ${colors.BORDER}`,
-          py: dense ? 1 : 2,
-        },
-      }}
-    >
-      {visibleHeaders.includes("Name") && (
-        <TableCell sx={{ whiteSpace: "nowrap" }}>
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              cursor: "pointer",
-              width: "fit-content",
-              "&:hover": {
-                "& .MuiTypography-body2": {
-                  color: colors.PRIMARY,
-                  textDecoration: "underline",
-                },
-                "& .MuiAvatar-root": {
-                  opacity: 0.8,
-                  transform: "scale(1.05)",
-                  transition: "all 0.2s ease",
-                },
-              },
-            }}
-            onClick={() => router.push(`/user-management/judges/${judge.id}`)}
-          >
-            <Avatar
-              src={judge.avatar}
-              sx={{
-                width: 36,
-                height: 36,
-                bgcolor: colors.PRIMARY,
-                fontSize: "0.8rem",
-                fontWeight: 600,
-              }}
-            >
-              {judge.name
-                .split(" ")
-                .filter(Boolean)
-                .map((n: string) => n[0])
-                .join("")
-                .toUpperCase()
-                .slice(0, 2)}
-            </Avatar>
-            <Box>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontWeight: 700,
-                  color: colors.TEXT_PRIMARY,
-                  lineHeight: 1.2,
-                  transition: "color 0.2s ease",
-                }}
-              >
-                {judge.name}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{ color: colors.TEXT_SECONDARY }}
-              >
-                {judge.email}
-              </Typography>
-            </Box>
-          </Box>
-        </TableCell>
-      )}
-
-      {/* Phone Number */}
-      {visibleHeaders.includes("Phone number") && (
-        <TableCell sx={{ whiteSpace: "nowrap" }}>
-          <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
-            {judge.phoneNumber || "—"}
-          </Typography>
-        </TableCell>
-      )}
-
-      {/* Expertise */}
-      {visibleHeaders.includes("Expertise") && (
-        <TableCell sx={{ whiteSpace: "nowrap" }}>
-          {judge.expertise &&
-          judge.expertise !== "N/A" &&
-          judge.expertise !== "—" ? (
+    <>
+      <TableRow
+        sx={{
+          bgcolor: selected ? "rgba(99, 102, 241, 0.04)" : "transparent",
+          "&:hover": {
+            bgcolor: selected ? "rgba(99, 102, 241, 0.08)" : "rgba(0,0,0,0.01)",
+          },
+          "& .MuiTableCell-root": {
+            borderBottom: `1px solid ${colors.BORDER}`,
+            py: dense ? 1 : 2,
+          },
+        }}
+      >
+        {visibleHeaders.includes("Name") && (
+          <TableCell sx={{ whiteSpace: "nowrap" }}>
             <Box
               sx={{
                 display: "flex",
-                gap: 0.5,
-                flexWrap: "wrap",
-                maxWidth: 250,
-              }}
-            >
-              {judge.expertise.split(", ").map((exp: string, idx: number) => (
-                <Chip
-                  key={idx}
-                  label={exp}
-                  size="small"
-                  sx={{
-                    bgcolor: "rgba(0,0,0,0.04)",
-                    color: colors.TEXT_PRIMARY,
-                    fontSize: "0.75rem",
-                  }}
-                />
-              ))}
-            </Box>
-          ) : (
-            <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY }}>
-              —
-            </Typography>
-          )}
-        </TableCell>
-      )}
-
-      {visibleHeaders.includes("Status") && (
-        <TableCell sx={{ whiteSpace: "nowrap" }}>
-          <FormControl variant="standard" fullWidth>
-            <Select
-              value={judge.status}
-              onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
-              disableUnderline
-              disabled={mutation.isPending}
-              IconComponent={
-                mutation.isPending
-                  ? () => (
-                      <CircularProgress
-                        size={14}
-                        sx={{ mr: 1, ml: 0.5, color: statusStyle.color }}
-                      />
-                    )
-                  : undefined
-              }
-              sx={{
-                fontSize: "0.75rem",
-                fontWeight: 500,
+                alignItems: "center",
+                gap: 2,
                 width: "fit-content",
-                "& .MuiSelect-select": {
-                  py: 0.5,
-                  px: 1,
-                  borderRadius: "6px",
-                  bgcolor: statusStyle.bgcolor,
-                  color: statusStyle.color,
-                  display: "flex",
-                  alignItems: "center",
-                },
-                "& .MuiSvgIcon-root": {
-                  color: statusStyle.color,
-                },
               }}
             >
-              {Object.values(UserStatus)
-                .filter((s) => s !== UserStatus.ALL)
-                .map((status) => (
-                  <MenuItem
-                    key={status}
-                    value={status}
-                    sx={{ fontSize: "0.85rem" }}
-                  >
-                    {status}
-                  </MenuItem>
-                ))}
-            </Select>
-          </FormControl>
-        </TableCell>
-      )}
+              <Avatar
+                src={judge.avatar}
+                sx={{
+                  width: 36,
+                  height: 36,
+                  bgcolor: colors.PRIMARY,
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                }}
+              >
+                {judge.name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((n: string) => n[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2)}
+              </Avatar>
+              <Box>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 700,
+                    color: colors.TEXT_PRIMARY,
+                    lineHeight: 1.2,
+                    transition: "color 0.2s ease",
+                  }}
+                >
+                  {judge.name}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: colors.TEXT_SECONDARY }}
+                >
+                  {judge.email}
+                </Typography>
+              </Box>
+            </Box>
+          </TableCell>
+        )}
 
-      {visibleHeaders.includes("Actions") && (
-        <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-            <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-            <IconButton
-              size="small"
-              sx={{ color: colors.TEXT_SECONDARY }}
-              onClick={handleOpenMenu}
-            >
-              <MoreIcon fontSize="small" />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleCloseMenu}
-              transformOrigin={{ horizontal: "right", vertical: "top" }}
-              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  minWidth: 120,
-                  border: `1px solid ${colors.BORDER}`,
-                  borderRadius: 2,
-                  mt: 0.5,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                },
-              }}
-            >
-              <MenuItem onClick={handleCloseMenu} sx={{ fontSize: "0.85rem" }}>
-                View Details
-              </MenuItem>
-              {judge.status === "Active" && (
+        {/* Phone Number */}
+        {visibleHeaders.includes("Phone number") && (
+          <TableCell sx={{ whiteSpace: "nowrap" }}>
+            <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY }}>
+              {judge.phoneNumber || "—"}
+            </Typography>
+          </TableCell>
+        )}
+
+        {/* Expertise */}
+        {visibleHeaders.includes("Expertise") && (
+          <TableCell sx={{ whiteSpace: "nowrap" }}>
+            {judge.expertise &&
+            judge.expertise !== "N/A" &&
+            judge.expertise !== "—" ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 0.5,
+                  flexWrap: "wrap",
+                  maxWidth: 250,
+                }}
+              >
+                {judge.expertise.split(", ").map((exp: string, idx: number) => (
+                  <Chip
+                    key={idx}
+                    label={exp}
+                    size="small"
+                    sx={{
+                      bgcolor: "rgba(0,0,0,0.04)",
+                      color: colors.TEXT_PRIMARY,
+                      fontSize: "0.75rem",
+                    }}
+                  />
+                ))}
+              </Box>
+            ) : (
+              <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY }}>
+                —
+              </Typography>
+            )}
+          </TableCell>
+        )}
+
+        {visibleHeaders.includes("Status") && (
+          <TableCell sx={{ whiteSpace: "nowrap" }}>
+            <FormControl variant="standard" fullWidth>
+              <Select
+                value={judge.status}
+                onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
+                disableUnderline
+                disabled={mutation.isPending}
+                IconComponent={
+                  mutation.isPending
+                    ? () => (
+                        <CircularProgress
+                          size={14}
+                          sx={{ mr: 1, ml: 0.5, color: statusStyle.color }}
+                        />
+                      )
+                    : undefined
+                }
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 500,
+                  width: "fit-content",
+                  "& .MuiSelect-select": {
+                    py: 0.5,
+                    px: 1,
+                    borderRadius: "6px",
+                    bgcolor: statusStyle.bgcolor,
+                    color: statusStyle.color,
+                    display: "flex",
+                    alignItems: "center",
+                  },
+                  "& .MuiSvgIcon-root": {
+                    color: statusStyle.color,
+                  },
+                }}
+              >
+                {Object.values(UserStatus)
+                  .filter((s) => s !== UserStatus.ALL)
+                  .map((status) => (
+                    <MenuItem
+                      key={status}
+                      value={status}
+                      sx={{ fontSize: "0.85rem" }}
+                    >
+                      {status}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </TableCell>
+        )}
+
+        {visibleHeaders.includes("Actions") && (
+          <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+              <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
+                <EditIcon fontSize="small" />
+              </IconButton>
+              <IconButton
+                size="small"
+                sx={{ color: colors.TEXT_SECONDARY }}
+                onClick={handleOpenMenu}
+              >
+                <MoreIcon fontSize="small" />
+              </IconButton>
+              <Menu
+                anchorEl={anchorEl}
+                open={open}
+                onClose={handleCloseMenu}
+                transformOrigin={{ horizontal: "right", vertical: "top" }}
+                anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                PaperProps={{
+                  elevation: 0,
+                  sx: {
+                    minWidth: 120,
+                    border: `1px solid ${colors.BORDER}`,
+                    borderRadius: 2,
+                    mt: 0.5,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                  },
+                }}
+              >
+                <MenuItem 
+                  onClick={() => {
+                    handleCloseMenu();
+                    router.push(`/user-management/judges/${judge.id}`);
+                  }} 
+                  sx={{ fontSize: "0.85rem" }}
+                >
+                  View Details
+                </MenuItem>
+                {judge.status === "Active" && (
+                  <MenuItem
+                    onClick={() => {
+                      handleCloseMenu();
+                      showModal(
+                        <AssignJudgesDialog
+                          open={true}
+                          onClose={hideModal}
+                          judges={[{ id: judge.id, name: judge.name }]}
+                        />,
+                      );
+                    }}
+                    sx={{
+                      fontSize: "0.85rem",
+                      display: "flex",
+                      gap: 1,
+                      alignItems: "center",
+                    }}
+                  >
+                    <AssignIcon
+                      fontSize="small"
+                      sx={{ color: colors.PRIMARY, fontSize: 16 }}
+                    />
+                    Assign to Contest
+                  </MenuItem>
+                )}
                 <MenuItem
                   onClick={() => {
                     handleCloseMenu();
-                    showModal(
-                      <AssignJudgesDialog
-                        open={true}
-                        onClose={hideModal}
-                        judges={[{ id: judge.id, name: judge.name }]}
-                      />,
-                    );
+                    setDeleteDialogOpen(true);
                   }}
-                  sx={{
-                    fontSize: "0.85rem",
-                    display: "flex",
-                    gap: 1,
-                    alignItems: "center",
-                  }}
+                  sx={{ fontSize: "0.85rem", color: colors.ERROR }}
                 >
-                  <AssignIcon
-                    fontSize="small"
-                    sx={{ color: colors.PRIMARY, fontSize: 16 }}
-                  />
-                  Assign to Contest
+                  Delete Judge
                 </MenuItem>
-              )}
-              <MenuItem
-                onClick={handleCloseMenu}
-                sx={{ fontSize: "0.85rem", color: colors.ERROR }}
-              >
-                Delete Judge
-              </MenuItem>
-            </Menu>
-          </Box>
-        </TableCell>
-      )}
-    </TableRow>
+              </Menu>
+            </Box>
+          </TableCell>
+        )}
+      </TableRow>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, fontSize: "1.25rem" }}>
+          Delete Judge
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ color: colors.TEXT_SECONDARY }}>
+            Are you sure you want to delete judge <strong>{judge.name}</strong>? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            variant="outlined"
+            sx={{
+              color: colors.TEXT_SECONDARY,
+              borderColor: colors.BORDER,
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => deleteJudgeMutation.mutate()}
+            variant="contained"
+            color="error"
+            disabled={deleteJudgeMutation.isPending}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              boxShadow: "none",
+            }}
+          >
+            {deleteJudgeMutation.isPending ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : (
+              "Delete"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
