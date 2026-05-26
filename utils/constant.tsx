@@ -6,6 +6,7 @@ import {
   EmojiEvents,
   Gavel,
   ErrorOutline as ModerationIcon,
+  People,
   PersonSharp,
   AttachMoney as RevenueIcon,
   RemoveRedEye as ViewsIcon,
@@ -137,11 +138,11 @@ export const SIDEBAR = [
   {
     label: "User Management",
     subModules: [
-      // {
-      //   label: "Users",
-      //   icon: People,
-      //   href: "/user-management/users",
-      // },
+      {
+        label: "Users",
+        icon: People,
+        href: "/user-management/users",
+      },
       {
         label: "Judges",
         icon: Gavel,

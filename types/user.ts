@@ -161,6 +161,7 @@ export interface USER_DATA {
   email: string;
   firstName: string;
   lastName: string;
+  fullName:string;
   id: string;
   participantProfile: {
     country: string;

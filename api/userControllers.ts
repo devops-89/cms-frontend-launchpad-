@@ -4,7 +4,7 @@ import { userSecuredApi } from "./config";
 export const UserController = {
   getAllUser: async (role: UserRole) => {
     try {
-      let result = await userSecuredApi.get(`all`);
+      let result = await userSecuredApi.get(`all?role=participant`);
       return result;
     } catch (error){
       throw error;

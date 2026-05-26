@@ -242,8 +242,10 @@ const UserTable: React.FC = () => {
                   )}
                   {visibleHeaders.includes("Name") && (
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.firstName} {val.lastName}
-                    </TableCell>
+                    {val.firstName && val.lastName
+                      ? `${val.firstName} ${val.lastName}`
+                      : val.fullName}
+                  </TableCell>
                   )}
                   {visibleHeaders.includes("Email") && (
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
