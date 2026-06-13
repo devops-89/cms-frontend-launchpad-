@@ -1,6 +1,6 @@
+import { ExpandLess, ExpandMore, History } from '@mui/icons-material';
+import { alpha, Box, Chip, Collapse, Grid, IconButton, Paper, Typography } from '@mui/material';
 import React from 'react';
-import { Box, Paper, Typography, Grid, Chip, alpha, Collapse, IconButton } from '@mui/material';
-import { History, ExpandMore, ExpandLess } from '@mui/icons-material';
 
 export const EvaluationHistory = ({ evalData, colors }: { evalData: any, colors: any }) => {
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
@@ -81,7 +81,7 @@ export const EvaluationHistory = ({ evalData, colors }: { evalData: any, colors:
                   </Typography>
                   <Grid container spacing={2}>
                     {historyItem?.scores?.map((s: any, idx: number) => (
-                      <Grid item xs={12} sm={6} md={4} key={idx}>
+                      <Grid size={{xs:12,sm:6,md:4}} key={idx}>
                         <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: alpha(colors.TEXT_SECONDARY, 0.05), display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                           <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY, fontWeight: 600, textTransform: 'capitalize' }}>
                             {s.description}
