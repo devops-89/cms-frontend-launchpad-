@@ -15,10 +15,20 @@ export const useLogin = () => {
       const result = await AuthControllers.login(data);
       console.log("login result", result);
       const token = result.data.data.accessToken;
+      const user = result.data.data.user;
 
-      localStorage.setItem("token", token);
-      // console.log("token", token);
-      router.push("/dashboard");
+      if (user) {
+        localStorage.setItem("user", JSON.stringify(user));
+        if (user.role === "judge") {
+          localStorage.setItem("judge_access_token", token);
+          router.push("/judge-panel/dashboard");
+        } else {
+          localStorage.setItem("token", token);
+          router.push("/dashboard");
+        }
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       console.error("login error", err);
       setError(

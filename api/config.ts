@@ -90,11 +90,25 @@ entrySecuredApi.interceptors.request.use(
   },
 );
 
+const judgeSecuredApi = axios.create({
+  baseURL: SERVER_ENDPOINTS.CONTEST_BASEURL,
+});
+
+judgeSecuredApi.interceptors.request.use(
+  (config: InternalAxiosRequestConfig<any>) => {
+    let token = localStorage.getItem("judge_access_token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  },
+);
+
 export {
-  authSecuredApi,
-  authPublicApi,
-  userSecuredApi,
-  formSecuredApi,
-  contestSecuredApi,
-  entrySecuredApi,
+  authPublicApi, authSecuredApi, contestSecuredApi,
+  entrySecuredApi, formSecuredApi, judgeSecuredApi, userSecuredApi
 };
+

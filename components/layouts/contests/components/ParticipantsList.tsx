@@ -79,12 +79,37 @@ const ParticipantsList = () => {
   });
 
   const participants = Array.isArray(participantsData?.data) ? participantsData.data : [];
+  
+  React.useEffect(() => {
+    if (participants.length > 0) {
+      console.log("DEBUG Participants Data:", participants);
+    }
+  }, [participants]);
 
   const dynamicColumns = useMemo(() => {
-    return fields.map((field: ContestTemplateField) => ({
-      id: field.id,
-      label: field.label,
-    }));
+    const cols: { id: string; label: string }[] = [];
+    let nameAdded = false;
+
+    fields.forEach((field: ContestTemplateField) => {
+      const label = field.label?.toLowerCase() || "";
+      const isNameField = label.includes("first name") || label.includes("last name") || label === "first" || label === "last" || label.includes("name");
+      
+      if (isNameField) {
+        if (!nameAdded) {
+          cols.push({ id: "composite_name", label: "Name" });
+          nameAdded = true;
+        }
+      } else {
+        cols.push({ id: field.id, label: field.label });
+      }
+    });
+
+    // If no name field was found, add it as the first column anyway
+    if (!nameAdded) {
+      cols.unshift({ id: "composite_name", label: "Name" });
+    }
+
+    return cols;
   }, [fields]);
 
   const allColumns = useMemo(() => {
@@ -186,12 +211,39 @@ const ParticipantsList = () => {
                 {dynamicColumns
                   .filter((col) => visibleColumns.includes(col.id))
                   .map((col) => {
-                    const field = fields.find((f: ContestTemplateField) => f.id === col.id);
-                    const rawValue = participant.submission?.data?.[col.id];
-                    let displayValue = rawValue || "—";
+                    let displayValue = "—";
 
-                    if (field?.type === "datePicker" && rawValue) {
-                      displayValue = moment(rawValue).format("MMM DD, YYYY");
+                    if (col.id === "composite_name") {
+                      const firstNameField = fields.find((f: ContestTemplateField) => f.label?.toLowerCase().includes("first name") || f.label?.toLowerCase() === "first");
+                      const lastNameField = fields.find((f: ContestTemplateField) => f.label?.toLowerCase().includes("last name") || f.label?.toLowerCase() === "last");
+                      const fullNameField = fields.find((f: ContestTemplateField) => {
+                        const l = f.label?.toLowerCase() || "";
+                        return l.includes("name") && !l.includes("first") && !l.includes("last");
+                      });
+
+                      const rawData = participant.submission?.data;
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      const firstName = firstNameField ? formData[firstNameField.id] : "";
+                      const lastName = lastNameField ? formData[lastNameField.id] : "";
+                      const fullName = fullNameField ? formData[fullNameField.id] : "";
+
+                      if (firstName || lastName) {
+                        displayValue = `${firstName || ""} ${lastName || ""}`.trim();
+                      } else if (fullName) {
+                        displayValue = fullName;
+                      } else if (participant.submission?.data?.yg9snrxlh) {
+                        displayValue = participant.submission.data.yg9snrxlh;
+                      }
+                    } else {
+                      const field = fields.find((f: ContestTemplateField) => f.id === col.id);
+                      const rawData = participant.submission?.data;
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      const rawValue = formData[col.id];
+                      displayValue = rawValue || "—";
+
+                      if (field?.type === "datePicker" && rawValue) {
+                        displayValue = moment(rawValue).format("MMM DD, YYYY");
+                      }
                     }
 
                     return (
@@ -204,22 +256,31 @@ const ParticipantsList = () => {
                   })}
                 {visibleColumns.includes("status") && (
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: "0.75rem",
-                        fontWeight: 700,
-                        textTransform: "capitalize",
-                        px: 1,
-                        py: 0.5,
-                        borderRadius: "6px",
-                        bgcolor: participant.status === "pending" ? "#fef3c7" : "#dcfce7",
-                        color: participant.status === "pending" ? "#92400e" : "#166534",
-                        width: "fit-content",
-                      }}
-                    >
-                      {participant.status || "Unknown"}
-                    </Typography>
+                    {(() => {
+                      const rawData = participant.submission?.data;
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      const displayStatus = formData.status || participant.status || "Unknown";
+                      const isPending = displayStatus.toLowerCase() === "pending";
+                      
+                      return (
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            textTransform: "capitalize",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: "6px",
+                            bgcolor: isPending ? "#fef3c7" : "#dcfce7",
+                            color: isPending ? "#92400e" : "#166534",
+                            width: "fit-content",
+                          }}
+                        >
+                          {displayStatus}
+                        </Typography>
+                      );
+                    })()}
                   </TableCell>
                 )}
                 {visibleColumns.includes("joined_at") && (

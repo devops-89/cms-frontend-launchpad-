@@ -71,6 +71,14 @@ const EntriesList = () => {
     );
   }
 
+  const userFields = (contest as any)?.userLevelTemplate?.schema?.fields || (contest as any)?.user_level_template?.schema?.fields || [];
+  const nameField = userFields.find((f: any) => f.label?.toLowerCase().includes("name")) || userFields[0];
+  const participantNameId = nameField?.id;
+
+  const entryFields = (contest as any)?.entryLevelTemplate?.schema?.fields || (contest as any)?.entry_level_template?.schema?.fields || [];
+  const titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("name")) || entryFields[0];
+  const entryTitleId = titleField?.id;
+
   return (
     <Box>
       <Table sx={{ mt: 2 }}>
@@ -106,6 +114,9 @@ const EntriesList = () => {
 
         <TableBody>
           {entriesData?.data?.map((entry: ContestEntry, index: number) => {
+            const entryTitle = entryTitleId ? entry?.submission?.data?.[entryTitleId] : entry?.submission?.data?.ho1p00z0q;
+            const authorName = participantNameId ? entry?.participant?.submission?.data?.[participantNameId] : entry?.participant?.submission?.data?.yg9snrxlh;
+
             return (
               <TableRow key={index}>
                 <TableCell>
@@ -143,13 +154,13 @@ const EntriesList = () => {
                       transition: "color 0.2s ease",
                     }}
                   >
-                    {entry?.submission?.data?.ho1p00z0q || "Untitled"}
+                    {entryTitle || "Untitled"}
                   </Typography>
                 </TableCell>
 
                 <TableCell>
                   <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}>
-                    {entry?.participant?.submission?.data?.yg9snrxlh || "Unknown"}
+                    {authorName || "Unknown"}
                   </Typography>
                 </TableCell>
 

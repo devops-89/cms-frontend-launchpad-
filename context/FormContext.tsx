@@ -21,6 +21,8 @@ export type FieldType =
   | "telInput"
   | "datePicker"
   | "password"
+  | "file_upload"
+  | "multiselect"
   | "step_break";
 export type FieldVariant = "outlined" | "filled" | "standard";
 

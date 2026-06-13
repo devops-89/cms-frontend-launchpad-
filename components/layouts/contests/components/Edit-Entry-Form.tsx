@@ -297,7 +297,7 @@ const EditEntryForm = () => {
                         label={val.label}
                         sx={{ width: "100%" }}
                         value={ formik.values[val.id] ? dayjs(formik.values[val.id]) : null}
-                        onChange={(newValue) => formik.setFieldValue(val.id, newValue?.toISOString()) }
+                        onChange={(newValue) => formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null) }
                       />
                     )}
                     {val.type === FIELDS_TYPE.SELECT && (

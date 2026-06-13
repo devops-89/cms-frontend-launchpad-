@@ -13,6 +13,7 @@ import {
   ViewDay as SplitIcon,
   Phone as TelIcon,
   KeyboardArrowUp as UpIcon,
+  UploadFile as UploadIcon,
 } from "@mui/icons-material";
 import {
   Autocomplete,
@@ -434,7 +435,7 @@ if (field.id === "member_2_step" && !showMember2) {
             />
           </Grid>
 
-          {["select", "radio", "autocomplete"].includes(field.type) && (
+          {["select", "radio", "autocomplete", "multiselect"].includes(field.type) && (
             <Grid size={{ xs: 12 }}>
               <Box
                 sx={{
@@ -822,6 +823,61 @@ if (field.id === "member_2_step" && !showMember2) {
                         Disable Future
                       </Typography>
                     }
+                  />
+                </Stack>
+              </Box>
+            </Grid>
+          )}
+
+          {field.type === "file_upload" && (
+            <Grid size={{ xs: 12 }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: "14px",
+                  bgcolor: alpha(theme.palette.primary.main, 0.02),
+                  border: "1px solid",
+                  borderColor: alpha(theme.palette.primary.main, 0.05),
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    color: "primary.main",
+                    mb: 1.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    textTransform: "uppercase",
+                    fontSize: "0.6rem",
+                  }}
+                >
+                  <UploadIcon sx={{ fontSize: "0.8rem" }} /> File Rules
+                </Typography>
+                <Stack direction="row" spacing={3}>
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Allowed Extensions (e.g., .jpg, .pdf)"
+                    value={field.config?.allowedExtensions || ""}
+                    onChange={(e) => onUpdateConfig(field.id, "allowedExtensions", e.target.value)}
+                    sx={{
+                      "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
+                      "& .MuiInputLabel-root": { fontSize: "0.75rem" },
+                    }}
+                  />
+                  <TextField
+                    size="small"
+                    fullWidth
+                    label="Max File Size (MB)"
+                    type="number"
+                    value={field.config?.maxSize || ""}
+                    onChange={(e) => onUpdateConfig(field.id, "maxSize", e.target.value)}
+                    sx={{
+                      "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
+                      "& .MuiInputLabel-root": { fontSize: "0.75rem" },
+                    }}
                   />
                 </Stack>
               </Box>

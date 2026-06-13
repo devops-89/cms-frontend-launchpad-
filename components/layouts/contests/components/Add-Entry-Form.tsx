@@ -255,11 +255,17 @@ const AddEntryForm = () => {
                     label="Select User"
                     onChange={(e) => { setSelectedParticipant(e.target.value)}}
                   >
-                    {data?.data?.participants?.map((participant: ContestParticipant) => (
-                      <MenuItem key={participant.id} value={participant.id}>
-                        {participant?.submission?.data?.yg9snrxlh}
-                      </MenuItem>
-                    ))}
+                    {data?.data?.participants?.map((participant: ContestParticipant) => {
+                      const userTemplateFields = data?.data?.userLevelTemplate?.schema?.fields || [];
+                      const nameField = userTemplateFields.find((f: any) => f.label?.toLowerCase().includes("name")) || userTemplateFields[0];
+                      const nameFieldId = nameField?.id;
+                      const displayName = nameFieldId ? participant?.submission?.data?.[nameFieldId] : participant?.submission?.data?.yg9snrxlh;
+                      return (
+                        <MenuItem key={participant.id} value={participant.id}>
+                          {displayName || "Unnamed Participant"}
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
               </Grid>
@@ -328,7 +334,7 @@ const AddEntryForm = () => {
                           label={val.label}
                           sx={{ width: "100%" }}
                           value={ formik.values[val.id] ? dayjs(formik.values[val.id]) : null }
-                          onChange={(newValue) => formik.setFieldValue( val.id, newValue?.toISOString() ) }
+                          onChange={(newValue) => formik.setFieldValue( val.id, newValue && newValue.isValid() ? newValue.toISOString() : null ) }
                           slotProps={{
                             textField: {
                               error: formik.touched[val.id] && Boolean(formik.errors[val.id]),

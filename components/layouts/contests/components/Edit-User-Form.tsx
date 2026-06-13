@@ -266,7 +266,7 @@ const EditUserForm = () => {
                           : null
                       }
                       onChange={(newValue) =>
-                        formik.setFieldValue(val.id, newValue?.toISOString())
+                        formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null)
                       }
                       slotProps={{
                         textField: {

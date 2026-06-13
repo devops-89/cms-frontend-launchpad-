@@ -1,21 +1,21 @@
 "use client";
 
-import DashboardLayout from "@/components/layouts/Dashboard";
-import { Typography, Box, Grid, CircularProgress } from "@mui/material";
-import { useAppTheme } from "@/context/ThemeContext";
-import StatCard from "@/components/dashboard/StatCard";
-import AnalyticsCharts from "@/components/dashboard/AnalyticsCharts";
-import {
-  EmojiEvents as ContestIcon,
-  People as PeopleIcon,
-  Event as EventIcon,
-  TrendingUp as TrendingIcon,
-} from "@mui/icons-material";
-import { roboto } from "@/utils/fonts";
-import { useQuery } from "@tanstack/react-query";
 import { contestControllers } from "@/api/contestControllers";
+import AnalyticsCharts from "@/components/dashboard/AnalyticsCharts";
+import StatCard from "@/components/dashboard/StatCard";
+import DashboardLayout from "@/components/layouts/Dashboard";
+import { useAppTheme } from "@/context/ThemeContext";
 import { useGetAllUsers } from "@/hooks/user/useGetAllUsers";
 import { UserRole, UserStatus } from "@/utils/enum";
+import { roboto } from "@/utils/fonts";
+import {
+    EmojiEvents as ContestIcon,
+    Event as EventIcon,
+    People as PeopleIcon,
+    TrendingUp as TrendingIcon,
+} from "@mui/icons-material";
+import { Box, CircularProgress, Grid, Typography } from "@mui/material";
+import { useQuery } from "@tanstack/react-query";
 import moment from "moment";
 
 export default function DashboardPage() {
@@ -26,7 +26,7 @@ export default function DashboardPage() {
     queryKey: ["contests"],
     queryFn: () => contestControllers.getContest(),
   });
-  const contestsList = contestsData?.data || [];
+  const contestsList = Array.isArray(contestsData?.data?.docs) ? contestsData.data.docs : [];
 
   // Fetch participants
   const { users: participants, isLoading: isParticipantsPending } =

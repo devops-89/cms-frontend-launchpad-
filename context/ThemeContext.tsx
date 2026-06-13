@@ -1,16 +1,14 @@
 "use client";
 
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useMemo,
-} from "react";
+import { LIGHT_COLORS } from "@/utils/enum";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
-import { LIGHT_COLORS, DARK_COLORS } from "@/utils/enum";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import React, {
+    createContext,
+    useContext,
+    useMemo
+} from "react";
 
 interface ThemeContextType {
   mode: "light" | "dark";

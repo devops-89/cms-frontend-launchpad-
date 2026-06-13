@@ -26,6 +26,7 @@ import {
   TableRow,
   Tabs,
   TextField,
+  TablePagination,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment";
@@ -111,9 +112,12 @@ const StatusDropdown = ({ user }: { user: USER_DATA }) => {
 };
 
 const UserTable: React.FC = () => {
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const { data, isPending, error } = useQuery({
-    queryKey: ["user-list"],
-    queryFn: () => UserController.getAllUser(UserRole.PARTICIPANT),
+    queryKey: ["user-list", page, rowsPerPage],
+    queryFn: () => UserController.getAllUser(UserRole.PARTICIPANT, page + 1, rowsPerPage),
     enabled: true,
   });
 
@@ -126,7 +130,6 @@ const UserTable: React.FC = () => {
   };
   console.log(user_data);
   const ALL_HEADERS = [
-    "Id",
     "Name",
     "Email",
     "Phone number",
@@ -136,7 +139,7 @@ const UserTable: React.FC = () => {
     "School Name",
     "Country Of Residence",
     "Joined At",
-    // "Actions",
+    "Contest",
   ];
 
   const [visibleHeaders, setVisibleHeaders] = useState<string[]>(ALL_HEADERS);
@@ -235,17 +238,20 @@ const UserTable: React.FC = () => {
             <TableBody>
               {user_data?.users.map((val: USER_DATA, i: number) => (
                 <TableRow key={i}>
-                  {visibleHeaders.includes("Id") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.id}
-                    </TableCell>
-                  )}
                   {visibleHeaders.includes("Name") && (
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                    {val.firstName && val.lastName
-                      ? `${val.firstName} ${val.lastName}`
-                      : val.fullName}
-                  </TableCell>
+                      {(() => {
+                        const first = val.firstName || "";
+                        const last = val.lastName || "";
+                        let displayName = `${first} ${last}`.trim();
+                        
+                        if (!displayName && val.fullName) {
+                          displayName = val.fullName.replace("undefined", "").trim();
+                        }
+                        
+                        return displayName || "—";
+                      })()}
+                    </TableCell>
                   )}
                   {visibleHeaders.includes("Email") && (
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
@@ -293,6 +299,12 @@ const UserTable: React.FC = () => {
                       )}
                     </TableCell>
                   )}
+                  {visibleHeaders.includes("Contest") && (
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {/* Note: Assuming val.contestName or val.contest.name might be provided by backend later. Defaulting to N/A if missing */}
+                      {(val as any)?.contestName || (val as any)?.contest?.name || "N/A"}
+                    </TableCell>
+                  )}
                   {/* {visibleHeaders.includes("Actions") && (
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
                       <IconButton>
@@ -305,6 +317,17 @@ const UserTable: React.FC = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          component="div"
+          count={user_data?.total || 0}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+        />
       </Card>
     </Box>
   );

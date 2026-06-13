@@ -2,9 +2,9 @@ import { UserRole } from "@/utils/enum";
 import { userSecuredApi } from "./config";
 
 export const UserController = {
-  getAllUser: async (role: UserRole) => {
+  getAllUser: async (role: UserRole, page: number = 1, limit: number = 10) => {
     try {
-      let result = await userSecuredApi.get(`all?role=participant`);
+      let result = await userSecuredApi.get(`all?role=${role}&page=${page}&limit=${limit}`);
       return result;
     } catch (error){
       throw error;

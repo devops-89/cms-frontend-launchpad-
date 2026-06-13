@@ -116,7 +116,7 @@ const AddUserForm = () => {
     onSubmit: async (values) => {
   try {
     await contestControllers.addUserInContest(
-      values,
+      { data: values, status: "active" },
       id,
     );
 
@@ -277,7 +277,7 @@ const AddUserForm = () => {
                           : null
                       }
                       onChange={(newValue) =>
-                        formik.setFieldValue(val.id, newValue?.toISOString())
+                        formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null)
                       }
                       slotProps={{
                         textField: {

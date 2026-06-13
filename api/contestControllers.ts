@@ -1,4 +1,4 @@
-import { AddContestPayload, ASSIGNJUDGEPAYLOAD } from "@/types/user";
+import { AddContestPayload, ASSIGNJUDGEPAYLOAD, VotingPeriodPayload } from "@/types/user";
 import { contestSecuredApi } from "./config";
 
 export const contestControllers = {
@@ -136,9 +136,19 @@ export const contestControllers = {
       throw error;
     }
   },
+  getAssignedJudges: async (contestId: string) => {
+    try {
+      const response = await contestSecuredApi.get(
+        `/${contestId}/judges/`
+      );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
   addVotingPeriod: async (
     contestId: string,
-    data: { voting_type: string; start_date: string; end_date: string },
+    data: VotingPeriodPayload,
   ) => {
     try {
       const response = await contestSecuredApi.post(
@@ -160,7 +170,7 @@ export const contestControllers = {
   },
   updateVotingPeriod: async (
     votingPeriodId: string,
-    data: { start_date: string; end_date: string }
+    data: VotingPeriodPayload
   ) => {
     try {
       const response = await contestSecuredApi.put(

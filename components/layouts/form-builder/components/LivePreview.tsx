@@ -233,6 +233,43 @@ const LivePreview: React.FC<LivePreviewProps> = ({
             {field.label}
           </Button>
         );
+      case "file_upload":
+        return (
+          <Box sx={{ ...commonProps.sx, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
+              {field.label} {field.required && "*"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+              {config.allowedExtensions ? `Allowed: ${config.allowedExtensions}` : "All files allowed"} 
+              {config.maxSize ? ` (Max: ${config.maxSize}MB)` : ""}
+            </Typography>
+            <Button variant="outlined" component="label" size="small">
+              Upload File
+              <input type="file" hidden />
+            </Button>
+          </Box>
+        );
+      case "multiselect":
+        return (
+          <FormControl fullWidth variant={field.variant || "outlined"} sx={commonProps.sx}>
+            <InputLabel>{field.label}</InputLabel>
+            <Select 
+              label={field.label} 
+              required={field.required}
+              multiple
+              value={Array.isArray(formValues[field.id]) ? formValues[field.id] : []}
+              onChange={(e) => setFormValues((p) => ({ ...p, [field.id]: typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value }))}
+              renderValue={(selected) => (selected as string[]).join(", ")}
+            >
+              {field.options?.map((opt, i) => (
+                <MenuItem key={i} value={opt}>
+                  <Checkbox checked={Array.isArray(formValues[field.id]) && formValues[field.id].indexOf(opt) > -1} />
+                  {opt}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        );
       default:
         return <Typography color="error">Preview not available for {field.type}</Typography>;
     }

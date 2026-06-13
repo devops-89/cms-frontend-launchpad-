@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import React from "react";
 import Header from "./Header";
+import JudgeSidebar from "./JudgeSidebar";
 import LayoutProvider from "./Layout-Provider";
 import Modal from "./Modal";
 import Sidebar from "./Sidebar";
@@ -21,6 +22,17 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
                           "/verify-otp",
                           ];
   const isLoginPage = hideLayoutPaths.includes(pathname);
+  const isJudgePanel = pathname.startsWith('/judge-panel');
+
+  React.useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr && !hideLayoutPaths.includes(pathname) && !pathname.startsWith('/judge-panel')) {
+      const user = JSON.parse(userStr);
+      if (user.role === 'judge') {
+        window.location.href = '/judge-panel/dashboard';
+      }
+    }
+  }, [pathname]);
 
   if (isLoginPage) {
     return (
@@ -33,7 +45,7 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
 
   return (
     <>
-      <Sidebar />
+      {isJudgePanel ? <JudgeSidebar /> : <Sidebar />}
       <Header />
       <Modal />
       <LayoutProvider>{children}</LayoutProvider>

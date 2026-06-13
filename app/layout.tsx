@@ -13,6 +13,8 @@ import { SnackbarProvider } from "@/context/SnackbarContext";
 import QueryProvider from "@/context/QueryProvider";
 import LayoutWrapper from "@/components/widgets/Layout-Wrapper";
 
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -25,15 +27,17 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body suppressHydrationWarning>
-        <QueryProvider>
-          <ThemeContextProvider>
-            <FormProvider>
-              <SnackbarProvider>
-                <LayoutWrapper>{children}</LayoutWrapper>
-              </SnackbarProvider>
-            </FormProvider>
-          </ThemeContextProvider>
-        </QueryProvider>
+        <AppRouterCacheProvider>
+          <QueryProvider>
+            <ThemeContextProvider>
+              <FormProvider>
+                <SnackbarProvider>
+                  <LayoutWrapper>{children}</LayoutWrapper>
+                </SnackbarProvider>
+              </FormProvider>
+            </ThemeContextProvider>
+          </QueryProvider>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

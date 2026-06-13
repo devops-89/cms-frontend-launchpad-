@@ -68,7 +68,7 @@ const ContestTable = () => {
     },
   });
 
-  const contestsList = data?.data || [];
+  const contestsList = Array.isArray(data?.data?.docs) ? data.data.docs : [];
 
   const getStatusColor = (status: UserStatus) => {
     switch (status) {

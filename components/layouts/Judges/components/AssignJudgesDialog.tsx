@@ -1,32 +1,32 @@
 "use client";
 
 import {
-  Autocomplete,
-  Box,
-  Button,
-  Checkbox,
-  Chip,
-  CircularProgress,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  IconButton,
-  TextField,
-  Typography,
+    Autocomplete,
+    Box,
+    Button,
+    Checkbox,
+    Chip,
+    CircularProgress,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Divider,
+    IconButton,
+    TextField,
+    Typography,
 } from "@mui/material";
 import React, { useEffect, useMemo, useState } from "react";
 
 import {
-  Close as CloseIcon,
-  EmojiEvents as ContestIcon,
+    Close as CloseIcon,
+    EmojiEvents as ContestIcon,
 } from "@mui/icons-material";
 
 import { contestControllers } from "@/api/contestControllers";
 import { entryControllers } from "@/api/entryControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { useAppTheme } from "@/context/ThemeContext";
-import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 interface AssignJudgesDialogProps {
   open: boolean;
   onClose: () => void;
@@ -57,11 +57,7 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
     enabled: open,
   });
   const publishedContests = useMemo(() => {
-    const list = Array.isArray(contestsData?.data)
-      ? contestsData.data
-      : Array.isArray(contestsData)
-        ? contestsData
-        : [];
+    const list = Array.isArray(contestsData?.data?.docs) ? contestsData.data.docs : [];
     return list.filter(
       (contest: any) => contest.status?.toLowerCase() === "published",
     );
@@ -80,11 +76,57 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
       : Array.isArray(entriesData)
         ? entriesData
         : [];
-    return list.map((entry: any) => ({
-      id: entry.id,
-      title: entry?.submission?.data?.ho1p00z0q || "Untitled",
-      author: entry?.participant?.submission?.data?.yg9snrxlh || "Unknown",
-    }));
+    return list.map((entry: any) => {
+      const submissionData = entry?.submission?.data || {};
+      const participantData = entry?.participant?.submission?.data || {};
+      
+      const entryFields = entry?.contest?.entry_level_template?.schema?.fields || [];
+      const userFields = entry?.contest?.user_level_template?.schema?.fields || [];
+
+      let titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
+      if (!titleField) {
+        titleField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+      }
+
+      let title = "Untitled";
+      if (titleField && submissionData[titleField.id]) {
+        title = submissionData[titleField.id];
+      } else if (submissionData["ho1p00z0q"]) {
+        title = submissionData["ho1p00z0q"];
+      } else {
+        const values = Object.values(submissionData).filter((v: any) => 
+          typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('T18:30:00') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v)
+        );
+        if (values.length > 0) {
+          title = values[0] as string;
+        } else {
+          title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8)}`;
+        }
+      }
+
+      let authorField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+      let author = "Unknown";
+      if (authorField && participantData[authorField.id]) {
+        author = participantData[authorField.id];
+      } else if (participantData["yg9snrxlh"]) {
+        author = participantData["yg9snrxlh"];
+      } else {
+        const values = Object.values(participantData).filter((v: any) => 
+          typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('T18:30:00') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v)
+        );
+        if (values.length > 0) {
+          author = values[0] as string;
+        } else if (entry?.participant?.email) {
+          author = entry.participant.email;
+        }
+      }
+
+      return {
+        id: entry.id,
+        title,
+        author,
+      };
+    });
   }, [entriesData]);
 
   const contests = useMemo(() => {
@@ -212,18 +254,21 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
               }}
             getOptionLabel={(option) => option.title}
             renderInput={(params) => (<TextField {...params} placeholder="Choose contest..." />)}
-            renderOption={(props, option) => (
-              <li {...props}>
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }} >
-                    {option.title}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY}} >
-                    Published Contest
-                  </Typography>
-                </Box>
-              </li>
-            )}
+            renderOption={(props, option) => {
+              const { key, ...optionProps } = props as any;
+              return (
+                <li key={key} {...optionProps}>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }} >
+                      {option.title}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY}} >
+                      Published Contest
+                    </Typography>
+                  </Box>
+                </li>
+              );
+            }}
           />
         </Box>
         {selectedContest && (

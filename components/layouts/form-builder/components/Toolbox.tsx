@@ -24,6 +24,8 @@ import {
   SmartButton as ButtonIcon,
   Password as PasswordIcon,
   ViewDay as SplitIcon,
+  UploadFile as UploadIcon,
+  Checklist as MultiSelectIcon,
 } from "@mui/icons-material";
 import { FieldType } from "@/context/FormContext";
 import { montserrat } from "@/utils/fonts";
@@ -38,9 +40,11 @@ export const fieldTypes: {
   { type: "numberField", label: "Number Input", icon: <NumbersIcon />, category: "Basic" },
   { type: "password", label: "Password Input", icon: <PasswordIcon />, category: "Basic" },
   { type: "telInput", label: "Phone Connection", icon: <TelIcon />, category: "Input" },
+  { type: "file_upload", label: "File Upload", icon: <UploadIcon />, category: "Input" },
   { type: "datePicker", label: "Date Selection", icon: <DateIcon />, category: "Input" },
   { type: "autocomplete", label: "Smart Search", icon: <RightIcon />, category: "Selection" },
   { type: "select", label: "Dropdown Menu", icon: <SelectIcon />, category: "Selection" },
+  { type: "multiselect", label: "Multi Select", icon: <MultiSelectIcon />, category: "Selection" },
   { type: "radio", label: "Radio Group", icon: <RadioIcon />, category: "Selection" },
   { type: "checkbox", label: "Toggle Box", icon: <CheckIcon />, category: "Toggle" },
   { type: "switch", label: "Switch Key", icon: <SwitchIcon />, category: "Toggle" },

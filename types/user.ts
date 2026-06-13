@@ -203,3 +203,17 @@ export interface ASSIGNJUDGEPAYLOAD {
   judge_id: string;
   entry_ids: string[];
 }
+
+export interface VotingPeriodCriterion {
+  description: string;
+  weighting: number;
+}
+
+export interface VotingPeriodPayload {
+  voting_type?: string;
+  start_date: string;
+  end_date: string;
+  max_score?: number;
+  criteria?: VotingPeriodCriterion[];
+  judge_ids?: string[];
+}
