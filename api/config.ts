@@ -62,7 +62,7 @@ const contestSecuredApi = axios.create({
 
 contestSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig<any>) => {
-    let token = localStorage.getItem("token");
+    let token = localStorage.getItem("token") || localStorage.getItem("judge_access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -79,7 +79,7 @@ const entrySecuredApi = axios.create({
 
 entrySecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig<any>) => {
-    let token = localStorage.getItem("token");
+    let token = localStorage.getItem("token") || localStorage.getItem("judge_access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -96,7 +96,7 @@ const judgeSecuredApi = axios.create({
 
 judgeSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig<any>) => {
-    let token = localStorage.getItem("judge_access_token");
+    let token = localStorage.getItem("judge_access_token") || localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
