@@ -143,6 +143,20 @@ export const useFormTemplate = (initialData?: any) => {
       return;
     }
 
+    const invalidFileField = fields.find(
+      (f) =>
+        f.type === "file_upload" &&
+        (!f.config?.allowedExtensions || !f.config?.maxSize)
+    );
+
+    if (invalidFileField) {
+      showSnackbar(
+        `Please specify Allowed Extensions and Max File Size for the "${invalidFileField.label}" field.`,
+        "error"
+      );
+      return;
+    }
+
     setLoading(true);
 
     const payload = {

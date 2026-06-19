@@ -80,46 +80,45 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
       const submissionData = entry?.submission?.data || {};
       const participantData = entry?.participant?.submission?.data || {};
       
-      const entryFields = entry?.contest?.entry_level_template?.schema?.fields || [];
-      const userFields = entry?.contest?.user_level_template?.schema?.fields || [];
+      const sData = submissionData?.data ? submissionData.data : submissionData;
+      const pData = participantData?.data ? participantData.data : participantData;
+
+      const contest = publishedContests.find((c: any) => c.id === entry.contest_id || c._id === entry.contest_id) || entry?.contest;
+      const entryFields = contest?.entry_level_template?.schema?.fields || contest?.entryLevelTemplate?.schema?.fields || [];
+      const userFields = contest?.user_level_template?.schema?.fields || contest?.userLevelTemplate?.schema?.fields || [];
 
       let titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
       if (!titleField) {
         titleField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
       }
 
-      let title = "Untitled";
-      if (titleField && submissionData[titleField.id]) {
-        title = submissionData[titleField.id];
-      } else if (submissionData["ho1p00z0q"]) {
-        title = submissionData["ho1p00z0q"];
-      } else {
-        const values = Object.values(submissionData).filter((v: any) => 
-          typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('T18:30:00') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v)
-        );
-        if (values.length > 0) {
-          title = values[0] as string;
-        } else {
-          title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8)}`;
-        }
+      let title = "";
+      if (titleField) {
+        title = sData[titleField.label] || sData[titleField.id];
       }
+      if (!title) {
+        title = sData["ho1p00z0q"] || sData["Innovation Title"] || sData["zvdskzwrw"];
+      }
+      if (!title) {
+        const values = Object.values(sData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
+        if (values.length > 0) title = values[0] as string;
+        else title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8)}`;
+      }
+      if (!title) title = "Untitled";
 
       let authorField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
-      let author = "Unknown";
-      if (authorField && participantData[authorField.id]) {
-        author = participantData[authorField.id];
-      } else if (participantData["yg9snrxlh"]) {
-        author = participantData["yg9snrxlh"];
-      } else {
-        const values = Object.values(participantData).filter((v: any) => 
-          typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('T18:30:00') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v)
-        );
-        if (values.length > 0) {
-          author = values[0] as string;
-        } else if (entry?.participant?.email) {
-          author = entry.participant.email;
-        }
+      let author = "";
+      if (authorField) {
+        author = pData[authorField.label] || pData[authorField.id];
       }
+      if (!author) {
+        author = pData["yg9snrxlh"] || pData["Firstname"] || pData["Name"] || pData["an7ffo0mu"] || entry?.participant?.email;
+      }
+      if (!author) {
+        const values = Object.values(pData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
+        if (values.length > 0) author = values[0] as string;
+      }
+      if (!author) author = "Unknown";
 
       return {
         id: entry.id,
@@ -127,7 +126,7 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
         author,
       };
     });
-  }, [entriesData]);
+  }, [entriesData, publishedContests]);
 
   const contests = useMemo(() => {
     return publishedContests.map((contest: any) => ({
@@ -289,9 +288,9 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
                 <TextField {...params} placeholder="Choose entries..." />
               )}
               renderOption={(props, option, { selected }) => {
-                const { key, ...optionProps } = props;
+                const { key, ...optionProps } = props as any;
                 return (
-                  <li key={key} {...optionProps}>
+                  <li key={option.id} {...optionProps}>
                     <Checkbox checked={selected} sx={{ mr: 1}}/>
                     <Box>
                       <Typography variant="body2" sx={{ fontWeight: 700 }} >

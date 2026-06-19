@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{email_subject}}</title>
+</head>
+<body style="background-color: #f9fafb; margin: 0; padding: 20px;">
+  <!-- MAIN EMAIL CONTAINER -->
+  <div style="font-family: 'Arial', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+    
+    <!-- HEADER -->
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h1 style="color: #4f46e5; margin: 0; font-size: 24px;">{{contest_name}}</h1>
+    </div>
+
+    <!-- CONTENT BOX -->
+    <div style="background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+      <h2 style="color: #111827; font-size: 20px; margin-top: 0; margin-bottom: 20px;">{{email_subject}}</h2>
+      
+      <!-- INJECT THE ADMIN'S MESSAGE BODY HERE -->
+      <!-- Note for Backend Dev: The admin's plaintext input should have its \n newlines converted to <p> or <br> tags before injecting here -->
+      <div style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 12px;">
+        {{{email_body_html}}}
+      </div>
+      
+      <!-- FOOTER / SIGNATURE -->
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+        <p style="color: #6b7280; line-height: 1.6; font-size: 14px; margin-bottom: 0;">
+          Best regards,<br>
+          <strong>The Admin Team</strong>
+        </p>
+      </div>
+    </div>
+
+    <!-- BOTTOM COPYRIGHT -->
+    <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
+      &copy; 2026 {{contest_name}}. All rights reserved.
+    </div>
+
+  </div>
+</body>
+</html>

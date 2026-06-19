@@ -21,7 +21,7 @@ import React, { useState, useEffect } from "react";
 import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { useRouter, useParams } from "next/navigation";
-import { countries } from "@/utils/constant";
+import { CountryController } from "@/api/countryControllers";
 import { roboto } from "@/utils/fonts";
 import { useFormik } from "formik";
 import { CONTEST_VALIDATION } from "@/utils/validation";
@@ -53,6 +53,15 @@ const EditContestForm = () => {
     enabled: !!id,
   });
 
+  const { data: countriesRes, isLoading: isLoadingCountries } = useQuery({
+    queryKey: ["countries"],
+    queryFn: CountryController.getAllCountries,
+  });
+
+  const activeCountries = Array.isArray(countriesRes?.data)
+    ? countriesRes.data.filter((c: any) => c.isActive).map((c: any) => ({ id: c.id, label: c.name }))
+    : [];
+
   const contest = contestData?.data as CONTESTDETAILS;
 
   const formik = useFormik<AddContestPayload>({
@@ -61,7 +70,7 @@ const EditContestForm = () => {
       description: "",
       start_date: "",
       end_date: "",
-      available_regions: [],
+      available_countries: [],
       user_level_template_id: "",
       entry_level_template_id: "",
     },
@@ -96,15 +105,15 @@ const EditContestForm = () => {
 
   useEffect(() => {
     if (contest) {
-      // Need to handle available_regions which might be string or array in detail API
-      let regions: string[] = [];
-      if (Array.isArray(contest.available_regions)) {
-        regions = contest.available_regions;
-      } else if (typeof contest.available_regions === "string") {
+      // Need to handle available_countries which might be string or array in detail API
+      let countriesData: string[] = [];
+      if (Array.isArray(contest.available_countries)) {
+        countriesData = contest.available_countries;
+      } else if (typeof contest.available_countries === "string") {
         try {
-          regions = JSON.parse(contest.available_regions);
+          countriesData = JSON.parse(contest.available_countries);
         } catch (e) {
-          regions = contest.available_regions.split(",").map(r => r.trim());
+          countriesData = (contest.available_countries as string).split(",").map((r: string) => r.trim());
         }
       }
 
@@ -113,14 +122,14 @@ const EditContestForm = () => {
         description: contest.description || "",
         start_date: contest.start_date || "",
         end_date: contest.end_date || "",
-        available_regions: regions,
+        available_countries: countriesData,
         user_level_template_id: contest.user_level_template_id || "",
         entry_level_template_id: contest.entry_level_template_id || "",
       });
     }
   }, [contest]);
 
-  if (isLoadingContest || isLoadingTemplates) {
+  if (isLoadingContest || isLoadingTemplates || isLoadingCountries) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
         <CircularProgress />
@@ -128,10 +137,10 @@ const EditContestForm = () => {
     );
   }
 
-  const availableCountries = countries.filter(
-    (c) =>
-      !formik.values.available_regions.find(
-        (selectedCode) => selectedCode === c.code,
+  const availableCountries = activeCountries.filter(
+    (c: any) =>
+      !(formik.values.available_countries || []).find(
+        (selectedId) => selectedId === c.id,
       ),
   );
 
@@ -252,14 +261,14 @@ const EditContestForm = () => {
             <Autocomplete
               multiple
               options={availableCountries}
-              getOptionLabel={(option) => option.label || ""}
-              value={countries.filter((c) =>
-                formik.values.available_regions.includes(c.code),
+              getOptionLabel={(option: any) => option.label || ""}
+              value={activeCountries.filter((c: any) =>
+                (formik.values.available_countries || []).includes(c.id),
               )}
               onChange={(event, newValue) => {
                 formik.setFieldValue(
-                  "available_regions",
-                  newValue.map((c) => c.code),
+                  "available_countries",
+                  newValue.map((c) => c.id),
                 );
               }}
               renderInput={(params) => (
@@ -267,17 +276,17 @@ const EditContestForm = () => {
                   {...params}
                   label="Available Regions*"
                   placeholder={
-                    formik.values.available_regions.length === 0
+                    (formik.values.available_countries || []).length === 0
                       ? "Select countries..."
                       : ""
                   }
                   error={
-                    formik.touched.available_regions &&
-                    Boolean(formik.errors.available_regions)
+                    formik.touched.available_countries &&
+                    Boolean(formik.errors.available_countries)
                   }
                   helperText={
-                    formik.touched.available_regions &&
-                    formik.errors.available_regions
+                    formik.touched.available_countries &&
+                    formik.errors.available_countries
                   }
                   sx={{
                     "& .MuiOutlinedInput-root": {
@@ -297,7 +306,7 @@ const EditContestForm = () => {
                   const { key, ...tagProps } = getTagProps({ index });
                   return (
                     <Chip
-                      key={option.code}
+                      key={option.id}
                       {...tagProps}
                       label={option.label}
                       size="small"

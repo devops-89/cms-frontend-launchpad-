@@ -105,35 +105,34 @@ export default function JudgeEntriesPage() {
                   <TableRow key={entry.id} hover>
                     <TableCell>
                       {(() => {
-                        const data = entry.entry?.submission?.data;
-                        if (!data) return `Entry #${entry.entry_id?.substring(0, 8)}`;
+                        const submissionData = entry.entry?.submission?.data || {};
+                        const sData = submissionData?.data ? submissionData.data : submissionData;
                         
-                        const entryFields = entry.contest?.entry_level_template?.schema?.fields || [];
-                        const userFields = entry.contest?.user_level_template?.schema?.fields || [];
+                        const entryFields = entry.contest?.entry_level_template?.schema?.fields || entry.contest?.entryLevelTemplate?.schema?.fields || [];
+                        const userFields = entry.contest?.user_level_template?.schema?.fields || entry.contest?.userLevelTemplate?.schema?.fields || [];
                         
                         let titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
-                        
                         if (!titleField) {
                           titleField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
                         }
                         
-                        if (titleField && data[titleField.id]) {
-                          return data[titleField.id];
+                        let title = "";
+                        if (titleField) {
+                          title = sData[titleField.label] || sData[titleField.id];
                         }
-                        
-                        if (data["ho1p00z0q"]) return data["ho1p00z0q"];
-
-                        for (const f of entryFields) {
-                          const val = data[f.id];
-                          if (val && typeof val === 'string' && val.trim() !== '' && !/^[0-9+\-\s()]+$/.test(val) && val.length < 60) {
-                            return val;
-                          }
+                        if (!title) {
+                          title = sData["ho1p00z0q"] || sData["Innovation Title"] || sData["zvdskzwrw"];
                         }
+                        if (!title) {
+                          const values = Object.values(sData).filter(v => 
+                            typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v as string)
+                          );
+                          if (values.length > 0) title = values[0] as string;
+                          else title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8)}`;
+                        }
+                        if (!title) title = "Untitled";
 
-                        const values = Object.values(data).filter(v => 
-                          typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('T18:30:00') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v as string)
-                        );
-                        return values.length > 0 ? (values[0] as string) : `Entry #${entry.entry_id?.substring(0, 8)}`;
+                        return title;
                       })()}
                     </TableCell>
                     <TableCell>{entry.contest?.name || "N/A"}</TableCell>
@@ -146,12 +145,12 @@ export default function JudgeEntriesPage() {
                           borderRadius: 1,
                           fontSize: '0.85rem',
                           fontWeight: 600,
-                          bgcolor: entry.status === 'evaluated' ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 152, 0, 0.1)',
-                          color: entry.status === 'evaluated' ? '#4caf50' : '#ff9800',
-                          textTransform: 'capitalize'
+                          bgcolor: entry.status === 'evaluated' ? 'rgba(76, 175, 80, 0.1)' : entry.status === 'approved' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(255, 152, 0, 0.1)',
+                          color: entry.status === 'evaluated' ? '#4caf50' : entry.status === 'approved' ? '#2196f3' : '#ff9800',
+                          border: `1px solid ${entry.status === 'evaluated' ? 'rgba(76, 175, 80, 0.2)' : entry.status === 'approved' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(255, 152, 0, 0.2)'}`,
                         }}
                       >
-                        {entry.status}
+                        {entry.status === 'approved' ? 'Moderate' : entry.status === 'evaluated' ? 'Evaluated' : entry.status || "Pending"}
                       </Box>
                     </TableCell>
                     <TableCell>

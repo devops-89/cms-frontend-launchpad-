@@ -10,6 +10,7 @@ import { montserrat } from "@/utils/fonts";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -23,6 +24,7 @@ import {
   FormControlLabel,
   FormHelperText,
   Grid,
+  IconButton,
   InputLabel,
   MenuItem,
   Radio,
@@ -94,6 +96,41 @@ const AddEntryForm = () => {
           break;
         case FIELDS_TYPE.DATE_PICKER: validator = Yup.string();
           break;
+        case FIELDS_TYPE.FILE_UPLOAD: {
+          let fileValidator = Yup.mixed();
+          if (field.config?.maxSize) {
+            const maxSize = Number(field.config.maxSize) * 1024 * 1024;
+            fileValidator = fileValidator.test(
+              "fileSize",
+              `File size is too large (Max: ${field.config.maxSize}MB)`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) return value.size <= maxSize;
+                return true;
+              }
+            );
+          }
+          if (field.config?.allowedExtensions) {
+            const allowed = typeof field.config.allowedExtensions === 'string' 
+              ? field.config.allowedExtensions.split(",").map((e: string) => e.trim().toLowerCase()) 
+              : field.config.allowedExtensions;
+            fileValidator = fileValidator.test(
+              "fileType",
+              `Unsupported file type (Allowed: ${allowed.join(", ")})`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) {
+                  const extMatch = value.name.match(/\.[0-9a-z]+$/i);
+                  const extension = extMatch ? extMatch[0].toLowerCase() : "";
+                  return allowed.includes(extension);
+                }
+                return true;
+              }
+            );
+          }
+          validator = fileValidator;
+          break;
+        }
         case FIELDS_TYPE.CHECKBOX:
         case FIELDS_TYPE.SWITCH: validator = Yup.boolean();
           break;
@@ -125,6 +162,41 @@ const AddEntryForm = () => {
             break;
           case FIELDS_TYPE.DATE_PICKER: validator = Yup.string();
             break;
+          case FIELDS_TYPE.FILE_UPLOAD: {
+            let fileValidator = Yup.mixed();
+            if (field.config?.maxSize) {
+              const maxSize = Number(field.config.maxSize) * 1024 * 1024;
+              fileValidator = fileValidator.test(
+                "fileSize",
+                `File size is too large (Max: ${field.config.maxSize}MB)`,
+                (value: any) => {
+                  if (!value) return true;
+                  if (value instanceof File) return value.size <= maxSize;
+                  return true;
+                }
+              );
+            }
+            if (field.config?.allowedExtensions) {
+              const allowed = typeof field.config.allowedExtensions === 'string' 
+                ? field.config.allowedExtensions.split(",").map((e: string) => e.trim().toLowerCase()) 
+                : field.config.allowedExtensions;
+              fileValidator = fileValidator.test(
+                "fileType",
+                `Unsupported file type (Allowed: ${allowed.join(", ")})`,
+                (value: any) => {
+                  if (!value) return true;
+                  if (value instanceof File) {
+                    const extMatch = value.name.match(/\.[0-9a-z]+$/i);
+                    const extension = extMatch ? extMatch[0].toLowerCase() : "";
+                    return allowed.includes(extension);
+                  }
+                  return true;
+                }
+              );
+            }
+            validator = fileValidator;
+            break;
+          }
           case FIELDS_TYPE.CHECKBOX:
           case FIELDS_TYPE.SWITCH: validator = Yup.boolean();
             break;
@@ -158,7 +230,16 @@ const AddEntryForm = () => {
       try {
         const participantId = selectedParticipant;
         console.log("Selected Participant", participantId);
-        await entryControllers.createEntry(id, { participant_id: participantId, data: values});
+        
+        const formData = new FormData();
+        formData.append("participant_id", participantId);
+        for (const key in values) {
+          if (values[key] !== undefined && values[key] !== null) {
+            formData.append(key, values[key]);
+          }
+        }
+        
+        await entryControllers.createEntry(id, formData);
         showSnackbar("Entry added successfully!", "success");
         router.push(`/contest-management/contests/${id}`);
       } catch (err: any) {
@@ -257,9 +338,41 @@ const AddEntryForm = () => {
                   >
                     {data?.data?.participants?.map((participant: ContestParticipant) => {
                       const userTemplateFields = data?.data?.userLevelTemplate?.schema?.fields || [];
-                      const nameField = userTemplateFields.find((f: any) => f.label?.toLowerCase().includes("name")) || userTemplateFields[0];
-                      const nameFieldId = nameField?.id;
-                      const displayName = nameFieldId ? participant?.submission?.data?.[nameFieldId] : participant?.submission?.data?.yg9snrxlh;
+                      const firstNameField = userTemplateFields.find((f: any) => {
+                        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                        return l.includes("firstname") || l === "first";
+                      });
+                      const lastNameField = userTemplateFields.find((f: any) => {
+                        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                        return l.includes("lastname") || l === "last";
+                      });
+                      const fullNameField = userTemplateFields.find((f: any) => {
+                        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                        return l.includes("fullname") || l === "name" || (l.includes("name") && !l.includes("first") && !l.includes("last"));
+                      });
+
+                      const rawData = participant?.submission?.data;
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      let displayName = "";
+
+                      if (firstNameField || lastNameField) {
+                        const first = firstNameField ? formData[firstNameField.id] : "";
+                        const last = lastNameField ? formData[lastNameField.id] : "";
+                        displayName = `${first || ""} ${last || ""}`.trim();
+                      }
+                      
+                      if (!displayName && fullNameField) {
+                        displayName = formData[fullNameField.id];
+                      }
+
+                      if (!displayName) {
+                        const fallback = userTemplateFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+                        if (fallback && formData[fallback.id]) {
+                          displayName = formData[fallback.id];
+                        } else {
+                          displayName = formData.yg9snrxlh;
+                        }
+                      }
                       return (
                         <MenuItem key={participant.id} value={participant.id}>
                           {displayName || "Unnamed Participant"}
@@ -529,6 +642,46 @@ const AddEntryForm = () => {
                         )}
                         {formik.touched[val.id] && formik.errors[val.id] && (
                           <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
+                        )}
+                      </Box>
+                    )}
+                    {val.type === FIELDS_TYPE.FILE_UPLOAD && (
+                      <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {val.label} {val.required && "*"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                          {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
+                          {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
+                        </Typography>
+                        {formik.values[val.id] ? (
+                          <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, p: 0.5, px: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "8px", bgcolor: "background.paper", mt: 1 }}>
+                            <Typography variant="caption" noWrap sx={{ maxWidth: 150, fontWeight: 600 }}>
+                              {formik.values[val.id] instanceof File ? formik.values[val.id].name : "File Selected"}
+                            </Typography>
+                            <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ p: 0.5 }}>
+                              <CloseIcon sx={{ fontSize: "1rem" }} />
+                            </IconButton>
+                          </Box>
+                        ) : (
+                          <Button variant="outlined" component="label" size="small">
+                            Upload File
+                            <input 
+                              type="file" 
+                              hidden 
+                              accept={val.config?.allowedExtensions || undefined}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                  formik.setFieldValue(val.id, e.target.files[0]);
+                                }
+                              }}
+                            />
+                          </Button>
+                        )}
+                        {formik.touched[val.id] && formik.errors[val.id] && (
+                          <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
+                            {formik.errors[val.id] as string}
+                          </FormHelperText>
                         )}
                       </Box>
                     )}

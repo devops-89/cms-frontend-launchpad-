@@ -11,6 +11,19 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
 
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem("user");
+    if (userStr) {
+      try {
+        setUser(JSON.parse(userStr));
+      } catch (error) {
+        console.error("Failed to parse user from localStorage", error);
+      }
+    }
+  }, []);
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     router.push("/");
@@ -130,7 +143,7 @@ const Header = () => {
               <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1.5 }}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}>
-                    Admin
+                    {user?.role?.toUpperCase() === "JUDGE" ? "Judge" : "Admin"}
                   </Typography>
                 </Box>
               </Box>

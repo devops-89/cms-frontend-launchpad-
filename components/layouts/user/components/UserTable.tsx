@@ -1,5 +1,6 @@
 "use client";
 import { UserController } from "@/api/userControllers";
+import { useAppTheme } from "@/context/ThemeContext";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { USER_DATA } from "@/types/user";
 import { USER_STATUS_TABS } from "@/utils/constant";
@@ -27,6 +28,7 @@ import {
   Tabs,
   TextField,
   TablePagination,
+  Typography,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment";
@@ -51,6 +53,10 @@ const getStatusStyles = (status: string) => {
 const StatusDropdown = ({ user }: { user: USER_DATA }) => {
   const queryClient = useQueryClient();
   const [currentStatus, setCurrentStatus] = useState<string>(user.status || "Pending");
+
+  React.useEffect(() => {
+    setCurrentStatus(user.status || "Pending");
+  }, [user.status]);
 
   const mutation = useMutation({
     mutationFn: (newStatus: string) => UserController.updateUserStatus(user.id, newStatus),
@@ -112,8 +118,11 @@ const StatusDropdown = ({ user }: { user: USER_DATA }) => {
 };
 
 const UserTable: React.FC = () => {
+  const { colors } = useAppTheme();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const [statusTab, setStatusTab] = useState("All");
 
   const { data, isPending, error } = useQuery({
     queryKey: ["user-list", page, rowsPerPage],
@@ -123,26 +132,76 @@ const UserTable: React.FC = () => {
 
   const user_data = data?.data?.data;
   console.log("suer", user_data);
-  const [value, setValue] = useState(0);
 
-  const tabChangeHandler = (event: React.SyntheticEvent, newValue: number) => {
-    setValue(newValue);
-  };
-  console.log(user_data);
-  const ALL_HEADERS = [
-    "Name",
-    "Email",
-    "Phone number",
-    "Grade",
-    "Date of birth",
-    "Status",
-    "School Name",
-    "Country Of Residence",
-    "Joined At",
-    "Contest",
+  // Filter users on the frontend
+  const filteredUsers = React.useMemo(() => {
+    const users = user_data?.users || [];
+    if (statusTab === "All") return users;
+    return users.filter((u: any) => u.status === statusTab);
+  }, [user_data, statusTab]);
+
+  const ALL_COLUMNS = [
+    {
+      header: "Name",
+      getValue: (val: USER_DATA) => val.fullName || `${val.firstName || ""} ${val.lastName || ""}`.trim() || "—",
+    },
+    {
+      header: "Email",
+      getValue: (val: USER_DATA) => val.email,
+    },
+    {
+      header: "Phone number",
+      getValue: (val: USER_DATA) => val.phone,
+    },
+    {
+      header: "Grade",
+      getValue: (val: USER_DATA) => val.participantProfile?.grade,
+    },
+    {
+      header: "Date of birth",
+      getValue: (val: USER_DATA) => val.participantProfile?.dateOfBirth ? moment(val.participantProfile.dateOfBirth).format("YYYY-MM-DD") : null,
+    },
+    {
+      header: "Status",
+      getValue: (val: USER_DATA) => val.status,
+      render: (val: USER_DATA) => <StatusDropdown user={val} />,
+    },
+    {
+      header: "School Name",
+      getValue: (val: USER_DATA) => val.participantProfile?.schoolName,
+    },
+    {
+      header: "Country Of Residence",
+      getValue: (val: any) => val.country?.name || val.participantProfile?.country,
+    },
+    {
+      header: "Joined At",
+      getValue: (val: any) => val.created_at ? moment(val.created_at).format("YYYY-MM-DD") : null,
+    },
+    {
+      header: "Contest",
+      getValue: (val: any) => val.participants?.[0]?.contest?.name || val.contestName || val.contest?.name,
+    },
   ];
 
-  const [visibleHeaders, setVisibleHeaders] = useState<string[]>(ALL_HEADERS);
+  // Determine which columns have data in the current user_data
+  const activeColumns = ALL_COLUMNS.filter((col) => {
+    // Always show Name, Email, and Status if possible, otherwise check if any user has data for this column
+    if (["Name", "Email", "Status"].includes(col.header)) return true;
+    return user_data?.users?.some((user: any) => {
+      const val = col.getValue(user);
+      return val !== null && val !== undefined && val !== "" && val !== "—";
+    });
+  });
+
+  const ALL_HEADERS = activeColumns.map((col) => col.header);
+
+  const [visibleHeaders, setVisibleHeaders] = useState<string[]>([]);
+  
+  // Update visible headers when active headers change
+  React.useEffect(() => {
+    setVisibleHeaders(ALL_HEADERS);
+  }, [user_data]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -195,12 +254,42 @@ const UserTable: React.FC = () => {
         }}
       >
         <Tabs
-          value={value}
-          onChange={tabChangeHandler}
-          sx={{ borderBottom: "1px solid #d7d7d7" }}
+          value={statusTab}
+          onChange={(_, newValue) => setStatusTab(newValue)}
+          sx={{
+            minHeight: 48,
+            "& .MuiTabs-indicator": {
+              backgroundColor: colors.PRIMARY,
+              height: 3,
+              borderRadius: "3px 3px 0 0",
+            },
+            borderBottom: `1px solid ${colors.BORDER}`,
+            mb: 2,
+            px: 2,
+          }}
         >
-          {USER_STATUS_TABS.map((val, i) => (
-            <Tab key={i} label={val.label} />
+          {USER_STATUS_TABS.map((val) => (
+            <Tab
+              key={val.label}
+              value={val.label}
+              label={
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: statusTab === val.label ? 700 : 500 }}
+                  >
+                    {val.label}
+                  </Typography>
+                </Box>
+              }
+              sx={{
+                textTransform: "none",
+                minWidth: "auto",
+                px: 3,
+                color: colors.TEXT_SECONDARY,
+                "&.Mui-selected": { color: colors.TEXT_PRIMARY },
+              }}
+            />
           ))}
         </Tabs>
 
@@ -236,82 +325,15 @@ const UserTable: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {user_data?.users.map((val: USER_DATA, i: number) => (
-                <TableRow key={i}>
-                  {visibleHeaders.includes("Name") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {(() => {
-                        const first = val.firstName || "";
-                        const last = val.lastName || "";
-                        let displayName = `${first} ${last}`.trim();
-                        
-                        if (!displayName && val.fullName) {
-                          displayName = val.fullName.replace("undefined", "").trim();
-                        }
-                        
-                        return displayName || "—";
-                      })()}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Email") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.email}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Phone number") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.phone}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Grade") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.participantProfile?.grade}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Date of birth") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.participantProfile?.dateOfBirth
-                        ? moment(val.participantProfile.dateOfBirth).format(
-                            "YYYY-MM-DD",
-                          )
-                        : "-"}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Status") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <StatusDropdown user={val} />
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("School Name") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.participantProfile?.schoolName}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Country Of Residence") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {val.participantProfile?.country}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Joined At") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {moment(val.participantProfile?.createdAt).format(
-                        "YYYY-MM-DD",
-                      )}
-                    </TableCell>
-                  )}
-                  {visibleHeaders.includes("Contest") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      {/* Note: Assuming val.contestName or val.contest.name might be provided by backend later. Defaulting to N/A if missing */}
-                      {(val as any)?.contestName || (val as any)?.contest?.name || "N/A"}
-                    </TableCell>
-                  )}
-                  {/* {visibleHeaders.includes("Actions") && (
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <IconButton>
-                       
-                      </IconButton>
-                    </TableCell>
-                  )} */}
+              {filteredUsers.map((val: any) => (
+                <TableRow key={val.id}>
+                  {activeColumns
+                    .filter((col) => visibleHeaders.includes(col.header))
+                    .map((col, idx) => (
+                      <TableCell key={idx} sx={{ whiteSpace: "nowrap" }}>
+                        {col.render ? col.render(val) : col.getValue(val) || "—"}
+                      </TableCell>
+                    ))}
                 </TableRow>
               ))}
             </TableBody>

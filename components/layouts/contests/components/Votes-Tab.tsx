@@ -140,7 +140,7 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
                   <TableCell
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}
                   >
-                    {row.voting_type === "PUBLIC" ? "Public Voting" : row.voting_type === "JUDGE" ? "Judge Voting" : row.voting_type}
+                    {row.voting_type === "PUBLIC" ? "Public Voting" : row.voting_type === "JUDGE" ? "Judge Evaluation" : row.voting_type}
                   </TableCell>
                   <TableCell
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}

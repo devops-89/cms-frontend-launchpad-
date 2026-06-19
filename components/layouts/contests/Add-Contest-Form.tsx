@@ -21,7 +21,7 @@ import React, { useState } from "react";
 import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
-import { countries } from "@/utils/constant";
+import { CountryController } from "@/api/countryControllers";
 import { roboto } from "@/utils/fonts";
 import { useFormik } from "formik";
 import { CONTEST_VALIDATION } from "@/utils/validation";
@@ -29,11 +29,21 @@ import { contestControllers } from "@/api/contestControllers";
 import { AddContestPayload } from "@/types/user";
 import moment from "moment";
 import { SEVERITY } from "@/utils/enum";
+import { useQuery } from "@tanstack/react-query";
 
 const AddContestForm = () => {
   const { templates, isLoading: isLoadingTemplates } = useGetAllTemplates();
   const theme = useTheme();
   const router = useRouter();
+
+  const { data: countriesRes } = useQuery({
+    queryKey: ["countries"],
+    queryFn: CountryController.getAllCountries,
+  });
+
+  const activeCountries = Array.isArray(countriesRes?.data)
+    ? countriesRes.data.filter((c: any) => c.isActive).map((c: any) => ({ id: c.id, label: c.name }))
+    : [];
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -51,7 +61,7 @@ const AddContestForm = () => {
       description: "",
       start_date: "",
       end_date: "",
-      available_regions: [],
+      available_countries: [],
       user_level_template_id: "",
       entry_level_template_id: "",
     },
@@ -85,10 +95,10 @@ const AddContestForm = () => {
     },
   });
 
-  const availableCountries = countries.filter(
-    (c) =>
-      !formik.values.available_regions.find(
-        (selectedCode) => selectedCode === c.code,
+  const availableCountries = activeCountries.filter(
+    (c: any) =>
+      !(formik.values.available_countries || []).find(
+        (selectedId) => selectedId === c.id,
       ),
   );
 
@@ -210,14 +220,14 @@ const AddContestForm = () => {
             <Autocomplete
               multiple
               options={availableCountries}
-              getOptionLabel={(option) => option.label}
-              value={countries.filter((c) =>
-                formik.values.available_regions.includes(c.code),
+              getOptionLabel={(option: any) => option.label}
+              value={activeCountries.filter((c: any) =>
+                (formik.values.available_countries || []).includes(c.id),
               )}
               onChange={(event, newValue) => {
                 formik.setFieldValue(
-                  "available_regions",
-                  newValue.map((c) => c.code),
+                  "available_countries",
+                  newValue.map((c) => c.id),
                 );
               }}
               renderInput={(params) => (
@@ -225,17 +235,17 @@ const AddContestForm = () => {
                   {...params}
                   label="Available Regions*"
                   placeholder={
-                    formik.values.available_regions.length === 0
+                    (formik.values.available_countries || []).length === 0
                       ? "Select countries..."
                       : ""
                   }
                   error={
-                    formik.touched.available_regions &&
-                    Boolean(formik.errors.available_regions)
+                    formik.touched.available_countries &&
+                    Boolean(formik.errors.available_countries)
                   }
                   helperText={
-                    formik.touched.available_regions &&
-                    formik.errors.available_regions
+                    formik.touched.available_countries &&
+                    formik.errors.available_countries
                   }
                   sx={{
                     "& .MuiOutlinedInput-root": {
@@ -255,7 +265,7 @@ const AddContestForm = () => {
                   const { key, ...tagProps } = getTagProps({ index });
                   return (
                     <Chip
-                      key={option.code}
+                      key={option.id}
                       {...tagProps}
                       label={option.label}
                       size="small"

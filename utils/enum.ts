@@ -78,6 +78,7 @@ export enum FIELDS_TYPE {
   BUTTON = "button",
   PASSWORD = "password",
   STEP_BREAK = "step_break",
+  FILE_UPLOAD = "file_upload",
 }
 
 export enum VOTING_PERIOD_TYPE {

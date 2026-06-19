@@ -214,18 +214,24 @@ const ParticipantsList = () => {
                     let displayValue = "—";
 
                     if (col.id === "composite_name") {
-                      const firstNameField = fields.find((f: ContestTemplateField) => f.label?.toLowerCase().includes("first name") || f.label?.toLowerCase() === "first");
-                      const lastNameField = fields.find((f: ContestTemplateField) => f.label?.toLowerCase().includes("last name") || f.label?.toLowerCase() === "last");
+                      const firstNameField = fields.find((f: ContestTemplateField) => {
+                        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                        return l.includes("firstname") || l === "first";
+                      });
+                      const lastNameField = fields.find((f: ContestTemplateField) => {
+                        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                        return l.includes("lastname") || l === "last";
+                      });
                       const fullNameField = fields.find((f: ContestTemplateField) => {
-                        const l = f.label?.toLowerCase() || "";
-                        return l.includes("name") && !l.includes("first") && !l.includes("last");
+                        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                        return l.includes("fullname") || l === "name" || (l.includes("name") && !l.includes("first") && !l.includes("last"));
                       });
 
                       const rawData = participant.submission?.data;
                       const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
-                      const firstName = firstNameField ? formData[firstNameField.id] : "";
-                      const lastName = lastNameField ? formData[lastNameField.id] : "";
-                      const fullName = fullNameField ? formData[fullNameField.id] : "";
+                      const firstName = firstNameField ? (formData[firstNameField.label] || formData[firstNameField.id]) : "";
+                      const lastName = lastNameField ? (formData[lastNameField.label] || formData[lastNameField.id]) : "";
+                      const fullName = fullNameField ? (formData[fullNameField.label] || formData[fullNameField.id]) : "";
 
                       if (firstName || lastName) {
                         displayValue = `${firstName || ""} ${lastName || ""}`.trim();
@@ -233,12 +239,18 @@ const ParticipantsList = () => {
                         displayValue = fullName;
                       } else if (participant.submission?.data?.yg9snrxlh) {
                         displayValue = participant.submission.data.yg9snrxlh;
+                      } else {
+                        // Fallback: try to find ANY field that has "name" in it
+                        const fallbackNameField = fields.find((f: ContestTemplateField) => f.label?.toLowerCase().includes("name"));
+                        if (fallbackNameField && (formData[fallbackNameField.label] || formData[fallbackNameField.id])) {
+                          displayValue = formData[fallbackNameField.label] || formData[fallbackNameField.id];
+                        }
                       }
                     } else {
                       const field = fields.find((f: ContestTemplateField) => f.id === col.id);
                       const rawData = participant.submission?.data;
                       const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
-                      const rawValue = formData[col.id];
+                      const rawValue = formData[col.label] || formData[col.id];
                       displayValue = rawValue || "—";
 
                       if (field?.type === "datePicker" && rawValue) {

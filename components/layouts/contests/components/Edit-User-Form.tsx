@@ -21,9 +21,10 @@ import {
   Radio,
   Slider,
   Rating,
-  Autocomplete,
   Alert,
   CircularProgress,
+  IconButton,
+  Autocomplete,
 } from "@mui/material";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -34,11 +35,12 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-import { Save as SaveIcon, ArrowBack as ArrowBackIcon } from "@mui/icons-material";
+import { Save as SaveIcon, ArrowBack as ArrowBackIcon, Close as CloseIcon } from "@mui/icons-material";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { FormHelperText } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
+import Image from "next/image";
 import { contestControllers } from "@/api/contestControllers";
 
 const EditUserForm = () => {
@@ -58,16 +60,17 @@ const EditUserForm = () => {
 
   const template_fields = data?.data?.userLevelTemplate?.schema.fields;
 
-  const participantData = React.useMemo(() => {
-    if (!data?.data?.participants || !participantId) return null;
-    return data.data.participants.find((p: any) => p.id === participantId);
-  }, [data?.data?.participants, participantId]);
+  const { data: participantResponse, isPending: isParticipantPending } = useQuery({
+    queryKey: ["Participant Details", id, participantId],
+    queryFn: () => contestControllers.getParticipantById(id, participantId),
+    enabled: !!id && !!participantId,
+  });
+  const participantData = participantResponse?.data;
 
   const initialValues = React.useMemo(() => {
     return (
       template_fields?.reduce((acc: any, field: any) => {
-        const storedValue = participantData?.submission?.data?.[field.id];
-
+        let storedValue = participantData?.data?.[field.id] || participantData?.data?.[field.label] || participantData?.data?.[field.label?.trim() || ""];
         if (storedValue !== undefined) {
           acc[field.id] = storedValue;
           return acc;
@@ -100,6 +103,39 @@ const EditUserForm = () => {
           field.type === FIELDS_TYPE.SWITCH
         ) {
           validator = Yup.boolean();
+        } else if (field.type === FIELDS_TYPE.FILE_UPLOAD) {
+          let fileValidator = Yup.mixed();
+          if (field.config?.maxSize) {
+            const maxSize = Number(field.config.maxSize) * 1024 * 1024;
+            fileValidator = fileValidator.test(
+              "fileSize",
+              `File size is too large (Max: ${field.config.maxSize}MB)`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) return value.size <= maxSize;
+                return true;
+              }
+            );
+          }
+          if (field.config?.allowedExtensions) {
+            const allowed = typeof field.config.allowedExtensions === 'string' 
+              ? field.config.allowedExtensions.split(",").map((e: string) => e.trim().toLowerCase()) 
+              : field.config.allowedExtensions;
+            fileValidator = fileValidator.test(
+              "fileType",
+              `Unsupported file type (Allowed: ${allowed.join(", ")})`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) {
+                  const extMatch = value.name.match(/\.[0-9a-z]+$/i);
+                  const extension = extMatch ? extMatch[0].toLowerCase() : "";
+                  return allowed.includes(extension);
+                }
+                return true;
+              }
+            );
+          }
+          validator = fileValidator;
         } else {
           validator = Yup.string();
         }
@@ -119,7 +155,13 @@ const EditUserForm = () => {
     enableReinitialize: true,
     onSubmit: async (values) => {
       try {
-        await contestControllers.updateParticipantDetails(values, id, participantId);
+        const formData = new FormData();
+        for (const key in values) {
+          if (values[key] !== undefined && values[key] !== null) {
+            formData.append(key, values[key]);
+          }
+        }
+        await contestControllers.updateParticipantDetails(formData, id, participantId);
         showSnackbar("User updated successfully!", "success");
         router.push(`/contest-management/contests/${id}`);
       } catch (err: any) {
@@ -131,7 +173,7 @@ const EditUserForm = () => {
     },
   });
 
-  if (isPending) {
+  if (isPending || isParticipantPending) {
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "400px" }}>
         <CircularProgress />
@@ -529,6 +571,83 @@ const EditUserForm = () => {
                     )}
                     {formik.touched[val.id] && formik.errors[val.id] && (
                       <FormHelperText error>
+                        {formik.errors[val.id] as string}
+                      </FormHelperText>
+                    )}
+                  </Box>
+                )}
+                
+                {val.type === FIELDS_TYPE.FILE_UPLOAD && (
+                  <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {val.label} {val.required && "*"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
+                      {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
+                    </Typography>
+                    {formik.values[val.id] ? (() => {
+                      const fileValue = formik.values[val.id];
+                      const isFileObj = fileValue instanceof File;
+                      const fileUrl = isFileObj ? URL.createObjectURL(fileValue) : (typeof fileValue === 'string' ? fileValue : '');
+                      const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp|svg)(\?|$)/i.test(url);
+                      const getFileName = (url: string) => {
+                        if (isFileObj) return fileValue.name;
+                        try {
+                          const urlObj = new URL(url);
+                          const segments = urlObj.pathname.split('/');
+                          const decoded = decodeURIComponent(segments.pop() || "");
+                          const parts = decoded.split('-');
+                          return parts.length > 2 ? parts.slice(2).join('-') : decoded;
+                        } catch (e) {
+                          return "Document";
+                        }
+                      };
+
+                      const fileName = getFileName(fileUrl);
+                      const isImg = isFileObj ? fileValue.type.startsWith('image/') : (typeof fileValue === 'string' && isImage(fileValue));
+
+                      return (
+                        <Box sx={{ display: "inline-flex", flexDirection: isImg ? "column" : "row", alignItems: "center", gap: 1.5, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper", mt: 1, position: 'relative' }}>
+                          {isImg ? (
+                            <Box sx={{ borderRadius: 1.5, overflow: "hidden", position: 'relative', width: 150, height: 100, bgcolor: "rgba(0,0,0,0.02)" }}>
+                              <Image src={fileUrl} alt={fileName} fill style={{ objectFit: "cover" }} sizes="150px" />
+                            </Box>
+                          ) : (
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 1.5, bgcolor: "rgba(99, 102, 241, 0.08)", color: "primary.main" }}>
+                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </Box>
+                          )}
+                          
+                          <Typography variant="caption" noWrap sx={{ width: 150, textAlign: 'center', fontWeight: 600, color: "text.primary" }}>
+                            {fileName}
+                          </Typography>
+
+                          <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, p: 0.5, boxShadow: 2, zIndex: 2 }}>
+                            <CloseIcon sx={{ fontSize: "1rem" }} />
+                          </IconButton>
+                        </Box>
+                      );
+                    })() : (
+                      <Button variant="outlined" component="label" size="small">
+                        Upload File
+                        <input 
+                          type="file" 
+                          hidden 
+                          accept={val.config?.allowedExtensions || undefined}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files.length > 0) {
+                              formik.setFieldValue(val.id, e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </Button>
+                    )}
+                    {formik.touched[val.id] && formik.errors[val.id] && (
+                      <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
                         {formik.errors[val.id] as string}
                       </FormHelperText>
                     )}

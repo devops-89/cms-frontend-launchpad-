@@ -9,6 +9,7 @@ import { montserrat } from "@/utils/fonts";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
+  Close as CloseIcon,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -22,6 +23,7 @@ import {
   FormControlLabel,
   FormHelperText,
   Grid,
+  IconButton,
   InputLabel,
   MenuItem,
   Radio,
@@ -96,6 +98,39 @@ const AddUserForm = () => {
           field.type === FIELDS_TYPE.SWITCH
         ) {
           validator = Yup.boolean();
+        } else if (field.type === FIELDS_TYPE.FILE_UPLOAD) {
+          let fileValidator = Yup.mixed();
+          if (field.config?.maxSize) {
+            const maxSize = Number(field.config.maxSize) * 1024 * 1024;
+            fileValidator = fileValidator.test(
+              "fileSize",
+              `File size is too large (Max: ${field.config.maxSize}MB)`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) return value.size <= maxSize;
+                return true;
+              }
+            );
+          }
+          if (field.config?.allowedExtensions) {
+            const allowed = typeof field.config.allowedExtensions === 'string' 
+              ? field.config.allowedExtensions.split(",").map((e: string) => e.trim().toLowerCase()) 
+              : field.config.allowedExtensions;
+            fileValidator = fileValidator.test(
+              "fileType",
+              `Unsupported file type (Allowed: ${allowed.join(", ")})`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) {
+                  const extMatch = value.name.match(/\.[0-9a-z]+$/i);
+                  const extension = extMatch ? extMatch[0].toLowerCase() : "";
+                  return allowed.includes(extension);
+                }
+                return true;
+              }
+            );
+          }
+          validator = fileValidator;
         } else {
           validator = Yup.string();
         }
@@ -115,8 +150,15 @@ const AddUserForm = () => {
     enableReinitialize: true,
     onSubmit: async (values) => {
   try {
+    const formData = new FormData();
+    formData.append("status", "active");
+    for (const key in values) {
+      if (values[key] !== undefined && values[key] !== null) {
+        formData.append(key, values[key]);
+      }
+    }
     await contestControllers.addUserInContest(
-      { data: values, status: "active" },
+      formData,
       id,
     );
 
@@ -544,6 +586,47 @@ const AddUserForm = () => {
                     )}
                     {formik.touched[val.id] && formik.errors[val.id] && (
                       <FormHelperText error>
+                        {formik.errors[val.id] as string}
+                      </FormHelperText>
+                    )}
+                  </Box>
+                )}
+                
+                {val.type === FIELDS_TYPE.FILE_UPLOAD && (
+                  <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      {val.label} {val.required && "*"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                      {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
+                      {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
+                    </Typography>
+                    {formik.values[val.id] ? (
+                      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, p: 0.5, px: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "8px", bgcolor: "background.paper", mt: 1 }}>
+                        <Typography variant="caption" noWrap sx={{ maxWidth: 150, fontWeight: 600 }}>
+                          {formik.values[val.id] instanceof File ? formik.values[val.id].name : "File Selected"}
+                        </Typography>
+                        <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ p: 0.5 }}>
+                          <CloseIcon sx={{ fontSize: "1rem" }} />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      <Button variant="outlined" component="label" size="small">
+                        Upload File
+                        <input 
+                          type="file" 
+                          hidden 
+                          accept={val.config?.allowedExtensions || undefined}
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files.length > 0) {
+                              formik.setFieldValue(val.id, e.target.files[0]);
+                            }
+                          }}
+                        />
+                      </Button>
+                    )}
+                    {formik.touched[val.id] && formik.errors[val.id] && (
+                      <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
                         {formik.errors[val.id] as string}
                       </FormHelperText>
                     )}

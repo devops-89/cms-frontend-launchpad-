@@ -856,24 +856,58 @@ if (field.id === "member_2_step" && !showMember2) {
                   <UploadIcon sx={{ fontSize: "0.8rem" }} /> File Rules
                 </Typography>
                 <Stack direction="row" spacing={3}>
-                  <TextField
-                    size="small"
+                  <Autocomplete
+                    multiple
+                    freeSolo
                     fullWidth
-                    label="Allowed Extensions (e.g., .jpg, .pdf)"
-                    value={field.config?.allowedExtensions || ""}
-                    onChange={(e) => onUpdateConfig(field.id, "allowedExtensions", e.target.value)}
-                    sx={{
-                      "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
-                      "& .MuiInputLabel-root": { fontSize: "0.75rem" },
-                    }}
+                    options={[".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls"]}
+                    value={
+                      typeof field.config?.allowedExtensions === "string" && field.config.allowedExtensions.trim() !== ""
+                        ? field.config.allowedExtensions.split(",").map((s: string) => s.trim())
+                        : Array.isArray(field.config?.allowedExtensions) ? field.config.allowedExtensions : []
+                    }
+                    onChange={(e, v) => onUpdateConfig(field.id, "allowedExtensions", v.join(", "))}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        size="small"
+                        label="Allowed Extensions *"
+                        error={!field.config?.allowedExtensions || field.config.allowedExtensions.length === 0}
+                        placeholder="e.g., .jpg, .pdf"
+                        sx={{
+                          "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
+                          "& .MuiInputLabel-root": { fontSize: "0.75rem" },
+                        }}
+                      />
+                    )}
+                    renderTags={(value, getTagProps) =>
+                      value.map((option, index) => {
+                        const { key, ...otherProps } = getTagProps({ index });
+                        return (
+                          <Chip
+                            key={key}
+                            {...otherProps}
+                            label={option}
+                            size="small"
+                            sx={{
+                              borderRadius: "5px",
+                              fontWeight: 700,
+                              height: 20,
+                              fontSize: "0.6rem",
+                            }}
+                          />
+                        );
+                      })
+                    }
                   />
                   <TextField
                     size="small"
                     fullWidth
-                    label="Max File Size (MB)"
+                    label="Max File Size (MB) *"
                     type="number"
                     value={field.config?.maxSize || ""}
                     onChange={(e) => onUpdateConfig(field.id, "maxSize", e.target.value)}
+                    error={!field.config?.maxSize}
                     sx={{
                       "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
                       "& .MuiInputLabel-root": { fontSize: "0.75rem" },

@@ -54,7 +54,7 @@ export interface AddContestPayload {
   description: string;
   start_date: string;
   end_date: string;
-  available_regions: string[];
+  available_countries: string[];
   user_level_template_id: string;
   entry_level_template_id: string;
 }
@@ -103,7 +103,7 @@ export interface ContestTemplateField {
 }
 
 export interface CONTESTDETAILS {
-  available_regions: string;
+  available_countries: string[];
   description: string;
   end_date: string;
   entry_level_template: {

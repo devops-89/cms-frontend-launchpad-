@@ -6,9 +6,10 @@ import { montserrat, roboto } from "@/utils/fonts";
 import { Add } from "@mui/icons-material";
 import { Box, Button, Card, Tab, Tabs, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import EntriesList from "./Entries-List";
+import NotificationsTab from "./Notifications-Tab";
 import OverviewTab from "./Overview-Tab";
 import ParticipantsList from "./ParticipantsList";
 import SettingsTab from "./Settings-Tab";
@@ -16,9 +17,11 @@ import VotesTab from "./Votes-Tab";
 
 const ContestDetails = () => {
   const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const id = params?.id;
-  const [tabValue, setTabValue] = useState(0);
+  const initialTab = searchParams ? parseInt(searchParams.get("tab") || "0", 10) : 0;
+  const [tabValue, setTabValue] = useState(isNaN(initialTab) ? 0 : initialTab);
 
   const contestId = (Array.isArray(id) ? id[0] : id) as string;
 
@@ -53,9 +56,9 @@ const ContestDetails = () => {
     {
       label: "Votes",
     },
-    // {
-    //   label: "Notifications",
-    // },
+    {
+      label: "Notifications",
+    },
     // {
     //   label: "Transactions",
     // },
@@ -163,8 +166,8 @@ const ContestDetails = () => {
           {tabValue === 2 && <EntriesList />}
           {tabValue === 3 && <SettingsTab/>}
           {tabValue === 4 && <VotesTab contestId={contestId} />}
-          {/* {tabValue === 6 && <NotificationsTab />}
-          {tabValue === 7 && <TransactionsTab />} */}
+          {tabValue === 5 && <NotificationsTab />}
+          {/* {tabValue === 7 && <TransactionsTab />} */}
         </Box>
       </Card>
     </Box>

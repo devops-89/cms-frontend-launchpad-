@@ -191,40 +191,45 @@ const JudgeEntryDetailsPage = () => {
 
   const entryFields = entry?.contest?.entry_level_template?.schema?.fields || entry?.contest?.entryLevelTemplate?.schema?.fields || [];
   const userFields = entry?.contest?.userLevelTemplate?.schema?.fields || entry?.contest?.user_level_template?.schema?.fields || [];
-  const template_fields = [...entryFields, ...userFields];
+  const template_fields = [...entryFields];
+
+  const submissionData = entry?.submission?.data || {};
+  const sData = submissionData?.data ? submissionData.data : submissionData;
+  const participantData = entry?.participant?.submission?.data || {};
+  const pData = participantData?.data ? participantData.data : participantData;
 
   let titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
   if (!titleField) {
     titleField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
   }
 
-  let entryTitle = "Untitled Entry";
-  const data = entry?.submission?.data;
-
-  if (data) {
-    if (titleField && data[titleField.id]) {
-      entryTitle = data[titleField.id];
-    } else if (data["ho1p00z0q"]) {
-      entryTitle = data["ho1p00z0q"];
-    } else {
-      for (const f of entryFields) {
-        const val = data[f.id];
-        if (val && typeof val === 'string' && val.trim() !== '' && !/^[0-9+\-\s()]+$/.test(val) && val.length < 60) {
-          entryTitle = val;
-          break;
-        }
-      }
-      
-      if (entryTitle === "Untitled Entry") {
-        const values = Object.values(data).filter(v => 
-          typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('T18:30:00') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v as string)
-        );
-        if (values.length > 0) {
-          entryTitle = values[0] as string;
-        }
-      }
-    }
+  let entryTitle = "";
+  if (titleField) {
+    entryTitle = sData[titleField.label] || sData[titleField.id];
   }
+  if (!entryTitle) {
+    entryTitle = sData["ho1p00z0q"] || sData["Innovation Title"] || sData["zvdskzwrw"];
+  }
+  if (!entryTitle) {
+    const values = Object.values(sData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
+    if (values.length > 0) entryTitle = values[0] as string;
+    else entryTitle = `Entry #${entry?.entry_id?.substring(0, 8) || entry?.id?.substring(0, 8)}`;
+  }
+  if (!entryTitle) entryTitle = "Untitled Entry";
+
+  let authorField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+  let participantName = "";
+  if (authorField) {
+    participantName = pData[authorField.label] || pData[authorField.id];
+  }
+  if (!participantName) {
+    participantName = pData["yg9snrxlh"] || pData["Firstname"] || pData["Name"] || pData["an7ffo0mu"] || entry?.participant?.email;
+  }
+  if (!participantName) {
+    const values = Object.values(pData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
+    if (values.length > 0) participantName = values[0] as string;
+  }
+  if (!participantName) participantName = "Unknown Participant";
 
   const groupedFields = React.useMemo(() => {
     if (!entry?.submission?.data) return [];
@@ -240,7 +245,9 @@ const JudgeEntryDetailsPage = () => {
         }
         currentGroup = { title: field.label, fields: [] };
       } else {
-        const value = submissionData[field.id];
+        const labelTrimmed = field.label?.trim() || "";
+        const downloadUrl = submissionData[`${labelTrimmed}_downloadUrl`] || submissionData[`${field.label}_downloadUrl`] || submissionData[`${field.id}_downloadUrl`];
+        const value = downloadUrl || submissionData[labelTrimmed] || submissionData[field.label] || submissionData[field.id];
         currentGroup.fields.push({
           id: field.id,
           label: field.label,
@@ -255,13 +262,50 @@ const JudgeEntryDetailsPage = () => {
       groups.push(currentGroup);
     }
 
-    const extraFields = Object.entries(submissionData).filter(([key]) => !mappedFieldIds.has(key) && key !== "status" && key !== "data");
+    const mappedFieldKeys = new Set<string>();
+    template_fields?.forEach((f: any) => {
+      mappedFieldKeys.add(f.id);
+      mappedFieldKeys.add(f.label);
+      if (f.label) mappedFieldKeys.add(f.label.trim());
+    });
+
+    const extraFields = Object.entries(submissionData).filter(([key]) => !mappedFieldKeys.has(key) && key !== "status" && key !== "data" && !key.endsWith('_downloadUrl'));
     if (extraFields.length > 0) {
       groups.push({
         title: "Additional Details",
         fields: extraFields.map(([key, value]) => ({ id: key, label: key, value, type: "textfield" })),
       });
     }
+
+    groups.forEach((group) => {
+      const firstNameFieldIdx = group.fields.findIndex(
+        (f) => f.label.toLowerCase().replace(/\s/g, "") === "firstname" || f.id.toLowerCase().replace(/\s/g, "") === "firstname"
+      );
+      const lastNameFieldIdx = group.fields.findIndex(
+        (f) => f.label.toLowerCase().replace(/\s/g, "") === "lastname" || f.id.toLowerCase().replace(/\s/g, "") === "lastname"
+      );
+
+      if (firstNameFieldIdx !== -1 && lastNameFieldIdx !== -1) {
+        const firstName = group.fields[firstNameFieldIdx].value;
+        const lastName = group.fields[lastNameFieldIdx].value;
+
+        const fullNameField = {
+          id: "fullName_combined",
+          label: "Full Name",
+          value: `${firstName} ${lastName}`.trim(),
+          type: "text",
+        };
+
+        group.fields.splice(firstNameFieldIdx, 1, fullNameField);
+
+        const newLastNameFieldIdx = group.fields.findIndex(
+          (f) => f.label.toLowerCase().replace(/\s/g, "") === "lastname" || f.id.toLowerCase().replace(/\s/g, "") === "lastname"
+        );
+        if (newLastNameFieldIdx !== -1) {
+          group.fields.splice(newLastNameFieldIdx, 1);
+        }
+      }
+    });
 
     return groups.filter((g) => g.fields.some((f) => f.value !== "" && f.value !== null && f.value !== undefined));
   }, [entry, template_fields]);

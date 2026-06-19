@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { contestControllers } from "@/api/contestControllers";
 import { entryControllers } from "@/api/entryControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
@@ -10,6 +11,8 @@ import { montserrat } from "@/utils/fonts";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
+  Close as CloseIcon,
+  InsertDriveFile,
 } from "@mui/icons-material";
 import {
   Alert,
@@ -23,6 +26,7 @@ import {
   FormControlLabel,
   FormHelperText,
   Grid,
+  IconButton,
   InputLabel,
   MenuItem,
   Radio,
@@ -58,14 +62,22 @@ const EditEntryForm = () => {
     enabled: !!id,
   });
   const template_fields = data?.data?.entryLevelTemplate?.schema?.fields;
-  const entryData = React.useMemo(() => {
-    if (!data?.data?.entries || !entryId) return null;
-    return data.data.entries.find((e: any) => e.id === entryId);
-  }, [data?.data?.entries, entryId]);
+  
+  const { data: entryResponse, isPending: isEntryPending } = useQuery({
+    queryKey: ["Entry Details", id, entryId],
+    queryFn: () => entryControllers.getEntryById(id, entryId),
+    enabled: !!id && !!entryId,
+  });
+  const entryData = entryResponse?.data;
   const initialValues = React.useMemo(() => {
     return (
       template_fields?.reduce((acc: any, field: any) => {
-        const storedValue = entryData?.submission?.data?.[field.id];
+        let storedValue = entryData?.submission?.data?.[field.id] || entryData?.submission?.data?.[field.label] || entryData?.submission?.data?.[field.label?.trim() || ""];
+
+        if (field.type === FIELDS_TYPE.FILE_UPLOAD && (entryData?.submission?.data?.[`${field.id}_downloadUrl`] || entryData?.submission?.data?.[`${field.label}_downloadUrl`])) {
+          storedValue = entryData.submission.data[`${field.id}_downloadUrl`] || entryData.submission.data[`${field.label}_downloadUrl`];
+        }
+
         if (storedValue !== undefined) {
           acc[field.id] = storedValue;
           return acc;
@@ -119,6 +131,41 @@ const EditEntryForm = () => {
           break;
         case FIELDS_TYPE.DATE_PICKER: validator = Yup.string();
           break;
+        case FIELDS_TYPE.FILE_UPLOAD: {
+          let fileValidator = Yup.mixed();
+          if (field.config?.maxSize) {
+            const maxSize = Number(field.config.maxSize) * 1024 * 1024;
+            fileValidator = fileValidator.test(
+              "fileSize",
+              `File size is too large (Max: ${field.config.maxSize}MB)`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) return value.size <= maxSize;
+                return true;
+              }
+            );
+          }
+          if (field.config?.allowedExtensions) {
+            const allowed = typeof field.config.allowedExtensions === 'string' 
+              ? field.config.allowedExtensions.split(",").map((e: string) => e.trim().toLowerCase()) 
+              : field.config.allowedExtensions;
+            fileValidator = fileValidator.test(
+              "fileType",
+              `Unsupported file type (Allowed: ${allowed.join(", ")})`,
+              (value: any) => {
+                if (!value) return true;
+                if (value instanceof File) {
+                  const extMatch = value.name.match(/\.[0-9a-z]+$/i);
+                  const extension = extMatch ? extMatch[0].toLowerCase() : "";
+                  return allowed.includes(extension);
+                }
+                return true;
+              }
+            );
+          }
+          validator = fileValidator;
+          break;
+        }
         case FIELDS_TYPE.CHECKBOX:
         case FIELDS_TYPE.SWITCH: validator = Yup.boolean();
           break;
@@ -146,7 +193,13 @@ const EditEntryForm = () => {
     enableReinitialize: true,
     onSubmit: async (values) => {
       try {
-        await entryControllers.updateEntrySubmission(id, entryId, values);
+        const formData = new FormData();
+        for (const key in values) {
+          if (values[key] !== undefined && values[key] !== null) {
+            formData.append(key, values[key]);
+          }
+        }
+        await entryControllers.updateEntrySubmission(id, entryId, formData);
         showSnackbar("Entry updated successfully!", "success");
         router.push(`/contest-management/contests/${id}`);
       } catch (err: any) {
@@ -164,7 +217,7 @@ const EditEntryForm = () => {
       });
     }
   }, [showMember2, template_fields]);
-  if (isPending) {
+  if (isPending || isEntryPending) {
     return (
       <Box
         sx={{
@@ -399,6 +452,102 @@ const EditEntryForm = () => {
                             value={Number(formik.values[val.id]) || 0}
                             onChange={(_, value) => formik.setFieldValue(val.id, value) }
                           />
+                        )}
+                      </Box>
+                    )}
+                    {val.type === FIELDS_TYPE.FILE_UPLOAD && (
+                      <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {val.label} {val.required && "*"}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
+                          {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
+                          {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
+                        </Typography>
+                        {formik.values[val.id] ? (() => {
+                          const fileValue = formik.values[val.id];
+                          const isFileObj = fileValue instanceof File;
+                          const fileUrl = isFileObj ? URL.createObjectURL(fileValue) : (typeof fileValue === 'string' ? fileValue : '');
+                          const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp|svg)(\?|$)/i.test(url);
+                          const getFileName = (url: string) => {
+                            if (isFileObj) return fileValue.name;
+                            try {
+                              const urlObj = new URL(url);
+                              const segments = urlObj.pathname.split('/');
+                              const decoded = decodeURIComponent(segments.pop() || "");
+                              const parts = decoded.split('-');
+                              return parts.length > 2 ? parts.slice(2).join('-') : decoded;
+                            } catch (e) {
+                              return "Document";
+                            }
+                          };
+
+                          const fileName = getFileName(fileUrl);
+                          const isImg = isFileObj ? fileValue.type.startsWith('image/') : (typeof fileValue === 'string' && isImage(fileValue));
+
+                          return (
+                            <Box sx={{ display: "inline-flex", flexDirection: isImg ? "column" : "row", alignItems: "center", gap: 1.5, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper", mt: 1, position: 'relative' }}>
+                              {isImg ? (
+                                <Box sx={{ borderRadius: 1.5, overflow: "hidden", position: 'relative', width: 150, height: 100, bgcolor: "rgba(0,0,0,0.02)" }}>
+                                  <Image src={fileUrl} alt={fileName} fill style={{ objectFit: "cover" }} sizes="150px" />
+                                </Box>
+                              ) : typeof formik.values[val.id] === 'string' ? (
+                                formik.values[val.id].match(/\.(jpeg|jpg|gif|png|webp)(\?|$)/i) ? (
+                                  <Box sx={{ borderRadius: 1, overflow: "hidden", display: "flex", position: 'relative', width: 150, height: 100 }}>
+                                    <Image src={formik.values[val.id]} alt="File" fill style={{ objectFit: "contain" }} sizes="150px" />
+                                  </Box>
+                                ) : (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1 }}>
+                                    <Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(99, 102, 241, 0.1)', borderRadius: 1, color: "primary.main", flexShrink: 0 }}>
+                                      <InsertDriveFile sx={{ fontSize: 24 }} />
+                                    </Box>
+                                    <Box sx={{ flexGrow: 1, minWidth: 0, textAlign: 'left' }}>
+                                      <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 600 }}>
+                                        Document File
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ fontWeight: 600, color: "primary.main", textDecoration: "underline", cursor: "pointer" }} onClick={() => window.open(formik.values[val.id], "_blank")}>
+                                        View File
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                )
+                              ) : (
+                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 1.5, bgcolor: "rgba(99, 102, 241, 0.08)", color: "primary.main" }}>
+                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                    <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                </Box>
+                              )}
+                              
+                              <Typography variant="caption" noWrap sx={{ width: 150, textAlign: 'center', fontWeight: 600, color: "text.primary" }}>
+                                {fileName}
+                              </Typography>
+
+                              <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, p: 0.5, boxShadow: 2, zIndex: 2 }}>
+                                <CloseIcon sx={{ fontSize: "1rem" }} />
+                              </IconButton>
+                            </Box>
+                          );
+                        })() : (
+                          <Button variant="outlined" component="label" size="small">
+                            Upload File
+                            <input 
+                              type="file" 
+                              hidden 
+                              accept={val.config?.allowedExtensions || undefined}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files.length > 0) {
+                                  formik.setFieldValue(val.id, e.target.files[0]);
+                                }
+                              }}
+                            />
+                          </Button>
+                        )}
+                        {formik.touched[val.id] && formik.errors[val.id] && (
+                          <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
+                            {formik.errors[val.id] as string}
+                          </FormHelperText>
                         )}
                       </Box>
                     )}

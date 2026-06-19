@@ -107,8 +107,12 @@ judgeSecuredApi.interceptors.request.use(
   },
 );
 
+const userPublicApi = axios.create({
+  baseURL: SERVER_ENDPOINTS.USER_BASEURL,
+});
+
 export {
   authPublicApi, authSecuredApi, contestSecuredApi,
-  entrySecuredApi, formSecuredApi, judgeSecuredApi, userSecuredApi
+  entrySecuredApi, formSecuredApi, judgeSecuredApi, userSecuredApi,
+  userPublicApi
 };
-

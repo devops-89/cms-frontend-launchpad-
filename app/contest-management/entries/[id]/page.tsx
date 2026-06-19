@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 
 import {
   AccountCircle,
@@ -11,6 +12,8 @@ import {
   Phone,
   Star,
   Tune,
+  Download,
+  InsertDriveFile,
 } from "@mui/icons-material";
 import {
   Avatar,
@@ -166,6 +169,56 @@ const EntryDetailsPage = () => {
       }
     }
 
+    if (type === "file_upload") {
+      if (!value) return null;
+      const urlStr = typeof value === 'string' ? value : String(value);
+      const isImage = typeof urlStr === 'string' && urlStr.match(/\.(jpeg|jpg|gif|png|webp)/i);
+      
+      const handleDownload = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        try {
+          const response = await fetch(urlStr);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const blob = await response.blob();
+          const objectUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = objectUrl;
+          const urlParts = urlStr.split('?')[0].split('/');
+          const filename = urlParts[urlParts.length - 1] || 'download';
+          a.download = decodeURIComponent(filename);
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+          console.error("Download failed, opening in new tab:", error);
+          window.open(urlStr, "_blank");
+        }
+      };
+
+      return (
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 2, p: 1.5, border: `1px solid ${colors.BORDER}`, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.02)' }}>
+          {isImage ? (
+            <Box sx={{ position: 'relative', width: 60, height: 60, borderRadius: 1, overflow: 'hidden', flexShrink: 0, border: `1px solid ${colors.BORDER}` }}>
+              <Image src={urlStr} alt="Uploaded file" fill style={{ objectFit: "cover" }} sizes="60px" />
+            </Box>
+          ) : (
+            <Box sx={{ width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(99, 102, 241, 0.1)', borderRadius: 1, color: colors.PRIMARY, flexShrink: 0 }}>
+              <InsertDriveFile sx={{ fontSize: 30 }} />
+            </Box>
+          )}
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+             <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 600, color: colors.TEXT_PRIMARY }}>
+               {isImage ? "Image File" : "Document File"}
+             </Typography>
+             <Button variant="outlined" size="small" onClick={handleDownload} startIcon={<Download />} sx={{ mt: 0.5, textTransform: 'none', py: 0.25, px: 1.5, fontSize: '0.75rem', borderRadius: 1.5 }}>
+               Download
+             </Button>
+          </Box>
+        </Box>
+      );
+    }
+
     return (
       <Typography
         variant="body2"
@@ -210,7 +263,9 @@ const EntryDetailsPage = () => {
           fields: [],
         };
       } else {
-        const value = submissionData[field.id];
+        const labelTrimmed = field.label?.trim() || "";
+        const downloadUrl = submissionData[`${labelTrimmed}_downloadUrl`] || submissionData[`${field.label}_downloadUrl`] || submissionData[`${field.id}_downloadUrl`];
+        const value = downloadUrl || submissionData[labelTrimmed] || submissionData[field.label] || submissionData[field.id];
         currentGroup.fields.push({
           id: field.id,
           label: field.label,
@@ -228,8 +283,15 @@ const EntryDetailsPage = () => {
       groups.push(currentGroup);
     }
 
+    const mappedFieldKeys = new Set<string>();
+    template_fields?.forEach((f: any) => {
+      mappedFieldKeys.add(f.id);
+      mappedFieldKeys.add(f.label);
+      if (f.label) mappedFieldKeys.add(f.label.trim());
+    });
+
     const extraFields = Object.entries(submissionData).filter(
-      ([key]) => !mappedFieldIds.has(key)
+      ([key]) => !mappedFieldKeys.has(key) && !key.endsWith('_downloadUrl')
     );
 
     if (extraFields.length > 0) {
@@ -243,6 +305,36 @@ const EntryDetailsPage = () => {
         })),
       });
     }
+
+    groups.forEach((group) => {
+      const firstNameFieldIdx = group.fields.findIndex(
+        (f) => f.label.toLowerCase().replace(/\s/g, "") === "firstname" || f.id.toLowerCase().replace(/\s/g, "") === "firstname"
+      );
+      const lastNameFieldIdx = group.fields.findIndex(
+        (f) => f.label.toLowerCase().replace(/\s/g, "") === "lastname" || f.id.toLowerCase().replace(/\s/g, "") === "lastname"
+      );
+
+      if (firstNameFieldIdx !== -1 && lastNameFieldIdx !== -1) {
+        const firstName = group.fields[firstNameFieldIdx].value;
+        const lastName = group.fields[lastNameFieldIdx].value;
+
+        const fullNameField = {
+          id: "fullName_combined",
+          label: "Full Name",
+          value: `${firstName} ${lastName}`.trim(),
+          type: "text",
+        };
+
+        group.fields.splice(firstNameFieldIdx, 1, fullNameField);
+
+        const newLastNameFieldIdx = group.fields.findIndex(
+          (f) => f.label.toLowerCase().replace(/\s/g, "") === "lastname" || f.id.toLowerCase().replace(/\s/g, "") === "lastname"
+        );
+        if (newLastNameFieldIdx !== -1) {
+          group.fields.splice(newLastNameFieldIdx, 1);
+        }
+      }
+    });
 
     return groups.filter((g) =>
       g.fields.some(
@@ -407,7 +499,21 @@ const EntryDetailsPage = () => {
                   fontSize: { xs: "1.75rem", md: "2.25rem" },
                 }}
               >
-                {entry?.submission?.data?.ho1p00z0q || "Untitled Entry"}
+                {(() => {
+                  let entryTitle = "Untitled Entry";
+                  const entryData = entry?.submission?.data;
+                  const entryFields = entry?.contest?.entryLevelTemplate?.schema?.fields || entry?.contest?.entry_level_template?.schema?.fields || [];
+                  if (entryData) {
+                    const titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
+                    if (titleField && entryData[titleField.id]) {
+                      entryTitle = entryData[titleField.id];
+                    } else {
+                      const firstText = entryFields.find((f: any) => f.type === 'textfield');
+                      if (firstText && entryData[firstText.id]) entryTitle = entryData[firstText.id];
+                    }
+                  }
+                  return entryTitle;
+                })()}
               </Typography>
 
               <Chip
@@ -437,8 +543,34 @@ const EntryDetailsPage = () => {
                 component="span"
                 sx={{ color: colors.TEXT_PRIMARY, fontWeight: 700 }}
               >
-                {entry?.participant?.submission?.data?.yg9snrxlh ||
-                  "Unknown Participant"}
+                {(() => {
+                  let participantName = "Unknown Participant";
+                  const userData = entry?.participant?.submission?.data;
+                  const userFields = entry?.contest?.userLevelTemplate?.schema?.fields || entry?.contest?.user_level_template?.schema?.fields || [];
+                  const entryData = entry?.submission?.data;
+                  const entryFields = entry?.contest?.entryLevelTemplate?.schema?.fields || entry?.contest?.entry_level_template?.schema?.fields || [];
+                  
+                  if (userData) {
+                    const nameField = userFields.find((f: any) => f.label?.toLowerCase().includes("name") || f.label?.toLowerCase().includes("first name"));
+                    if (nameField && userData[nameField.id]) {
+                      participantName = userData[nameField.id];
+                    } else {
+                      const firstText = userFields.find((f: any) => f.type === 'textfield');
+                      if (firstText && userData[firstText.id]) participantName = userData[firstText.id];
+                    }
+                  }
+                  if (participantName === "Unknown Participant" && entryData) {
+                    const nameField = entryFields.find((f: any) => f.label?.toLowerCase().includes("name") || f.label?.toLowerCase().includes("first"));
+                    if (nameField && entryData[nameField.id]) {
+                      participantName = entryData[nameField.id];
+                      const lastNameField = entryFields.find((f: any) => f.label?.toLowerCase() === "lastname" || f.label?.toLowerCase().includes("last name"));
+                      if (lastNameField && entryData[lastNameField.id]) {
+                        participantName += " " + entryData[lastNameField.id];
+                      }
+                    }
+                  }
+                  return participantName;
+                })()}
               </Box>
             </Typography>
 
@@ -515,63 +647,37 @@ const EntryDetailsPage = () => {
             </Typography>
           </Box>
 
-          <Grid container spacing={{xs:2,md:3,lg:8}}>
-            {group.fields.map((field) => (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={field.id}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3,
-                    borderRadius: 3,
-                    border: `1px solid ${colors.BORDER}`,
-                    background: colors.SURFACE,
-                    height: "100%",
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 2,
-                    transition: "all 0.25s ease-in-out",
-                    "&:hover": {
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 12px 24px -10px rgba(0,0,0,0.06)",
-                      borderColor: colors.PRIMARY,
-                    },
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      p: 1,
-                      borderRadius: 2.5,
-                      bgcolor: "rgba(99, 102, 241, 0.05)",
-                      color: colors.PRIMARY,
-                      flexShrink: 0,
-                    }}
-                  >
+          <Box sx={{ display: "flex", flexDirection: "column", bgcolor: colors.SURFACE, borderRadius: 3, border: `1px solid ${colors.BORDER}`, p: 1 }}>
+            {group.fields.map((field: any, idx: number) => (
+              <Box
+                key={field.id}
+                sx={{
+                  display: "flex",
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "flex-start", sm: "center" },
+                  py: 2.5,
+                  borderBottom: idx === group.fields.length - 1 ? 'none' : `1px dashed ${colors.BORDER}`,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.02)" },
+                  px: { xs: 2, sm: 3 },
+                  borderRadius: 2,
+                  gap: { xs: 1, sm: 0 },
+                  transition: "background-color 0.2s ease"
+                }}
+              >
+                <Box sx={{ width: { xs: "100%", sm: "35%", md: "30%" }, display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 1, borderRadius: 2, bgcolor: "rgba(99, 102, 241, 0.05)", color: colors.PRIMARY }}>
                     {getFieldIcon(field.type, field.label)}
                   </Box>
-
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: colors.TEXT_SECONDARY,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: 0.5,
-                        display: "block",
-                      }}
-                    >
-                      {field.label}
-                    </Typography>
-
-                    {renderFieldValue(field)}
-                  </Box>
-                </Paper>
-              </Grid>
+                  <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 600, letterSpacing: 0.5 }}>
+                    {field.label}
+                  </Typography>
+                </Box>
+                <Box sx={{ width: { xs: "100%", sm: "65%", md: "70%" }, pl: { xs: 0, sm: 2 }, pt: { xs: 1, sm: 0 } }}>
+                  {renderFieldValue(field)}
+                </Box>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         </Box>
       ))}
     </Box>

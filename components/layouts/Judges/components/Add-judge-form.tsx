@@ -18,11 +18,13 @@ import React from "react";
 import * as Yup from "yup";
 import { AuthControllers } from "@/api/authControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { useRouter } from "next/navigation";
 
 const filter = createFilterOptions<string>();
 
 const AddJudgeForm = () => {
   const { showSnackbar } = useSnackbar();
+  const router = useRouter();
   const [showPassword, setShowPassword] = React.useState(false);
 
   const formik = useFormik({
@@ -62,6 +64,7 @@ const AddJudgeForm = () => {
         });
         showSnackbar("Judge added successfully", "success");
         resetForm();
+        router.push("/user-management/judges");
       } catch (error: any) {
         showSnackbar(
           error?.response?.data?.message || "Something went wrong while adding the judge",

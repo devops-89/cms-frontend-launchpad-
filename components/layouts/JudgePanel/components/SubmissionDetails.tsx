@@ -1,7 +1,8 @@
+import Image from "next/image";
 import {
-  AccountCircle, CalendarToday, CheckCircle, EmojiEvents, Info, Mail, Phone, Star, Tune
+  AccountCircle, CalendarToday, CheckCircle, EmojiEvents, Info, Mail, Phone, Star, Tune, Download, InsertDriveFile
 } from "@mui/icons-material";
-import { Box, Chip, Grid, Paper, Rating, Typography } from '@mui/material';
+import { Box, Chip, Grid, Paper, Rating, Typography, Button } from '@mui/material';
 
 export const SubmissionDetails = ({ groupedFields, colors }: { groupedFields: any[], colors: any }) => {
   const getFieldIcon = (type: string, label: string) => {
@@ -52,6 +53,55 @@ export const SubmissionDetails = ({ groupedFields, colors }: { groupedFields: an
         return <Typography variant="body2" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY, mt: 0.5 }}>{String(value)}</Typography>;
       }
     }
+    if (type === "file_upload") {
+      if (!value) return null;
+      const urlStr = typeof value === 'string' ? value : String(value);
+      const isImage = typeof urlStr === 'string' && urlStr.match(/\.(jpeg|jpg|gif|png|webp)(\?|$)/i);
+      
+      const handleDownload = async (e: React.MouseEvent) => {
+        e.preventDefault();
+        try {
+          const response = await fetch(urlStr);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const blob = await response.blob();
+          const objectUrl = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = objectUrl;
+          const urlParts = urlStr.split('?')[0].split('/');
+          const filename = urlParts[urlParts.length - 1] || 'download';
+          a.download = decodeURIComponent(filename);
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(objectUrl);
+        } catch (error) {
+          console.error("Download failed, opening in new tab:", error);
+          window.open(urlStr, "_blank");
+        }
+      };
+
+      return (
+        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 2, p: 1.5, border: `1px solid ${colors.BORDER}`, borderRadius: 2, bgcolor: 'rgba(0,0,0,0.02)' }}>
+          {isImage ? (
+            <Box sx={{ position: 'relative', width: 60, height: 60, borderRadius: 1, overflow: 'hidden', flexShrink: 0, border: `1px solid ${colors.BORDER}` }}>
+              <Image src={urlStr} alt="Uploaded file" fill style={{ objectFit: "cover" }} sizes="60px" />
+            </Box>
+          ) : (
+            <Box sx={{ width: 60, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(99, 102, 241, 0.1)', borderRadius: 1, color: colors.PRIMARY, flexShrink: 0 }}>
+              <InsertDriveFile sx={{ fontSize: 30 }} />
+            </Box>
+          )}
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+             <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 600, color: colors.TEXT_PRIMARY }}>
+               {isImage ? "Image File" : "Document File"}
+             </Typography>
+             <Button variant="outlined" size="small" onClick={handleDownload} startIcon={<Download />} sx={{ mt: 0.5, textTransform: 'none', py: 0.25, px: 1.5, fontSize: '0.75rem', borderRadius: 1.5 }}>
+               Download
+             </Button>
+          </Box>
+        </Box>
+      );
+    }
     return <Typography variant="body2" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY, wordBreak: "break-word", mt: 0.5 }}>{String(value)}</Typography>;
   };
 
@@ -65,26 +115,37 @@ export const SubmissionDetails = ({ groupedFields, colors }: { groupedFields: an
               {group.title}
             </Typography>
           </Box>
-          <Grid container spacing={{ xs: 2, md: 3, lg: 8 }}>
-            {group.fields.map((field: any) => (
-              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={field.id}>
-                <Paper
-                  elevation={0}
-                  sx={{ p: 3, borderRadius: 3, border: `1px solid ${colors.BORDER}`, background: colors.SURFACE, height: "100%", display: "flex", alignItems: "flex-start", gap: 2, transition: "all 0.25s ease-in-out", "&:hover": { transform: "translateY(-2px)", boxShadow: "0 12px 24px -10px rgba(0,0,0,0.06)", borderColor: colors.PRIMARY } }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 1, borderRadius: 2.5, bgcolor: "rgba(99, 102, 241, 0.05)", color: colors.PRIMARY, flexShrink: 0 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", bgcolor: colors.SURFACE, borderRadius: 3, border: `1px solid ${colors.BORDER}`, p: 1 }}>
+            {group.fields.map((field: any, idx: number) => (
+              <Box
+                key={field.id}
+                sx={{
+                  display: "flex",
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "flex-start", sm: "center" },
+                  py: 2.5,
+                  borderBottom: idx === group.fields.length - 1 ? 'none' : `1px dashed ${colors.BORDER}`,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.02)" },
+                  px: { xs: 2, sm: 3 },
+                  borderRadius: 2,
+                  gap: { xs: 1, sm: 0 },
+                  transition: "background-color 0.2s ease"
+                }}
+              >
+                <Box sx={{ width: { xs: "100%", sm: "35%", md: "30%" }, display: "flex", alignItems: "center", gap: 2, flexShrink: 0 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 1, borderRadius: 2, bgcolor: "rgba(99, 102, 241, 0.05)", color: colors.PRIMARY }}>
                     {getFieldIcon(field.type, field.label)}
                   </Box>
-                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
-                      {field.label}
-                    </Typography>
-                    {renderFieldValue(field)}
-                  </Box>
-                </Paper>
-              </Grid>
+                  <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 600, letterSpacing: 0.5 }}>
+                    {field.label}
+                  </Typography>
+                </Box>
+                <Box sx={{ width: { xs: "100%", sm: "65%", md: "70%" }, pl: { xs: 0, sm: 2 }, pt: { xs: 1, sm: 0 } }}>
+                  {renderFieldValue(field)}
+                </Box>
+              </Box>
             ))}
-          </Grid>
+          </Box>
         </Box>
       ))}
     </>

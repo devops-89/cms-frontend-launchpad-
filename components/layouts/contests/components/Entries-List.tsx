@@ -22,10 +22,118 @@ import {
   TableHead,
   TableRow,
   Typography,
+  FormControl,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: string }) => {
+  const queryClient = useQueryClient();
+  const { showSnackbar } = useSnackbar();
+  const [currentStatus, setCurrentStatus] = useState<string>(entry.status || "pending");
+
+  useEffect(() => {
+    setCurrentStatus(entry.status || "pending");
+  }, [entry.status]);
+
+  const mutation = useMutation({
+    mutationFn: (newStatus: string) => entryControllers.updateEntrySubmission(contestId, entry.id, { status: newStatus }),
+    onSuccess: (_, newStatus) => {
+      setCurrentStatus(newStatus);
+      showSnackbar("Status updated successfully", "success");
+      queryClient.invalidateQueries({ queryKey: ["entries", contestId] });
+    },
+    onError: (error: any) => {
+      console.error(error);
+      showSnackbar(error?.response?.data?.message || "Failed to update status", "error");
+      setCurrentStatus(entry.status || "pending");
+    },
+  });
+
+  const handleStatusChange = (e: any) => {
+    const newStatus = e.target.value;
+    if (newStatus !== currentStatus) {
+      mutation.mutate(newStatus);
+    }
+  };
+
+  const getDisplayStatus = (status: string) => {
+    const lower = status.toLowerCase();
+    if (lower === "approved") return "Moderate";
+    if (lower === "evaluated") return "Evaluated";
+    return status;
+  };
+
+  const getStatusColor = (status: string) => {
+    const lower = status.toLowerCase();
+    if (lower === "approved") return { bg: "#dcfce7", text: "#166534" };
+    if (lower === "evaluated") return { bg: "#e0e7ff", text: "#3730a3" };
+    if (lower === "pending") return { bg: "#fef08a", text: "#854d0e" };
+    return { bg: "#f3f4f6", text: "#374151" };
+  };
+
+  const colors = getStatusColor(currentStatus);
+
+  if (currentStatus.toLowerCase() === "evaluated") {
+    return (
+      <Box
+        sx={{
+          display: "inline-block",
+          px: 1.5,
+          py: 0.5,
+          borderRadius: "6px",
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          textTransform: "capitalize",
+          bgcolor: colors.bg,
+          color: colors.text,
+        }}
+      >
+        {getDisplayStatus(currentStatus)}
+      </Box>
+    );
+  }
+
+  return (
+    <FormControl variant="standard" fullWidth>
+      <Select
+        value={currentStatus}
+        onChange={handleStatusChange}
+        disableUnderline
+        disabled={mutation.isPending}
+        IconComponent={
+          mutation.isPending
+            ? () => <CircularProgress size={14} sx={{ mr: 1, ml: 0.5, color: colors.text }} />
+            : undefined
+        }
+        sx={{
+          fontSize: "0.75rem",
+          fontWeight: 700,
+          width: "fit-content",
+          "& .MuiSelect-select": {
+            py: 0.5,
+            px: 1,
+            borderRadius: "6px",
+            bgcolor: colors.bg,
+            color: colors.text,
+            display: "flex",
+            alignItems: "center",
+            textTransform: "capitalize",
+          },
+          "& .MuiSvgIcon-root": {
+            color: colors.text,
+          },
+        }}
+      >
+        <MenuItem value="pending" sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>Pending</MenuItem>
+        <MenuItem value="approved" sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>Moderate</MenuItem>
+      </Select>
+    </FormControl>
+  );
+};
 
 const EntriesList = () => {
   const router = useRouter();
@@ -106,6 +214,11 @@ const EntriesList = () => {
             </TableCell>
             <TableCell>
               <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
+                Status
+              </Typography>
+            </TableCell>
+            <TableCell>
+              <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
                 Actions
               </Typography>
             </TableCell>
@@ -114,9 +227,47 @@ const EntriesList = () => {
 
         <TableBody>
           {entriesData?.data?.map((entry: ContestEntry, index: number) => {
-            const entryTitle = entryTitleId ? entry?.submission?.data?.[entryTitleId] : entry?.submission?.data?.ho1p00z0q;
-            const authorName = participantNameId ? entry?.participant?.submission?.data?.[participantNameId] : entry?.participant?.submission?.data?.yg9snrxlh;
+            const entryTitleField = entryFields?.find((f: any) => {
+              const l = f.label?.toLowerCase() || "";
+              return l.includes("title") || l.includes("project");
+            });
+            const entryTitle = entryTitleField ? (entry?.submission?.data?.[entryTitleField.label] || entry?.submission?.data?.[entryTitleField.id]) : (entry?.submission?.data?.ho1p00z0q || entry?.submission?.data?.["Innovation Title"]);
+            
+            const firstNameField = userFields.find((f: any) => {
+              const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+              return l.includes("firstname") || l === "first";
+            });
+            const lastNameField = userFields.find((f: any) => {
+              const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+              return l.includes("lastname") || l === "last";
+            });
+            const fullNameField = userFields.find((f: any) => {
+              const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+              return l.includes("fullname") || l === "name" || (l.includes("name") && !l.includes("first") && !l.includes("last"));
+            });
 
+            const rawAuthorData = entry?.participant?.submission?.data;
+            const authorData = rawAuthorData?.data || rawAuthorData || (entry?.participant as any)?.data || (entry?.participant as any)?.participant_profile_data || {};
+            let authorName = "";
+
+            if (firstNameField || lastNameField) {
+              const first = firstNameField ? (authorData[firstNameField.label] || authorData[firstNameField.id]) : "";
+              const last = lastNameField ? (authorData[lastNameField.label] || authorData[lastNameField.id]) : "";
+              authorName = `${first || ""} ${last || ""}`.trim();
+            }
+            
+            if (!authorName && fullNameField) {
+              authorName = authorData[fullNameField.label] || authorData[fullNameField.id];
+            }
+
+            if (!authorName) {
+              const fallback = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+              if (fallback && (authorData[fallback.label] || authorData[fallback.id])) {
+                authorName = authorData[fallback.label] || authorData[fallback.id];
+              } else {
+                authorName = authorData.yg9snrxlh;
+              }
+            }
             return (
               <TableRow key={index}>
                 <TableCell>
@@ -168,6 +319,10 @@ const EntriesList = () => {
                   <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}>
                     {entry.score}
                   </Typography>
+                </TableCell>
+
+                <TableCell>
+                  <EntryStatusDropdown entry={entry} contestId={id} />
                 </TableCell>
 
                 <TableCell>
@@ -230,7 +385,7 @@ const EntriesList = () => {
           <Typography variant="body1" color="text.secondary">
             Are you sure you want to delete the entry{" "}
             <strong>
-              {entryToDelete?.submission?.data?.ho1p00z0q || "Untitled"}
+              {entryToDelete?.submission?.data?.["Innovation Title"] || entryToDelete?.submission?.data?.ho1p00z0q || "Untitled"}
             </strong>
             ? This action cannot be undone.
           </Typography>

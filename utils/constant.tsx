@@ -10,7 +10,8 @@ import {
   PersonSharp,
   AttachMoney as RevenueIcon,
   RemoveRedEye as ViewsIcon,
-  Poll as VotesIcon
+  Poll as VotesIcon,
+  Public
 } from "@mui/icons-material";
 import { UserStatus, VOTING_PERIOD_TYPE } from "./enum";
 
@@ -136,6 +137,11 @@ export const SIDEBAR = [
     href: "/dashboard",
   },
   {
+    label: "Country Management",
+    icon: Public,
+    href: "/country-management",
+  },
+  {
     label: "User Management",
     subModules: [
       {
@@ -176,6 +182,15 @@ export const SIDEBAR = [
     ],
   },
   {},
+];
+
+export const COUNTRY_TABLE_HEADER = [
+  "Name",
+  "Code",
+  "Phone Code",
+  "Currency Code",
+  "Status",
+  "Actions",
 ];
 
 export const STATUS_OPTIONS = [
@@ -825,7 +840,7 @@ export const VOTING_PERIOD_TYPE_DATA = [
     value: VOTING_PERIOD_TYPE.PUBLIC_VOTING,
   },
   {
-    label: "Judge Voting",
+    label: "Judge Evaluation",
     value: VOTING_PERIOD_TYPE.JUDGE_VOTING,
   },
 ];

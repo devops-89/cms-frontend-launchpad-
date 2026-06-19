@@ -122,7 +122,7 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
     if (votingType && startDate && endDate) {
       if (votingType.value === "JUDGE") {
         if (!maxScore || criteria.length === 0 || selectedJudges.length === 0) {
-          showSnackbar("Please fill in all judge voting fields", "warning");
+          showSnackbar("Please fill in all judge evaluation fields", "warning");
           return;
         }
       }
@@ -215,7 +215,7 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
           {votingType?.value === "JUDGE" && (
             <Box sx={{ p: 2, bgcolor: "#f5f5f5", borderRadius: 2 }}>
               <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                Judge Voting Configuration
+                Judge Evaluation Configuration
               </Typography>
               
               <TextField
