@@ -29,8 +29,8 @@ export default function JudgeDashboardPage() {
   }, []);
 
   const totalAssigned = entries.length;
-  const evaluatedCount = entries.filter(e => e.status?.toLowerCase() === "evaluated").length;
-  const pendingCount = entries.filter(e => e.status?.toLowerCase() === "pending").length;
+  const evaluatedCount = entries.filter(e => e.status?.toLowerCase() === "evaluated" || e.entry?.status?.toLowerCase() === "evaluated" || (e.score !== undefined && e.score !== null && e.score > 0) || (e.entry?.score !== undefined && e.entry?.score !== null && e.entry?.score > 0)).length;
+  const pendingCount = totalAssigned - evaluatedCount;
 
   const stats = [
     {

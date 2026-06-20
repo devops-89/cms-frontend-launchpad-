@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Card, Grid, Avatar, Typography, Chip } from '@mui/material';
-import { EmojiEvents } from '@mui/icons-material';
+import { EmojiEvents, HowToVote } from '@mui/icons-material';
 
 export const EntryHeroCard = ({ entry, entryTitle, colors }: { entry: any, entryTitle: string, colors: any }) => {
   return (
@@ -30,7 +30,7 @@ export const EntryHeroCard = ({ entry, entryTitle, colors }: { entry: any, entry
           </Avatar>
         </Grid>
         <Grid size={{ xs: 12, sm: 8, md: 9, lg: 10 }}>
-          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 3, mb: 2 }}>
+          <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2, mb: 2 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY, fontSize: { xs: "1.75rem", md: "2.25rem" } }}>
               {entryTitle}
             </Typography>
@@ -38,6 +38,11 @@ export const EntryHeroCard = ({ entry, entryTitle, colors }: { entry: any, entry
               icon={<EmojiEvents sx={{ fontSize: "16px !important", color: "#fff !important" }} />}
               label={`Score: ${entry.score !== null ? entry.score : "Pending"}`}
               sx={{ background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)", color: "#fff", fontWeight: 700, boxShadow: "0 4px 12px rgba(245, 158, 11, 0.2)", border: "none", "& .MuiChip-label": { px: 1.5 } }}
+            />
+            <Chip
+              icon={<HowToVote sx={{ fontSize: "16px !important", color: "#fff !important" }} />}
+              label={`Public Votes: ${entry.voteCount !== undefined ? entry.voteCount : 0}`}
+              sx={{ background: "linear-gradient(135deg, #10b981 0%, #059669 100%)", color: "#fff", fontWeight: 700, boxShadow: "0 4px 12px rgba(16, 185, 129, 0.2)", border: "none", "& .MuiChip-label": { px: 1.5 } }}
             />
           </Box>
           <Typography variant="body1" sx={{ color: colors.TEXT_SECONDARY, mb: 3, fontWeight: 500 }}>

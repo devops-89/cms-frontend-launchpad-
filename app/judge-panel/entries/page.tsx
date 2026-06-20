@@ -2,7 +2,7 @@
 
 import JudgePanelLayout from "@/components/layouts/JudgePanel";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, IconButton, Menu, MenuItem } from "@mui/material";
+import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, IconButton, Menu, MenuItem, Chip } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useAppTheme } from "@/context/ThemeContext";
 import { roboto } from "@/utils/fonts";
@@ -40,8 +40,10 @@ const ActionMenu = ({ entryId, contestId, status, colors, score }: { entryId: st
       </IconButton>
       <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
         <MenuItem onClick={() => handleAction('view')}>View</MenuItem>
-        {(score === null || score === undefined) ? (
-          <MenuItem onClick={() => handleAction('evaluate')}>Evaluate</MenuItem>
+        {(score === null || score === undefined || score === 0) ? (
+          status?.toLowerCase() === 'approved' && (
+            <MenuItem onClick={() => handleAction('evaluate')}>Evaluate</MenuItem>
+          )
         ) : (
           <MenuItem onClick={() => handleAction('edit')}>Edit Evaluation</MenuItem>
         )}
@@ -95,6 +97,8 @@ export default function JudgeEntriesPage() {
                   <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Contest</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Public Votes</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Start Date</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>End Date</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
@@ -137,21 +141,55 @@ export default function JudgeEntriesPage() {
                     </TableCell>
                     <TableCell>{entry.contest?.name || "N/A"}</TableCell>
                     <TableCell>
-                      <Box
-                        sx={{
-                          display: 'inline-block',
-                          px: 1.5,
-                          py: 0.5,
-                          borderRadius: 1,
-                          fontSize: '0.85rem',
-                          fontWeight: 600,
-                          bgcolor: entry.status === 'evaluated' ? 'rgba(76, 175, 80, 0.1)' : entry.status === 'approved' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(255, 152, 0, 0.1)',
-                          color: entry.status === 'evaluated' ? '#4caf50' : entry.status === 'approved' ? '#2196f3' : '#ff9800',
-                          border: `1px solid ${entry.status === 'evaluated' ? 'rgba(76, 175, 80, 0.2)' : entry.status === 'approved' ? 'rgba(33, 150, 243, 0.2)' : 'rgba(255, 152, 0, 0.2)'}`,
-                        }}
-                      >
-                        {entry.status === 'approved' ? 'Moderate' : entry.status === 'evaluated' ? 'Evaluated' : entry.status || "Pending"}
-                      </Box>
+                      {(() => {
+                        const displayStatus = entry.entry?.status || entry.status;
+                        const isEvaluatedBackend = entry.status === 'evaluated' || displayStatus === 'evaluated' || (entry.score !== undefined && entry.score !== null && entry.score > 0) || (entry.entry?.score !== undefined && entry.entry?.score !== null && entry.entry?.score > 0);
+                        
+                        const getStatusColor = (status: string) => {
+                          const lower = status.toLowerCase();
+                          if (lower === "draft") return { bg: "#f1f5f9", text: "#475569" };      // Slate
+                          if (lower === "pending") return { bg: "#fef3c7", text: "#b45309" };    // Amber
+                          if (lower === "approved") return { bg: "#d1fae5", text: "#047857" };   // Emerald
+                          if (lower === "rejected") return { bg: "#fee2e2", text: "#b91c1c" };   // Red
+                          if (lower === "evaluated") return { bg: "#e0f2fe", text: "#0369a1" };  // Sky Blue
+                          if (lower === "semifinal") return { bg: "#f3e8ff", text: "#6b21a8" };  // Purple
+                          if (lower === "final") return { bg: "#fce7f3", text: "#be185d" };      // Pink
+                          if (lower === "winner") return { bg: "#fef08a", text: "#a16207" };     // Gold
+                          return { bg: "#f8fafc", text: "#64748b" };
+                        };
+
+                        const currentStatus = isEvaluatedBackend ? "evaluated" : (displayStatus || "pending");
+                        const statusColors = getStatusColor(currentStatus);
+
+                        let uiStatus = displayStatus || "Pending";
+                        if (isEvaluatedBackend) {
+                          uiStatus = "Evaluated";
+                        } else if (uiStatus.toLowerCase() === "approved") {
+                          uiStatus = "Moderate";
+                        }
+
+                        return (
+                          <Chip
+                            label={uiStatus}
+                            size="small"
+                            sx={{
+                              bgcolor: statusColors.bg,
+                              color: statusColors.text,
+                              fontWeight: 700,
+                              borderRadius: "6px",
+                              textTransform: "capitalize",
+                              fontSize: "0.75rem",
+                              height: 24,
+                            }}
+                          />
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: "secondary.main" }}>
+                      {entry.score !== undefined && entry.score !== null ? entry.score : (entry.total_score !== undefined && entry.total_score !== null ? entry.total_score : 0)}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>
+                      {entry.entry?.voteCount !== undefined ? entry.entry.voteCount : 0}
                     </TableCell>
                     <TableCell>
                       {(() => {
@@ -166,7 +204,7 @@ export default function JudgeEntriesPage() {
                       })()}
                     </TableCell>
                     <TableCell>
-                      <ActionMenu entryId={entry.entry_id || entry.id} contestId={entry.contest_id || entry.contest?.id} status={entry.status} colors={colors} score={entry.score} />
+                      <ActionMenu entryId={entry.entry_id || entry.id} contestId={entry.contest_id || entry.contest?.id} status={entry.entry?.status || entry.status} colors={colors} score={entry.score !== undefined && entry.score !== null ? entry.score : entry.total_score} />
                     </TableCell>
                   </TableRow>
                 ))}

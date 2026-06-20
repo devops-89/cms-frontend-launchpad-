@@ -63,6 +63,22 @@ export const entryControllers = {
     }
   },
 
+  updateEntryStatus: async (
+    contestId: string,
+    data: { entryIds: string[]; status: string; reason?: string },
+  ) => {
+    try {
+      const response = await contestSecuredApi.patch(
+        `/${contestId}/entries/bulk-status`,
+        data,
+      );
+
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   deleteEntry: async (
     contestId: string,
     entryId: string,

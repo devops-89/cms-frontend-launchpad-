@@ -25,6 +25,9 @@ import {
   FormControl,
   Select,
   MenuItem,
+  TextField,
+  Chip,
+  Menu,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
@@ -33,16 +36,33 @@ import { useState, useEffect } from "react";
 const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: string }) => {
   const queryClient = useQueryClient();
   const { showSnackbar } = useSnackbar();
-  const [currentStatus, setCurrentStatus] = useState<string>(entry.status || "pending");
+  const hasScore = entry.score !== undefined && entry.score !== null && entry.score > 0;
+  const isEvaluatedBackend = entry.status?.toLowerCase() === "evaluated" || hasScore;
+  
+  const getInitialStatus = () => {
+    const s = entry.status?.toLowerCase() || "pending";
+    if (s === "pending" || s === "approved") {
+      if (hasScore) return "evaluated";
+    }
+    return s;
+  };
+
+  const [currentStatus, setCurrentStatus] = useState<string>(getInitialStatus());
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
 
   useEffect(() => {
-    setCurrentStatus(entry.status || "pending");
-  }, [entry.status]);
+    setCurrentStatus(getInitialStatus());
+  }, [entry.status, entry.score]);
+
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   const mutation = useMutation({
-    mutationFn: (newStatus: string) => entryControllers.updateEntrySubmission(contestId, entry.id, { status: newStatus }),
-    onSuccess: (_, newStatus) => {
-      setCurrentStatus(newStatus);
+    mutationFn: (data: { status: string; reason?: string }) => 
+      entryControllers.updateEntryStatus(contestId, { entryIds: [entry.id], status: data.status, reason: data.reason }),
+    onSuccess: (_, variables) => {
+      setCurrentStatus(variables.status);
       showSnackbar("Status updated successfully", "success");
       queryClient.invalidateQueries({ queryKey: ["entries", contestId] });
     },
@@ -53,11 +73,31 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
     },
   });
 
-  const handleStatusChange = (e: any) => {
-    const newStatus = e.target.value;
-    if (newStatus !== currentStatus) {
-      mutation.mutate(newStatus);
+  const handleChipClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (currentStatus.toLowerCase() !== "draft" && !mutation.isPending) {
+      setAnchorEl(event.currentTarget as unknown as HTMLElement);
     }
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleStatusSelect = (newStatus: string) => {
+    handleMenuClose();
+    if (newStatus !== currentStatus) {
+      if (newStatus === "rejected") {
+        setRejectDialogOpen(true);
+      } else {
+        mutation.mutate({ status: newStatus });
+      }
+    }
+  };
+
+  const handleRejectConfirm = () => {
+    mutation.mutate({ status: "rejected", reason: rejectReason });
+    setRejectDialogOpen(false);
+    setRejectReason("");
   };
 
   const getDisplayStatus = (status: string) => {
@@ -69,69 +109,127 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
 
   const getStatusColor = (status: string) => {
     const lower = status.toLowerCase();
-    if (lower === "approved") return { bg: "#dcfce7", text: "#166534" };
-    if (lower === "evaluated") return { bg: "#e0e7ff", text: "#3730a3" };
-    if (lower === "pending") return { bg: "#fef08a", text: "#854d0e" };
-    return { bg: "#f3f4f6", text: "#374151" };
+    if (lower === "draft") return { bg: "#f1f5f9", text: "#475569" };      // Slate
+    if (lower === "pending") return { bg: "#fef3c7", text: "#b45309" };    // Amber
+    if (lower === "approved") return { bg: "#d1fae5", text: "#047857" };   // Emerald
+    if (lower === "rejected") return { bg: "#fee2e2", text: "#b91c1c" };   // Red
+    if (lower === "evaluated") return { bg: "#e0f2fe", text: "#0369a1" };  // Sky Blue
+    if (lower === "semifinal") return { bg: "#f3e8ff", text: "#6b21a8" };  // Purple
+    if (lower === "final") return { bg: "#fce7f3", text: "#be185d" };      // Pink
+    if (lower === "winner") return { bg: "#fef08a", text: "#a16207" };     // Gold
+    return { bg: "#f8fafc", text: "#64748b" };
   };
 
   const colors = getStatusColor(currentStatus);
 
-  if (currentStatus.toLowerCase() === "evaluated") {
-    return (
-      <Box
+  return (
+    <>
+      <Chip
+        label={getDisplayStatus(currentStatus)}
+        size="small"
+        onClick={currentStatus.toLowerCase() !== "draft" ? handleChipClick : undefined}
+        onDelete={mutation.isPending ? () => {} : undefined}
+        deleteIcon={mutation.isPending ? <CircularProgress size={12} sx={{ color: colors.text }} /> : undefined}
         sx={{
-          display: "inline-block",
-          px: 1.5,
-          py: 0.5,
-          borderRadius: "6px",
-          fontSize: "0.75rem",
-          fontWeight: 700,
-          textTransform: "capitalize",
           bgcolor: colors.bg,
           color: colors.text,
-        }}
-      >
-        {getDisplayStatus(currentStatus)}
-      </Box>
-    );
-  }
-
-  return (
-    <FormControl variant="standard" fullWidth>
-      <Select
-        value={currentStatus}
-        onChange={handleStatusChange}
-        disableUnderline
-        disabled={mutation.isPending}
-        IconComponent={
-          mutation.isPending
-            ? () => <CircularProgress size={14} sx={{ mr: 1, ml: 0.5, color: colors.text }} />
-            : undefined
-        }
-        sx={{
-          fontSize: "0.75rem",
           fontWeight: 700,
-          width: "fit-content",
-          "& .MuiSelect-select": {
-            py: 0.5,
-            px: 1,
-            borderRadius: "6px",
-            bgcolor: colors.bg,
-            color: colors.text,
-            display: "flex",
-            alignItems: "center",
-            textTransform: "capitalize",
+          borderRadius: "6px",
+          fontSize: "0.75rem",
+          textTransform: "capitalize",
+          height: 24,
+          cursor: currentStatus.toLowerCase() !== "draft" ? "pointer" : "default",
+          border: 'none',
+          "&:hover": {
+            bgcolor: currentStatus.toLowerCase() !== "draft" ? `${colors.bg}dd` : colors.bg,
           },
-          "& .MuiSvgIcon-root": {
-            color: colors.text,
-          },
+          "& .MuiChip-label": {
+            px: 1.5,
+          }
+        }}
+      />
+
+      <Menu
+        anchorEl={anchorEl}
+        open={open}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: {
+            mt: 0.5,
+            borderRadius: 2,
+            minWidth: 120,
+            boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+            border: '1px solid rgba(0, 0, 0, 0.08)',
+          }
         }}
       >
-        <MenuItem value="pending" sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>Pending</MenuItem>
-        <MenuItem value="approved" sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>Moderate</MenuItem>
-      </Select>
-    </FormControl>
+        {!isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("pending")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Pending
+          </MenuItem>
+        )}
+        {!isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("approved")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Moderate
+          </MenuItem>
+        )}
+        {!isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("rejected")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Rejected
+          </MenuItem>
+        )}
+        
+        {isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("evaluated")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Evaluated
+          </MenuItem>
+        )}
+        {isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("semifinal")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Semifinal
+          </MenuItem>
+        )}
+        {isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("final")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Final
+          </MenuItem>
+        )}
+        {isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("winner")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Winner
+          </MenuItem>
+        )}
+        {isEvaluatedBackend && (
+          <MenuItem onClick={() => handleStatusSelect("rejected")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Rejected
+          </MenuItem>
+        )}
+      </Menu>
+
+      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Reason for Rejection</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Please provide a reason for rejecting this entry. This will be visible to the participant.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Enter reason..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            variant="outlined"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setRejectDialogOpen(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleRejectConfirm} variant="contained" color="error" disabled={!rejectReason.trim()}>
+            Confirm Reject
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
@@ -187,6 +285,17 @@ const EntriesList = () => {
   const titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("name")) || entryFields[0];
   const entryTitleId = titleField?.id;
 
+  const getEntriesArray = () => {
+    if (Array.isArray(entriesData?.data)) return entriesData.data;
+    if (Array.isArray(entriesData?.data?.data)) return entriesData.data.data;
+    if (entriesData?.data?.docs) return entriesData.data.docs;
+    if (entriesData?.docs) return entriesData.docs;
+    if (Array.isArray(entriesData)) return entriesData;
+    return [];
+  };
+
+  const entriesList = getEntriesArray();
+
   return (
     <Box>
       <Table sx={{ mt: 2 }}>
@@ -214,6 +323,11 @@ const EntriesList = () => {
             </TableCell>
             <TableCell>
               <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
+                Public Votes
+              </Typography>
+            </TableCell>
+            <TableCell>
+              <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
                 Status
               </Typography>
             </TableCell>
@@ -226,7 +340,7 @@ const EntriesList = () => {
         </TableHead>
 
         <TableBody>
-          {entriesData?.data?.map((entry: ContestEntry, index: number) => {
+          {entriesList.map((entry: ContestEntry, index: number) => {
             const entryTitleField = entryFields?.find((f: any) => {
               const l = f.label?.toLowerCase() || "";
               return l.includes("title") || l.includes("project");
@@ -317,7 +431,12 @@ const EntriesList = () => {
 
                 <TableCell>
                   <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}>
-                    {entry.score}
+                    {entry.score !== undefined && entry.score !== null ? entry.score : 0}
+                  </Typography>
+                </TableCell>
+                <TableCell>
+                  <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13, fontWeight: 600, color: "primary.main" }}>
+                    {entry.voteCount !== undefined ? entry.voteCount : 0}
                   </Typography>
                 </TableCell>
 

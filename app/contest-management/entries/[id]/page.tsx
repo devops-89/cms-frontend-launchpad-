@@ -291,7 +291,7 @@ const EntryDetailsPage = () => {
     });
 
     const extraFields = Object.entries(submissionData).filter(
-      ([key]) => !mappedFieldKeys.has(key) && !key.endsWith('_downloadUrl')
+      ([key]) => !mappedFieldKeys.has(key) && !key.endsWith('_downloadUrl') && key !== 'isDraft' && key !== 'status' && key !== 'rejectReason'
     );
 
     if (extraFields.length > 0) {
@@ -624,24 +624,33 @@ const EntryDetailsPage = () => {
             </Grid>
           </Grid>
         </Grid>
+
+        {entry.status?.toLowerCase() === "rejected" && entry.rejectReason && (
+          <Box sx={{ mt: 4, p: 2, borderRadius: 2, bgcolor: "rgba(220, 38, 38, 0.05)", border: "1px solid rgba(220, 38, 38, 0.2)" }}>
+            <Typography variant="subtitle2" sx={{ color: "#dc2626", fontWeight: 700, mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Info fontSize="small" /> Reason for Rejection
+            </Typography>
+            <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY, pl: 3 }}>{entry.rejectReason}</Typography>
+          </Box>
+        )}
       </Card>
 
       {/* Submission Details grouped by Step Breaks */}
       {groupedFields.map((group, gIdx) => (
         <Box key={gIdx} sx={{ mb: 5 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4, mt: gIdx !== 0 ? 2:0 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4, mt: gIdx !== 0 ? 2 : 0 }}>
             <Box
               sx={{
                 width: 4,
                 height: 24,
                 borderRadius: 1,
                 bgcolor: colors.PRIMARY,
-                mt:3
+                mt: 3
               }}
             />
             <Typography
               variant="h5"
-              sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY,mt:3 }}
+              sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY, mt: 3 }}
             >
               {group.title}
             </Typography>
@@ -680,6 +689,7 @@ const EntryDetailsPage = () => {
           </Box>
         </Box>
       ))}
+
     </Box>
   );
 };

@@ -73,7 +73,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
               value={formik.values.name}
               onChange={formik.handleChange}
               error={formik.touched.name && Boolean(formik.errors.name)}
-              helperText={formik.touched.name && formik.errors.name}
+              helperText={formik.touched.name ? (formik.errors.name as string) : undefined}
             />
             <TextField
               fullWidth
@@ -83,7 +83,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
               value={formik.values.code}
               onChange={formik.handleChange}
               error={formik.touched.code && Boolean(formik.errors.code)}
-              helperText={formik.touched.code && formik.errors.code}
+              helperText={formik.touched.code ? (formik.errors.code as string) : undefined}
             />
             <TextField
               fullWidth
@@ -93,7 +93,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
               value={formik.values.phoneCode}
               onChange={formik.handleChange}
               error={formik.touched.phoneCode && Boolean(formik.errors.phoneCode)}
-              helperText={formik.touched.phoneCode && formik.errors.phoneCode}
+              helperText={formik.touched.phoneCode ? (formik.errors.phoneCode as string) : undefined}
             />
             <TextField
               fullWidth
@@ -103,7 +103,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
               value={formik.values.currencyCode}
               onChange={formik.handleChange}
               error={formik.touched.currencyCode && Boolean(formik.errors.currencyCode)}
-              helperText={formik.touched.currencyCode && formik.errors.currencyCode}
+              helperText={formik.touched.currencyCode ? (formik.errors.currencyCode as string) : undefined}
             />
             <FormControlLabel
               control={
