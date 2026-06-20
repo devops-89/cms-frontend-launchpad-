@@ -187,6 +187,18 @@ const EntriesList = () => {
   const titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("name")) || entryFields[0];
   const entryTitleId = titleField?.id;
 
+  // Safely extract entries array from API response (paginated: { docs: [...] })
+  const rawData = entriesData?.data;
+  const entries: ContestEntry[] = Array.isArray(rawData)
+    ? rawData
+    : Array.isArray(rawData?.docs)
+      ? rawData.docs
+      : Array.isArray(rawData?.data)
+        ? rawData.data
+        : Array.isArray(rawData?.entries)
+          ? rawData.entries
+          : [];
+
   return (
     <Box>
       <Table sx={{ mt: 2 }}>
@@ -226,7 +238,7 @@ const EntriesList = () => {
         </TableHead>
 
         <TableBody>
-          {entriesData?.data?.map((entry: ContestEntry, index: number) => {
+          {entries.map((entry: ContestEntry, index: number) => {
             const entryTitleField = entryFields?.find((f: any) => {
               const l = f.label?.toLowerCase() || "";
               return l.includes("title") || l.includes("project");
@@ -268,12 +280,28 @@ const EntriesList = () => {
                 authorName = authorData.yg9snrxlh;
               }
             }
+            
+            // Extract thumbnail from submission data
+            const submissionData = entry?.submission?.data || {};
+            const downloadUrlKey = Object.keys(submissionData).find((key) => key.endsWith("_downloadUrl"));
+            let thumbnailUrl = downloadUrlKey ? submissionData[downloadUrlKey] : "";
+            
+            // Fallback: find the base image URL field (without _downloadUrl suffix)
+            if (!thumbnailUrl) {
+              const imageUrlKey = Object.keys(submissionData).find((key) => {
+                if (key === "status" || key.endsWith("_downloadUrl")) return false;
+                const val = submissionData[key];
+                return typeof val === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(val);
+              });
+              if (imageUrlKey) thumbnailUrl = submissionData[imageUrlKey];
+            }
+
             return (
               <TableRow key={index}>
                 <TableCell>
                   <Avatar
                     variant="rounded"
-                    src=""
+                    src={thumbnailUrl}
                     onClick={() =>
                       router.push(
                         `/contest-management/entries/${entry.id}?contestId=${entry.contest_id}`
