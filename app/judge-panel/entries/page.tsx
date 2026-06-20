@@ -98,7 +98,6 @@ export default function JudgeEntriesPage() {
                   <TableCell sx={{ fontWeight: 600 }}>Contest</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Score</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Public Votes</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Start Date</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>End Date</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
@@ -188,9 +187,6 @@ export default function JudgeEntriesPage() {
                     <TableCell sx={{ fontWeight: 600, color: "secondary.main" }}>
                       {entry.score !== undefined && entry.score !== null ? entry.score : (entry.total_score !== undefined && entry.total_score !== null ? entry.total_score : 0)}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: "primary.main" }}>
-                      {entry.entry?.voteCount !== undefined ? entry.entry.voteCount : 0}
-                    </TableCell>
                     <TableCell>
                       {(() => {
                         const vp = entry.contest?.votingPeriods?.find((v: any) => v.voting_type === "JUDGE") || entry.contest?.votingPeriods?.[0];
@@ -210,7 +206,7 @@ export default function JudgeEntriesPage() {
                 ))}
                 {entries.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                       No entries assigned to you yet.
                     </TableCell>
                   </TableRow>

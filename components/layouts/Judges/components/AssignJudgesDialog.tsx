@@ -71,12 +71,22 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
 
   const availableEntries = useMemo(() => {
     if (!entriesData) return [];
-    const list = Array.isArray(entriesData?.data)
-      ? entriesData.data
-      : Array.isArray(entriesData)
-        ? entriesData
-        : [];
-    return list.map((entry: any) => {
+    const list = Array.isArray(entriesData) ? entriesData : 
+      Array.isArray(entriesData?.docs) ? entriesData.docs :
+      Array.isArray(entriesData?.data) ? entriesData.data :
+      Array.isArray(entriesData?.data?.docs) ? entriesData.data.docs :
+      Array.isArray(entriesData?.data?.data) ? entriesData.data.data :
+      Array.isArray(entriesData?.data?.entries) ? entriesData.data.entries : [];
+
+    console.log("AssignJudgesDialog - fetched entries:", list);
+    console.log("AssignJudgesDialog - statuses:", list.map((e: any) => ({ id: e.id, status: e.status })));
+
+    return list
+      .filter((entry: any) => {
+        const s = entry.status?.toLowerCase() || "";
+        return s === "approved" || s === "moderate";
+      })
+      .map((entry: any) => {
       const submissionData = entry?.submission?.data || {};
       const participantData = entry?.participant?.submission?.data || {};
       

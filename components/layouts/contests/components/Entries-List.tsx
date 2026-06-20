@@ -322,11 +322,6 @@ const EntriesList = () => {
             </TableCell>
             <TableCell>
               <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
-                Public Votes
-              </Typography>
-            </TableCell>
-            <TableCell>
-              <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
                 Status
               </Typography>
             </TableCell>
@@ -384,8 +379,17 @@ const EntriesList = () => {
             
             // Extract thumbnail from submission data
             const submissionData = entry?.submission?.data || {};
-            const downloadUrlKey = Object.keys(submissionData).find((key) => key.endsWith("_downloadUrl"));
-            let thumbnailUrl = downloadUrlKey ? submissionData[downloadUrlKey] : "";
+            
+            const thumbnailField = entryFields?.find((f: any) => f.label?.toLowerCase().includes("thumbnail"));
+            let thumbnailUrl = "";
+            if (thumbnailField) {
+              thumbnailUrl = submissionData[`${thumbnailField.id}_downloadUrl`] || submissionData[`${thumbnailField.label}_downloadUrl`] || submissionData[thumbnailField.id] || submissionData[thumbnailField.label] || "";
+            }
+            
+            if (!thumbnailUrl) {
+              const downloadUrlKey = Object.keys(submissionData).find((key) => key.endsWith("_downloadUrl"));
+              thumbnailUrl = downloadUrlKey ? submissionData[downloadUrlKey] : "";
+            }
             
             // Fallback: find the base image URL field (without _downloadUrl suffix)
             if (!thumbnailUrl) {
@@ -447,11 +451,6 @@ const EntriesList = () => {
                 <TableCell>
                   <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}>
                     {entry.score !== undefined && entry.score !== null ? entry.score : 0}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13, fontWeight: 600, color: "primary.main" }}>
-                    {entry.voteCount !== undefined ? entry.voteCount : 0}
                   </Typography>
                 </TableCell>
 

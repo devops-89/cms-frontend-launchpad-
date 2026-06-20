@@ -52,8 +52,11 @@ const EntryDetailsPage = () => {
   const entry = entryData?.data;
   const effectiveContestId = contestId;
 
-  const template_fields =
-    entry?.contest?.entryLevelTemplate?.schema?.fields || [];
+  const template_fields = React.useMemo(() => {
+    return entry?.contest?.entryLevelTemplate?.schema?.fields ||
+           entry?.contest?.entry_level_template?.schema?.fields ||
+           [];
+  }, [entry]);
 
   const getFieldIcon = (type: string, label: string) => {
     const lowercaseLabel = label.toLowerCase();
@@ -290,21 +293,7 @@ const EntryDetailsPage = () => {
       if (f.label) mappedFieldKeys.add(f.label.trim());
     });
 
-    const extraFields = Object.entries(submissionData).filter(
-      ([key]) => !mappedFieldKeys.has(key) && !key.endsWith('_downloadUrl') && key !== 'isDraft' && key !== 'status' && key !== 'rejectReason'
-    );
 
-    if (extraFields.length > 0) {
-      groups.push({
-        title: "Additional Details",
-        fields: extraFields.map(([key, value]) => ({
-          id: key,
-          label: key,
-          value,
-          type: "textfield",
-        })),
-      });
-    }
 
     groups.forEach((group) => {
       const firstNameFieldIdx = group.fields.findIndex(
@@ -469,6 +458,28 @@ const EntryDetailsPage = () => {
           >
             <Avatar
               variant="rounded"
+              src={(() => {
+                const submissionData = entry?.submission?.data || {};
+                const entryFields = entry?.contest?.entryLevelTemplate?.schema?.fields || entry?.contest?.entry_level_template?.schema?.fields || [];
+                const thumbnailField = entryFields?.find((f: any) => f.label?.toLowerCase().includes("thumbnail"));
+                let thumbnailUrl = "";
+                if (thumbnailField) {
+                  thumbnailUrl = submissionData[`${thumbnailField.id}_downloadUrl`] || submissionData[`${thumbnailField.label}_downloadUrl`] || submissionData[thumbnailField.id] || submissionData[thumbnailField.label] || "";
+                }
+                if (!thumbnailUrl) {
+                  const downloadUrlKey = Object.keys(submissionData).find((key) => key.endsWith("_downloadUrl"));
+                  thumbnailUrl = downloadUrlKey ? submissionData[downloadUrlKey] : "";
+                }
+                if (!thumbnailUrl) {
+                  const imageUrlKey = Object.keys(submissionData).find((key) => {
+                    if (key === "status" || key.endsWith("_downloadUrl")) return false;
+                    const val = submissionData[key];
+                    return typeof val === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(val);
+                  });
+                  if (imageUrlKey) thumbnailUrl = submissionData[imageUrlKey];
+                }
+                return thumbnailUrl;
+              })()}
               sx={{
                 width: 120,
                 height: 120,

@@ -269,13 +269,7 @@ const JudgeEntryDetailsPage = () => {
       if (f.label) mappedFieldKeys.add(f.label.trim());
     });
 
-    const extraFields = Object.entries(submissionData).filter(([key]) => !mappedFieldKeys.has(key) && key !== "status" && key !== "data" && !key.endsWith('_downloadUrl'));
-    if (extraFields.length > 0) {
-      groups.push({
-        title: "Additional Details",
-        fields: extraFields.map(([key, value]) => ({ id: key, label: key, value, type: "textfield" })),
-      });
-    }
+
 
     groups.forEach((group) => {
       const firstNameFieldIdx = group.fields.findIndex(
