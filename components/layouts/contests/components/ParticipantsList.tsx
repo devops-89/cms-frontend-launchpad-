@@ -28,6 +28,7 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   Typography
 } from "@mui/material";
@@ -72,13 +73,24 @@ const ParticipantsList = () => {
   const { contest } = useContestDetails();
   const fields = contest?.userLevelTemplate?.schema?.fields || [];
 
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const { data: participantsData, isPending } = useQuery({
-    queryKey: ["participants", id],
-    queryFn: () => contestControllers.getAllParticipants(id),
+    queryKey: ["participants", id, page, rowsPerPage],
+    queryFn: () => contestControllers.getAllParticipants(id, page + 1, rowsPerPage),
     enabled: !!id,
   });
 
-  const participants = Array.isArray(participantsData?.data) ? participantsData.data : [];
+  const participants = Array.isArray(participantsData?.data?.docs)
+    ? participantsData.data.docs
+    : Array.isArray(participantsData?.data?.data)
+      ? participantsData.data.data
+      : Array.isArray(participantsData?.data)
+        ? participantsData.data
+        : [];
+        
+  const total = participantsData?.data?.totalDocs || participantsData?.data?.total || participantsData?.data?.meta?.total || participants.length;
   
   React.useEffect(() => {
     if (participants.length > 0) {
@@ -339,6 +351,18 @@ const ParticipantsList = () => {
           </TableBody>
         </Table>
       </Paper>
+
+      <TablePagination
+        component="div"
+        count={total || 0}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+      />
 
       <Box sx={{ mt: 2, px: 1 }}>
         <FormControlLabel

@@ -81,10 +81,14 @@ export const contestControllers = {
     }
   },
 
-  getAllParticipants: async (contestId: string) => {
+  getAllParticipants: async (
+    contestId: string,
+    page: number = 1,
+    limit: number = 10,
+  ) => {
   try {
     const response = await contestSecuredApi.get(
-      `/${contestId}/participants/`,
+      `/${contestId}/participants?page=${page}&limit=${limit}`,
     );
 
     return response.data;

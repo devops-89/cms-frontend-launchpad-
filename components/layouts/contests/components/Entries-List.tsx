@@ -23,6 +23,7 @@ import {
   TableBody,
   TableCell,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   Typography
@@ -244,9 +245,12 @@ const EntriesList = () => {
 
   const { contest } = useContestDetails();
   
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   const { data: entriesData, isPending } = useQuery({
-    queryKey: ["entries", id],
-    queryFn: () => entryControllers.getAllEntries(id),
+    queryKey: ["entries", id, page, rowsPerPage],
+    queryFn: () => entryControllers.getAllEntries(id, page + 1, rowsPerPage),
     enabled: !!id,
   });
 
@@ -294,6 +298,8 @@ const EntriesList = () => {
         : Array.isArray(rawData?.entries)
           ? rawData.entries
           : [];
+  
+  const total = rawData?.totalDocs || rawData?.total || rawData?.meta?.total || entries.length;
 
   return (
     <Box>
@@ -501,6 +507,18 @@ const EntriesList = () => {
           })}
         </TableBody>
       </Table>
+      
+      <TablePagination
+        component="div"
+        count={total || 0}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => {
+          setRowsPerPage(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+      />
 
       <Dialog
         open={deleteDialogOpen}

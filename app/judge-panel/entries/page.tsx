@@ -2,7 +2,7 @@
 
 import JudgePanelLayout from "@/components/layouts/JudgePanel";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, IconButton, Menu, MenuItem, Chip } from "@mui/material";
+import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, IconButton, Menu, MenuItem, Chip, TablePagination } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useAppTheme } from "@/context/ThemeContext";
 import { roboto } from "@/utils/fonts";
@@ -56,13 +56,19 @@ export default function JudgeEntriesPage() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const [entries, setEntries] = useState<any[]>([]);
+  const [total, setTotal] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
+  
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     const fetchEntries = async () => {
+      setIsLoading(true);
       try {
-        const result = await judgeControllers.getAssignedEntries(1, 50);
-        setEntries(result.data?.docs || []);
+        const result = await judgeControllers.getAssignedEntries(page + 1, rowsPerPage);
+        setEntries(result.data?.docs || result.data?.data || []);
+        setTotal(result.data?.totalDocs || result.data?.total || result.data?.meta?.total || 0);
       } catch (err) {
         console.error("Failed to fetch entries", err);
       } finally {
@@ -70,7 +76,7 @@ export default function JudgeEntriesPage() {
       }
     };
     fetchEntries();
-  }, []);
+  }, [page, rowsPerPage]);
 
   return (
     <JudgePanelLayout>
@@ -90,7 +96,8 @@ export default function JudgeEntriesPage() {
             <CircularProgress />
           </Box>
         ) : (
-          <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${colors.BORDER}`, borderRadius: 2 }}>
+          <>
+            <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${colors.BORDER}`, borderRadius: 2 }}>
             <Table>
               <TableHead sx={{ backgroundColor: "rgba(0, 0, 0, 0.02)" }}>
                 <TableRow>
@@ -214,6 +221,18 @@ export default function JudgeEntriesPage() {
               </TableBody>
             </Table>
           </TableContainer>
+          <TablePagination
+            component="div"
+            count={total || 0}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+          />
+        </>
         )}
       </Box>
     </JudgePanelLayout>

@@ -19,10 +19,12 @@ export const entryControllers = {
 
   getAllEntries: async (
     contestId: string,
+    page: number = 1,
+    limit: number = 10,
   ) => {
     try {
       const response = await contestSecuredApi.get(
-        `/${contestId}/entries`,
+        `/${contestId}/entries?page=${page}&limit=${limit}`,
       );
 
       return response.data;
