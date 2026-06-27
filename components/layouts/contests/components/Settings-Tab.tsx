@@ -77,7 +77,7 @@ const SettingsTab = () => {
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>Set the start and end dates for the voting phase.</Typography>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <DatePicker
                   label="Voting Start Date"
                   value={votingStartDate}
@@ -85,7 +85,7 @@ const SettingsTab = () => {
                   sx={{ width: "100%" }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid size={{ xs: 12, sm: 6 }}>
                 <DatePicker
                   label="Voting End Date"
                   value={votingEndDate}

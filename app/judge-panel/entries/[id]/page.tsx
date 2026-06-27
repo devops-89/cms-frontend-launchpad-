@@ -70,7 +70,7 @@ const JudgeEntryDetailsPage = () => {
   const { data: evalData } = useQuery({
     queryKey: ["judge-evaluation", id],
     queryFn: () => judgeControllers.getEvaluation(id as string).catch(() => null),
-    enabled: !!id && (mode === "edit" || (mode === "view" && searchParams.get("status")?.toLowerCase() === "evaluated")),
+    enabled: !!id && (mode === "edit" || mode === "view"),
   });
 
   const savedEvaluation = evalData?.data || evalData?.evaluation || evalData || null;
@@ -109,7 +109,7 @@ const JudgeEntryDetailsPage = () => {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const userStr = localStorage.getItem("user");
+      const userStr = localStorage.getItem("judge_user");
       const judgeId = userStr ? JSON.parse(userStr).id : "default";
 
       const scores = criteriaList.map((c: any) => ({

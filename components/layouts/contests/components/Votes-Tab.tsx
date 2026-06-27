@@ -108,11 +108,11 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
         component={Paper}
         sx={{ boxShadow: "none", border: "1px solid #eeeeee" }}
       >
-        <Table sx={{ width: "100%" }}>
+        <Table sx={{ width: "100%" }} size="small">
           <TableHead sx={{ backgroundColor: "#f9f9f9" }}>
             <TableRow>
               {headers.map((header) => (
-                <TableCell key={header}>
+                <TableCell key={header} align={header === "Actions" ? "right" : "left"}>
                   <Typography
                     sx={{
                       fontSize: 13,
@@ -152,7 +152,7 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
                   >
                     {moment(row.end_date).format("YYYY-MM-DD")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell align="right">
                     <Button
                       size="small"
                       color="primary"

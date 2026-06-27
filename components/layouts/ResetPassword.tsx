@@ -21,27 +21,29 @@ import {
 } from "@mui/material";
 
 import { useFormik } from "formik";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as Yup from "yup";
 
-import { AuthControllers } from "@/api/authControllers";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useResetPassword } from "@/hooks/auth/useResetPassword";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { Suspense } from "react";
 
-const ResetPassword = () => {
+const ResetPasswordForm = () => {
   const { colors } = useAppTheme();
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
+  const otp = searchParams.get("otp") || "";
 
-  const [loading, setLoading] =
-    React.useState(false);
+  const { resetPassword, isLoading: loading, error: errorMessage } = useResetPassword();
+  const { showSnackbar } = useSnackbar();
 
-  const [showPassword, setShowPassword] =
-    React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
   const [successMessage, setSuccessMessage] =
-    React.useState("");
-
-  const [errorMessage, setErrorMessage] =
     React.useState("");
 
   const formik = useFormik({
@@ -72,35 +74,13 @@ const ResetPassword = () => {
 
     onSubmit: async (values) => {
       try {
-        setLoading(true);
-
-        setErrorMessage("");
-        setSuccessMessage("");
-
-        const response =
-          await AuthControllers.resetPassword(
-            {
-              password:
-                values.password,
-            } as any,
-          );
-
-        setSuccessMessage(
-          response?.data?.message ||
-            "Password reset successful",
-        );
-
-        setTimeout(() => {
-          router.push("/");
-        }, 1500);
+        await resetPassword({
+          email: email,
+          otp: otp,
+          password: values.password,
+        });
       } catch (error: any) {
-        setErrorMessage(
-          error?.response?.data
-            ?.message ||
-            "Failed to reset password",
-        );
-      } finally {
-        setLoading(false);
+        // Handled by hook
       }
     },
   });
@@ -209,35 +189,7 @@ const ResetPassword = () => {
               </Typography>
             </Box>
 
-            <Collapse
-              in={Boolean(
-                errorMessage,
-              )}
-            >
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 2,
-                }}
-              >
-                {errorMessage}
-              </Alert>
-            </Collapse>
 
-            <Collapse
-              in={Boolean(
-                successMessage,
-              )}
-            >
-              <Alert
-                severity="success"
-                sx={{
-                  mb: 2,
-                }}
-              >
-                {successMessage}
-              </Alert>
-            </Collapse>
 
             <TextField
               fullWidth
@@ -301,36 +253,32 @@ const ResetPassword = () => {
               margin="normal"
               label="Confirm Password"
               name="confirmPassword"
-              type={
-                showPassword
-                  ? "text"
-                  : "password"
-              }
+              type={showConfirmPassword ? "text" : "password"}
               sx={textFieldStyles}
-              value={
-                formik.values
-                  .confirmPassword
-              }
-              onChange={
-                formik.handleChange
-              }
-              onBlur={
-                formik.handleBlur
-              }
+              value={formik.values.confirmPassword}
+              onChange={formik.handleChange}
+              onBlur={formik.handleBlur}
               error={
-                formik.touched
-                  .confirmPassword &&
-                Boolean(
-                  formik.errors
-                    .confirmPassword,
-                )
+                formik.touched.confirmPassword &&
+                Boolean(formik.errors.confirmPassword)
               }
               helperText={
-                formik.touched
-                  .confirmPassword &&
-                formik.errors
-                  .confirmPassword
+                formik.touched.confirmPassword &&
+                formik.errors.confirmPassword
               }
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
 
             <Button
@@ -366,6 +314,14 @@ const ResetPassword = () => {
         </form>
       </Container>
     </Box>
+  );
+};
+
+const ResetPassword = () => {
+  return (
+    <Suspense fallback={<Box>Loading...</Box>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 };
 

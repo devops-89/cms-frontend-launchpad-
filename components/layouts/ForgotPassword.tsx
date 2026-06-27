@@ -17,22 +17,15 @@ import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import * as Yup from "yup";
 
-import { AuthControllers } from "@/api/authControllers";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useForgotPassword } from "@/hooks/auth/useForgotPassword";
+import { useSnackbar } from "@/context/SnackbarContext";
 
 const ForgotPassword = () => {
   const { colors } = useAppTheme();
 
-  const router = useRouter();
-
-  const [loading, setLoading] =
-    React.useState(false);
-
-  const [successMessage, setSuccessMessage] =
-    React.useState("");
-
-  const [errorMessage, setErrorMessage] =
-    React.useState("");
+  const { forgotPassword, isLoading: loading, error: errorMessage } = useForgotPassword();
+  const { showSnackbar } = useSnackbar();
 
   const formik = useFormik({
     initialValues: {
@@ -41,45 +34,15 @@ const ForgotPassword = () => {
 
     validationSchema: Yup.object({
       email: Yup.string()
-        .email("Enter valid email")
+        .email("Invalid email address")
         .required("Email is required"),
     }),
 
     onSubmit: async (values) => {
       try {
-        setLoading(true);
-
-        setErrorMessage("");
-        setSuccessMessage("");
-
-        const response =
-          await AuthControllers.forgotPassword(
-            values,
-          );
-
-        setSuccessMessage(
-          response?.data?.message ||
-            "OTP sent successfully",
-        );
-
-        localStorage.setItem(
-          "resetEmail",
-          values.email,
-        );
-
-        setTimeout(() => {
-          router.push(
-            "/verify-otp",
-          );
-        }, 1000);
+        await forgotPassword(values);
       } catch (error: any) {
-        setErrorMessage(
-          error?.response?.data
-            ?.message ||
-            "Failed to send OTP",
-        );
-      } finally {
-        setLoading(false);
+        // Handled by hook
       }
     },
   });
@@ -190,35 +153,7 @@ const ForgotPassword = () => {
               </Typography>
             </Box>
 
-            <Collapse
-              in={Boolean(
-                errorMessage,
-              )}
-            >
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 2,
-                }}
-              >
-                {errorMessage}
-              </Alert>
-            </Collapse>
 
-            <Collapse
-              in={Boolean(
-                successMessage,
-              )}
-            >
-              <Alert
-                severity="success"
-                sx={{
-                  mb: 2,
-                }}
-              >
-                {successMessage}
-              </Alert>
-            </Collapse>
 
             <TextField
               fullWidth
@@ -246,8 +181,7 @@ const ForgotPassword = () => {
                 )
               }
               helperText={
-                formik.touched
-                  .email &&
+                formik.touched.email &&
                 formik.errors.email
               }
             />

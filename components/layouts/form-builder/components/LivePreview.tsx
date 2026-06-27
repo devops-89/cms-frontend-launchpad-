@@ -104,6 +104,23 @@ const LivePreview: React.FC<LivePreviewProps> = ({
     switch (field.type) {
       case "textfield":
         return <TextField {...commonProps} />;
+      case "textarea":
+        const maxW = parseInt(config.maxWords) || 500;
+        const rows = Math.min(Math.max(4, Math.ceil(maxW / 100)), 20);
+        return (
+          <Box>
+            <TextField {...commonProps} multiline rows={rows} />
+            <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+              Max words: {maxW}
+            </Typography>
+          </Box>
+        );
+      case "textblock":
+        return (
+          <Typography sx={{ fontFamily: roboto.style.fontFamily, whiteSpace: "pre-wrap" }}>
+            {field.label}
+          </Typography>
+        );
       case "numberField":
         return <TextField {...commonProps} type="number" />;
       case "password":

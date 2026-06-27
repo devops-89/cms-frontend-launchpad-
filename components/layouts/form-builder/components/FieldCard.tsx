@@ -382,7 +382,9 @@ if (field.id === "member_2_step" && !showMember2) {
             <TextField
               fullWidth
               size="small"
-              label="Label"
+              multiline={field.type === "textblock"}
+              rows={field.type === "textblock" ? 4 : undefined}
+              label={field.type === "textblock" ? "Text Content" : "Label"}
               value={field.label}
               onChange={(e) => onUpdate(field.id, { label: e.target.value })}
               sx={{
@@ -653,6 +655,56 @@ if (field.id === "member_2_step" && !showMember2) {
             </Grid>
           )}
 
+          {field.type === "textarea" && (
+            <Grid size={{ xs: 12 }}>
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: "14px",
+                  bgcolor: alpha(theme.palette.primary.main, 0.02),
+                  border: "1px solid",
+                  borderColor: alpha(theme.palette.primary.main, 0.05),
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 800,
+                    color: "primary.main",
+                    mb: 1.5,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    textTransform: "uppercase",
+                    fontSize: "0.6rem",
+                  }}
+                >
+                  <SplitIcon sx={{ fontSize: "0.8rem" }} /> Textarea Config
+                </Typography>
+                <Grid container spacing={1.5}>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      type="number"
+                      label="Max Words"
+                      placeholder="e.g. 3000"
+                      value={field.config?.maxWords || ""}
+                      onChange={(e) =>
+                        onUpdateConfig(field.id, "maxWords", e.target.value)
+                      }
+                      sx={{
+                        "& .MuiOutlinedInput-root": { borderRadius: "10px" },
+                        "& .MuiInputLabel-root": { fontSize: "0.75rem" },
+                        "& .MuiInputBase-input": { fontSize: "0.75rem" },
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Grid>
+          )}
+
           {field.type === "telInput" && (
             <Grid size={{ xs: 12 }}>
               <Box
@@ -860,7 +912,7 @@ if (field.id === "member_2_step" && !showMember2) {
                     multiple
                     freeSolo
                     fullWidth
-                    options={[".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls"]}
+                    options={[".jpg", ".jpeg", ".png", ".pdf", ".doc", ".docx", ".xls", ".mp4", ".mov", ".avi", ".mkv"]}
                     value={
                       typeof field.config?.allowedExtensions === "string" && field.config.allowedExtensions.trim() !== ""
                         ? field.config.allowedExtensions.split(",").map((s: string) => s.trim())

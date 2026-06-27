@@ -26,6 +26,8 @@ import {
   ViewDay as SplitIcon,
   UploadFile as UploadIcon,
   Checklist as MultiSelectIcon,
+  Title as TextBlockIcon,
+  Notes as TextAreaIcon,
 } from "@mui/icons-material";
 import { FieldType } from "@/context/FormContext";
 import { montserrat } from "@/utils/fonts";
@@ -37,6 +39,8 @@ export const fieldTypes: {
   category: string;
 }[] = [
   { type: "textfield", label: "Text Input", icon: <TextIcon />, category: "Basic" },
+  { type: "textarea", label: "Large Text", icon: <TextAreaIcon />, category: "Basic" },
+  { type: "textblock", label: "Text Block", icon: <TextBlockIcon />, category: "Basic" },
   { type: "numberField", label: "Number Input", icon: <NumbersIcon />, category: "Basic" },
   { type: "password", label: "Password Input", icon: <PasswordIcon />, category: "Basic" },
   { type: "telInput", label: "Phone Connection", icon: <TelIcon />, category: "Input" },

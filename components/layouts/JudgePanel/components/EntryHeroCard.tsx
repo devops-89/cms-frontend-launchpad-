@@ -3,6 +3,33 @@ import { Box, Card, Grid, Avatar, Typography, Chip } from '@mui/material';
 import { EmojiEvents } from '@mui/icons-material';
 
 export const EntryHeroCard = ({ entry, entryTitle, colors }: { entry: any, entryTitle: string, colors: any }) => {
+  const isImageUrl = (url: string) => typeof url === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/i.test(url.split('?')[0]);
+  const entryFields = entry?.contest?.entry_level_template?.schema?.fields || entry?.contest?.entryLevelTemplate?.schema?.fields || [];
+  const submissionData = entry?.submission?.data || {};
+  const sData = submissionData?.data ? submissionData.data : submissionData;
+  
+  let thumbnailField = entryFields.find((f: any) => f.label?.toLowerCase().includes("thumbnail"));
+  let thumbnailUrl = "";
+  
+  if (thumbnailField) {
+    const candidate = sData[`${thumbnailField.id}_downloadUrl`] || sData[`${thumbnailField.label}_downloadUrl`] || sData[thumbnailField.id] || sData[thumbnailField.label];
+    if (candidate && isImageUrl(candidate)) thumbnailUrl = candidate;
+  }
+  
+  if (!thumbnailUrl) {
+    const downloadUrlKey = Object.keys(sData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(sData[key]));
+    thumbnailUrl = downloadUrlKey ? sData[downloadUrlKey] : "";
+  }
+  
+  if (!thumbnailUrl) {
+    const imageUrlKey = Object.keys(sData).find((key) => {
+      if (key === "status" || key.endsWith("_downloadUrl")) return false;
+      const val = sData[key];
+      return isImageUrl(val);
+    });
+    if (imageUrlKey) thumbnailUrl = sData[imageUrlKey];
+  }
+
   return (
     <Card
       elevation={0}
@@ -22,12 +49,18 @@ export const EntryHeroCard = ({ entry, entryTitle, colors }: { entry: any, entry
       />
       <Grid container spacing={4} alignItems="center">
         <Grid size={{ xs: 12, sm: 4, md: 3, lg: 2 }} sx={{ display: "flex", justifyContent: "center" }}>
-          <Avatar
-            variant="rounded"
-            sx={{ width: 120, height: 120, borderRadius: 3, background: `linear-gradient(135deg, ${colors.PRIMARY} 0%, ${colors.SECONDARY} 100%)`, boxShadow: "0 8px 24px rgba(99, 102, 241, 0.2)" }}
-          >
-            <EmojiEvents sx={{ fontSize: 60, color: "#fff" }} />
-          </Avatar>
+          {thumbnailUrl ? (
+            <Box sx={{ width: 120, height: 120, borderRadius: 3, overflow: 'hidden', border: `1px solid ${colors.BORDER}`, boxShadow: "0 8px 24px rgba(99, 102, 241, 0.2)" }}>
+              <img src={thumbnailUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </Box>
+          ) : (
+            <Avatar
+              variant="rounded"
+              sx={{ width: 120, height: 120, borderRadius: 3, background: `linear-gradient(135deg, ${colors.PRIMARY} 0%, ${colors.SECONDARY} 100%)`, boxShadow: "0 8px 24px rgba(99, 102, 241, 0.2)" }}
+            >
+              <EmojiEvents sx={{ fontSize: 60, color: "#fff" }} />
+            </Avatar>
+          )}
         </Grid>
         <Grid size={{ xs: 12, sm: 8, md: 9, lg: 10 }}>
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 2, mb: 2 }}>

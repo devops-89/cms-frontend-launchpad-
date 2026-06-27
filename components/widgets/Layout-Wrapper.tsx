@@ -25,13 +25,8 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
   const isJudgePanel = pathname.startsWith('/judge-panel');
 
   React.useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr && !hideLayoutPaths.includes(pathname) && !pathname.startsWith('/judge-panel')) {
-      const user = JSON.parse(userStr);
-      if (user.role === 'judge') {
-        window.location.href = '/judge-panel/dashboard';
-      }
-    }
+    // Session separation between judge and admin prevents the need to check role here.
+    // Auth guard is handled by Header.tsx and specific hooks.
   }, [pathname]);
 
   if (isLoginPage) {

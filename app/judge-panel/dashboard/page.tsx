@@ -18,7 +18,12 @@ export default function JudgeDashboardPage() {
     const fetchEntries = async () => {
       try {
         const result = await judgeControllers.getAssignedEntries(1, 50);
-        setEntries(result.data?.docs || []);
+        const allEntries = result.data?.docs || [];
+        const filtered = allEntries.filter((e: any) => {
+          const displayStatus = e.entry?.status?.toLowerCase() || e.status?.toLowerCase();
+          return ['approved', 'evaluated', 'semifinal', 'final', 'winner'].includes(displayStatus) || (e.score !== undefined && e.score !== null && e.score > 0) || (e.entry?.score !== undefined && e.entry?.score !== null && e.entry?.score > 0);
+        });
+        setEntries(filtered);
       } catch (err) {
         console.error("Failed to fetch entries", err);
       } finally {

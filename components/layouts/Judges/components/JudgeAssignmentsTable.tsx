@@ -56,8 +56,29 @@ const JudgeAssignmentsTable: React.FC<JudgeAssignmentsTableProps> = ({ entryAssi
         };
       }
 
-      const entryData = assignment.entry?.submission?.data;
-      const entryTitle = entryData?.name_1 || entryData?.ho1p00z0q || (entryData ? Object.values(entryData)[0] : "Untitled");
+      const contest = assignment.contest || {};
+      const entryFields = contest?.entry_level_template?.schema?.fields || contest?.entryLevelTemplate?.schema?.fields || [];
+      const submissionData = assignment.entry?.submission?.data || {};
+      const sData = submissionData?.data ? submissionData.data : submissionData;
+
+      let entryTitle = "";
+      const entryTitleField = entryFields?.find((f: any) => {
+        const l = f.label?.toLowerCase() || "";
+        return l.includes("title") || l.includes("project");
+      });
+      if (entryTitleField && sData) {
+        entryTitle = sData[entryTitleField.label] || sData[entryTitleField.id];
+      }
+      if (!entryTitle) {
+        entryTitle = sData?.name_1 || sData?.ho1p00z0q || sData?.["Innovation Title"] || sData?.zvdskzwrw;
+      }
+      if (!entryTitle && sData) {
+        const values = Object.entries(sData)
+          .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
+          .map(([k, v]) => v);
+        if (values.length > 0) entryTitle = values[0] as string;
+      }
+      if (!entryTitle) entryTitle = `Entry #${assignment.entry_id?.substring(0, 8) || "Untitled"}`;
 
       groups[contestId].entries.push(entryTitle);
       groups[contestId].entry_ids.push(assignment.entry_id);
@@ -74,6 +95,7 @@ const JudgeAssignmentsTable: React.FC<JudgeAssignmentsTableProps> = ({ entryAssi
       showSnackbar("Assignments deleted successfully", "success");
       queryClient.invalidateQueries({ queryKey: ["judge-details"] });
       queryClient.invalidateQueries({ queryKey: ["judges"] });
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
       setDeleteGroup(null);
     } catch (error: any) {
       console.error(error);

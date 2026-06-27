@@ -1,6 +1,6 @@
 "use client";
 import { useAppTheme } from "@/context/ThemeContext";
-import { LogoutOutlined } from "@mui/icons-material";
+import { LogoutOutlined, Person } from "@mui/icons-material";
 import { Avatar, Box, Button, Paper, Tooltip, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,7 +14,14 @@ const Header = () => {
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("user");
+    const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
+    const token = isJudgePanel ? localStorage.getItem("judge_access_token") : localStorage.getItem("token");
+    if (!token) {
+      router.push("/");
+      return;
+    }
+
+    const userStr = isJudgePanel ? localStorage.getItem("judge_user") : localStorage.getItem("user");
     if (userStr) {
       try {
         setUser(JSON.parse(userStr));
@@ -25,7 +32,14 @@ const Header = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
+    if (isJudgePanel) {
+      localStorage.removeItem("judge_access_token");
+      localStorage.removeItem("judge_user");
+    } else {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
     router.push("/");
   };
 
@@ -100,13 +114,15 @@ const Header = () => {
               }}
             >
               <Avatar
-                src="https://i.pravatar.cc/150?u=admin"
+                src={user?.avatarUrl || undefined}
                 sx={{
                   width: 34,
                   height: 34,
                   border: `2px solid ${colors.BACKGROUND}`,
                 }}
-              />
+              >
+                <Person />
+              </Avatar>
             </Box>
           </Tooltip>
 

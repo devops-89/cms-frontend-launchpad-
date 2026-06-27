@@ -3,20 +3,28 @@ import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { Box, Button, Grid, TextField, Select, MenuItem, InputLabel, FormControl, Chip, Tooltip, Typography, CircularProgress } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { ContentCopy } from "@mui/icons-material";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { getBaseEmailTemplate } from "@/utils/emailTemplates/baseTemplate";
+
+import { TEMPLATE_EVENT_TYPE } from "@/types/user";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const participantEvents = [
-  "Registration Successful",
-  "Entry Submitted",
-  "Selected as Semi-Finalist",
-  "Selected as Finalist",
-  "Announced as Winner",
+  { value: TEMPLATE_EVENT_TYPE.REGISTRATION_SUCCESSFUL, label: "Registration Successful" },
+  { value: TEMPLATE_EVENT_TYPE.ENTRY_SUBMITTED, label: "Entry Submitted" },
+  { value: TEMPLATE_EVENT_TYPE.SELECTED_AS_SEMI_FINALIST, label: "Selected as Semi-Finalist" },
+  { value: TEMPLATE_EVENT_TYPE.SELECTED_AS_FINALIST, label: "Selected as Finalist" },
+  { value: TEMPLATE_EVENT_TYPE.ANNOUNCED_AS_WINNER, label: "Announced as Winner" },
 ];
 
 const judgeEvents = [
-  "Assigned as Judge",
+  { value: TEMPLATE_EVENT_TYPE.ASSIGNED_AS_JUDGE, label: "Assigned as Judge" },
 ];
 
 const EditTemplateForm = () => {
@@ -25,8 +33,9 @@ const EditTemplateForm = () => {
   const contestId = params?.id as string;
   const templateId = params?.templateId as string;
   const { colors } = useAppTheme();
+  const { showSnackbar } = useSnackbar();
   
-  const { templates, updateTemplate } = useNotificationTemplates();
+  const { templates, updateTemplate, isLoading } = useNotificationTemplates();
   const template = templates.find(t => t.id === templateId);
 
   const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
@@ -39,31 +48,52 @@ const EditTemplateForm = () => {
       setAudience(template.audience);
       setEventType(template.eventType);
       setSubject(template.subject);
-      setBody(template.body);
+      
+      let initialBody = template.body || "";
+      if (initialBody.includes('id="cms-email-inner-body"')) {
+        try {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(initialBody, "text/html");
+          const innerDiv = doc.getElementById("cms-email-inner-body");
+          if (innerDiv) {
+            initialBody = innerDiv.innerHTML.trim();
+          }
+        } catch (e) {
+          console.error("Failed to parse inner template body", e);
+        }
+      }
+      setBody(initialBody);
     }
   }, [template]);
 
-  if (!template && templates.length > 0) {
-    return <Box p={4} textAlign="center"><Typography>Template not found.</Typography></Box>;
-  }
-  
-  if (templates.length === 0) {
+  if (isLoading) {
     return <Box p={4} textAlign="center"><CircularProgress /></Box>;
   }
 
-  const handleSave = () => {
+  if (!template) {
+    return <Box p={4} textAlign="center"><Typography>Template not found.</Typography></Box>;
+  }
+
+  const handleSave = async () => {
     if (!eventType || !subject || !body) {
       alert("Please fill in all fields.");
       return;
     }
 
-    updateTemplate(templateId, {
-      audience,
-      eventType,
-      subject,
-      body,
-    });
-    router.push(`/contest-management/contests/${contestId}?tab=5`);
+    try {
+      const wrappedBody = getBaseEmailTemplate(body, subject, "{{contest_name}}");
+      
+      await updateTemplate(templateId, {
+        audience,
+        eventType,
+        subject,
+        body: wrappedBody,
+      });
+      showSnackbar("Template updated successfully", "success");
+      router.push(`/contest-management/contests/${contestId}?tab=5`);
+    } catch (error) {
+      showSnackbar("Failed to update template", "error");
+    }
   };
 
   const renderVariablesHelper = () => (
@@ -126,7 +156,7 @@ const EditTemplateForm = () => {
                 disabled
               >
                 {(audience === "Participant" ? participantEvents : judgeEvents).map((ev) => (
-                  <MenuItem key={ev} value={ev}>{ev}</MenuItem>
+                  <MenuItem key={ev.value} value={ev.value}>{ev.label}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -140,15 +170,19 @@ const EditTemplateForm = () => {
             />
           </Grid>
           <Grid size={12}>
-            <TextField
-              label="Email Body"
-              fullWidth
-              multiline
-              rows={8}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Hi {{user_name}}, welcome to {{contest_name}}..."
-            />
+            <InputLabel sx={{ mb: 1, fontSize: "0.875rem", color: colors.TEXT_SECONDARY }}>Email Body</InputLabel>
+            <Box sx={{ 
+              "& .quill": { bgcolor: "white", borderRadius: 1 },
+              "& .ql-container": { minHeight: "250px", fontSize: "16px", fontFamily: "inherit" },
+              "& .ql-editor": { minHeight: "250px" }
+            }}>
+              <ReactQuill
+                theme="snow"
+                value={body}
+                onChange={setBody}
+                placeholder="Hi {{user_name}}, welcome to {{contest_name}}..."
+              />
+            </Box>
             {renderVariablesHelper()}
           </Grid>
           <Grid size={12}>

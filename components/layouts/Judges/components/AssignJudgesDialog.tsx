@@ -24,6 +24,7 @@ import {
 
 import { contestControllers } from "@/api/contestControllers";
 import { entryControllers } from "@/api/entryControllers";
+import { UserController } from "@/api/userControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -65,9 +66,48 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
 
   const { data: entriesData, isLoading: entriesLoading } = useQuery({
     queryKey: ["entries", selectedContestId],
-    queryFn: () => entryControllers.getAllEntries(selectedContestId!),
+    queryFn: () => entryControllers.getAllEntries(selectedContestId!, 1, 1000),
     enabled: open && !!selectedContestId,
   });
+
+  const { data: contestDetailsData } = useQuery({
+    queryKey: ["contestDetails", selectedContestId],
+    queryFn: () => contestControllers.getContestDetails(selectedContestId!),
+    enabled: open && !!selectedContestId,
+  });
+
+  const { data: assignedJudgesData } = useQuery({
+    queryKey: ["assigned-judges", selectedContestId],
+    queryFn: () => contestControllers.getAssignedJudges(selectedContestId!),
+    enabled: open && !!selectedContestId,
+  });
+
+  const assignedEntryIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (!assignedJudgesData) return ids;
+
+    const findIds = (obj: any) => {
+      if (!obj || typeof obj !== 'object') return;
+      if (Array.isArray(obj)) {
+        obj.forEach(findIds);
+      } else {
+        if (obj.entry_id) ids.add(obj.entry_id);
+        if (obj.entry_ids && Array.isArray(obj.entry_ids)) {
+          obj.entry_ids.forEach((id: string) => ids.add(id));
+        }
+        if (obj.entryAssignments && Array.isArray(obj.entryAssignments)) {
+          obj.entryAssignments.forEach((a: any) => {
+             if (a.entry_id) ids.add(a.entry_id);
+          });
+        }
+        Object.values(obj).forEach(findIds);
+      }
+    };
+
+    findIds(assignedJudgesData);
+
+    return ids;
+  }, [assignedJudgesData, selectedContestId]);
 
   const availableEntries = useMemo(() => {
     if (!entriesData) return [];
@@ -78,13 +118,19 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
       Array.isArray(entriesData?.data?.data) ? entriesData.data.data :
       Array.isArray(entriesData?.data?.entries) ? entriesData.data.entries : [];
 
-    console.log("AssignJudgesDialog - fetched entries:", list);
-    console.log("AssignJudgesDialog - statuses:", list.map((e: any) => ({ id: e.id, status: e.status })));
-
     return list
       .filter((entry: any) => {
         const s = entry.status?.toLowerCase() || "";
-        return s === "approved" || s === "moderate";
+        if (s !== "approved") return false;
+
+        // If editing and this entry is already assigned to THIS judge, keep it visible
+        if (initialSelectedEntryIds && initialSelectedEntryIds.includes(entry.id)) {
+          return true;
+        }
+
+        // Otherwise, hide it if it's already assigned to any judge
+        if (entry.isAssigned === true) return false;
+        return !assignedEntryIds.has(entry.id);
       })
       .map((entry: any) => {
       const submissionData = entry?.submission?.data || {};
@@ -93,41 +139,95 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
       const sData = submissionData?.data ? submissionData.data : submissionData;
       const pData = participantData?.data ? participantData.data : participantData;
 
-      const contest = publishedContests.find((c: any) => c.id === entry.contest_id || c._id === entry.contest_id) || entry?.contest;
+      const contest = contestDetailsData?.data || publishedContests.find((c: any) => c.id === entry.contest_id || c._id === entry.contest_id) || entry?.contest;
       const entryFields = contest?.entry_level_template?.schema?.fields || contest?.entryLevelTemplate?.schema?.fields || [];
       const userFields = contest?.user_level_template?.schema?.fields || contest?.userLevelTemplate?.schema?.fields || [];
 
-      let titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
-      if (!titleField) {
-        titleField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
-      }
-
+      // Title logic
       let title = "";
-      if (titleField) {
-        title = sData[titleField.label] || sData[titleField.id];
+      const entryTitleField = entryFields?.find((f: any) => {
+        const l = f.label?.toLowerCase() || "";
+        return l.includes("title") || l.includes("project");
+      });
+      if (entryTitleField && sData) {
+        title = sData[entryTitleField.label] || sData[entryTitleField.id];
       }
       if (!title) {
-        title = sData["ho1p00z0q"] || sData["Innovation Title"] || sData["zvdskzwrw"];
+        title = sData?.name_1 || sData?.ho1p00z0q || sData?.["Innovation Title"] || sData?.zvdskzwrw;
       }
-      if (!title) {
-        const values = Object.values(sData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
+      if (!title && sData) {
+        const values = Object.entries(sData)
+          .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
+          .map(([k, v]) => v);
         if (values.length > 0) title = values[0] as string;
-        else title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8)}`;
       }
-      if (!title) title = "Untitled";
-
-      let authorField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+      if (!title) title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8) || "Untitled"}`;
+      
+      // Author logic
       let author = "";
-      if (authorField) {
-        author = pData[authorField.label] || pData[authorField.id];
+      const firstNameField = userFields.find((f: any) => {
+        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+        return l.includes("firstname") || l === "first";
+      });
+      const lastNameField = userFields.find((f: any) => {
+        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+        return l.includes("lastname") || l === "last";
+      });
+      const fullNameField = userFields.find((f: any) => {
+        const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+        return l.includes("fullname") || l === "name" || (l.includes("name") && !l.includes("first") && !l.includes("last"));
+      });
+
+      if (firstNameField || lastNameField) {
+        const first = firstNameField ? (pData[firstNameField.label] || pData[firstNameField.id]) : "";
+        const last = lastNameField ? (pData[lastNameField.label] || pData[lastNameField.id]) : "";
+        author = `${first || ""} ${last || ""}`.trim();
       }
-      if (!author) {
-        author = pData["yg9snrxlh"] || pData["Firstname"] || pData["Name"] || pData["an7ffo0mu"] || entry?.participant?.email;
+      
+      if (!author && fullNameField && pData && Object.keys(pData).length > 0) {
+        author = pData[fullNameField.label] || pData[fullNameField.id];
       }
-      if (!author) {
-        const values = Object.values(pData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
+
+      if (!author && pData && Object.keys(pData).length > 0) {
+        const fallback = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
+        if (fallback && (pData[fallback.label] || pData[fallback.id])) {
+          author = pData[fallback.label] || pData[fallback.id];
+        } else {
+          author = pData.yg9snrxlh || pData.an7ffo0mu || pData.qlon5xekd;
+        }
+      }
+
+      // FALLBACK: If no author name yet, check entry submission data itself!
+      if (!author && sData) {
+        const allFields = [...userFields, ...entryFields];
+        const fNameField = allFields.find((f: any) => {
+          const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+          return l.includes("firstname") || l === "first";
+        });
+        const lNameField = allFields.find((f: any) => {
+          const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+          return l.includes("lastname") || l === "last";
+        });
+        
+        if (fNameField || lNameField) {
+          const first = fNameField ? (sData[fNameField.label] || sData[fNameField.id]) : "";
+          const last = lNameField ? (sData[lNameField.label] || sData[lNameField.id]) : "";
+          author = `${first || ""} ${last || ""}`.trim();
+        }
+        
+        if (!author) {
+           author = sData.yg9snrxlh || sData.an7ffo0mu || sData.qlon5xekd || sData.os28hf1aa;
+           if (author && sData.tlb9rveot) author += " " + sData.tlb9rveot;
+        }
+      }
+      
+      if (!author && pData && Object.keys(pData).length > 0) {
+        const values = Object.entries(pData)
+          .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
+          .map(([k, v]) => v);
         if (values.length > 0) author = values[0] as string;
       }
+
       if (!author) author = "Unknown";
 
       return {
@@ -203,6 +303,7 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
       // Invalidate query to refresh the Judge Assignments Table
       queryClient.invalidateQueries({ queryKey: ["judge-details"] });
       queryClient.invalidateQueries({ queryKey: ["judges"] });
+      queryClient.invalidateQueries({ queryKey: ["entries"] });
       
       onClose();
     } catch (error: any) {
@@ -257,6 +358,7 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
             options={contests}
             loading={contestsLoading || entriesLoading}
             value={selectedContest}
+            disabled={isEditMode}
             onChange={(_, newValue) => {
               setSelectedContestId(newValue ? newValue.id : null);
               setSelectedEntries([]);

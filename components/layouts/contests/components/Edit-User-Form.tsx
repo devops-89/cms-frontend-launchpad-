@@ -36,6 +36,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import { Save as SaveIcon, ArrowBack as ArrowBackIcon, Close as CloseIcon } from "@mui/icons-material";
+import { FilePreview } from "@/components/widgets/FilePreview";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { FormHelperText } from "@mui/material";
@@ -58,7 +59,7 @@ const EditUserForm = () => {
     enabled: !!id,
   });
 
-  const template_fields = data?.data?.userLevelTemplate?.schema.fields;
+  const template_fields = data?.data?.userLevelTemplate?.schema?.fields || data?.data?.user_level_template?.schema?.fields;
 
   const { data: participantResponse, isPending: isParticipantPending } = useQuery({
     queryKey: ["Participant Details", id, participantId],
@@ -66,12 +67,35 @@ const EditUserForm = () => {
     enabled: !!id && !!participantId,
   });
   const participantData = participantResponse?.data;
+  const formData = participantData?.submission?.data?.data || participantData?.submission?.data || participantData?.participant_profile_data || participantData?.data || {};
 
   const initialValues = React.useMemo(() => {
     return (
       template_fields?.reduce((acc: any, field: any) => {
-        let storedValue = participantData?.data?.[field.id] || participantData?.data?.[field.label] || participantData?.data?.[field.label?.trim() || ""];
-        if (storedValue !== undefined) {
+        let storedValue = formData[field.id] || formData[field.label] || formData[field.label?.trim() || ""];
+        
+        if (field.type === FIELDS_TYPE.FILE_UPLOAD && (formData[`${field.id}_downloadUrl`] || formData[`${field.label}_downloadUrl`])) {
+          storedValue = formData[`${field.id}_downloadUrl`] || formData[`${field.label}_downloadUrl`];
+        }
+
+        if (storedValue === undefined || storedValue === null || storedValue === "") {
+           const labelLower = field.label?.toLowerCase() || "";
+           if (labelLower.includes("email")) {
+             storedValue = formData.ppdwdyx34 || formData.waqb6gjzw;
+           } else if (labelLower.includes("phone") || labelLower.includes("mobile")) {
+             storedValue = formData.h7695htwx;
+           } else if (labelLower.includes("school") || labelLower.includes("college") || labelLower.includes("institution")) {
+             storedValue = formData['3swf0lufu'];
+           } else if (labelLower.includes("grade") || labelLower.includes("year")) {
+             storedValue = formData.wq5kjwwmo;
+           } else if (labelLower.includes("country")) {
+             storedValue = formData.gjbq1pwch;
+           } else if (labelLower.includes("name")) {
+             storedValue = formData.qlon5xekd || formData.an7ffo0mu || formData.yg9snrxlh;
+           }
+        }
+
+        if (storedValue !== undefined && storedValue !== null) {
           acc[field.id] = storedValue;
           return acc;
         }
@@ -89,8 +113,7 @@ const EditUserForm = () => {
   }, [template_fields, participantData]);
 
   const validationSchema = React.useMemo(() => {
-    return Yup.object().shape(
-      template_fields?.reduce((acc: any, field: any) => {
+    const schemaFields = template_fields?.reduce((acc: any, field: any) => {
         let validator;
         if (
           field.type === FIELDS_TYPE.NUMBER_FIELD ||
@@ -145,28 +168,106 @@ const EditUserForm = () => {
         }
         acc[field.id] = validator;
         return acc;
-      }, {}) || {}
-    );
+      }, {});
+      return Yup.object(schemaFields);
   }, [template_fields]);
+
+  const getVisibleFields = (values: any) => {
+    const visible: any[] = [];
+    const pages: any[][] = [];
+    let currentChunk: any[] = [];
+    template_fields?.forEach((field: any) => {
+      if (field.type === FIELDS_TYPE.STEP_BREAK && !field.config?.isInline) {
+        if (currentChunk.length > 0) pages.push(currentChunk);
+        currentChunk = [field];
+      } else {
+        currentChunk.push(field);
+      }
+    });
+    if (currentChunk.length > 0) pages.push(currentChunk);
+
+    let currentPageIndex = 0;
+    const visited = new Set<number>();
+
+    while (currentPageIndex < pages.length && !visited.has(currentPageIndex)) {
+      visited.add(currentPageIndex);
+      const pageFields = pages[currentPageIndex];
+      visible.push(...pageFields);
+
+      let targetStepId: string | null = null;
+      let hasBranchingButUnanswered = false;
+
+      for (const field of pageFields) {
+        if (["select", "radio", "autocomplete"].includes(field.type as any) && field.config?.enableBranching) {
+          const val = values[field.id];
+          if (!val) {
+            hasBranchingButUnanswered = true;
+          } else if (field.config.routing?.[val]) {
+            targetStepId = field.config.routing[val];
+          }
+        }
+      }
+
+      if (hasBranchingButUnanswered) break; 
+      if (targetStepId) {
+        const targetIndex = pages.findIndex((p) => p.length > 0 && p[0].type === FIELDS_TYPE.STEP_BREAK && p[0].id === targetStepId);
+        if (targetIndex !== -1) {
+          currentPageIndex = targetIndex;
+          continue;
+        }
+      }
+      currentPageIndex++;
+    }
+    return visible;
+  };
 
   const formik = useFormik({
     initialValues,
-    validationSchema,
     enableReinitialize: true,
+    validate: (values) => {
+      const visible = getVisibleFields(values);
+      const visibleFieldIds = new Set(visible.map(f => f.id));
+      
+      try {
+        validationSchema.validateSync(values, { abortEarly: false });
+        return {};
+      } catch (err: any) {
+        const errors: any = {};
+        err.inner.forEach((error: any) => {
+          if (visibleFieldIds.has(error.path)) {
+            errors[error.path] = error.message;
+          }
+        });
+        return errors;
+      }
+    },
     onSubmit: async (values) => {
       try {
-        const formData = new FormData();
-        for (const key in values) {
-          if (values[key] !== undefined && values[key] !== null) {
-            formData.append(key, values[key]);
+        const formDataPayload = new FormData();
+        
+        Object.entries(values).forEach(([key, value]) => {
+          if (value instanceof File) {
+            formDataPayload.append(key, value);
+          } else if (value !== undefined && value !== null) {
+            formDataPayload.append(key, String(value));
           }
-        }
-        await contestControllers.updateParticipantDetails(formData, id, participantId);
-        showSnackbar("User updated successfully!", "success");
+        });
+
+        const plainValues: any = { ...values };
+        Object.keys(plainValues).forEach((key) => {
+          if (plainValues[key] instanceof File) {
+            plainValues[key] = undefined;
+          }
+        });
+        formDataPayload.append("participant_profile_data", JSON.stringify(plainValues));
+        formDataPayload.append("data", JSON.stringify(plainValues));
+
+        await contestControllers.updateParticipantDetails(formDataPayload, id, participantId);
+        showSnackbar("Participant updated successfully!", "success");
         router.push(`/contest-management/contests/${id}`);
       } catch (err: any) {
         showSnackbar(
-          err?.response?.data?.message || "Failed to update user",
+          err?.response?.data?.message || "Failed to update participant",
           "error"
         );
       }
@@ -203,18 +304,17 @@ const EditUserForm = () => {
     );
   }
 
+  const visibleFields = getVisibleFields(formik.values);
+
   return (
     <Box>
       <Breadcrumb
-        title="Edit User"
+        title="Edit Participant"
         data={[
           { title: "Dashboard", href: "/dashboard" },
-          { title: "Contest Management", href: "/contest-management/contests" },
-          {
-            title: "Contest Details",
-            href: `/contest-management/contests/${id}`,
-          },
-          { title: "Edit User", href: "#" },
+          { title: "Contests", href: "/contest-management/contests" },
+          { title: "Participants", href: `/contest-management/contests/${id}` },
+          { title: "Edit Participant", href: "#" },
         ]}
       />
 
@@ -235,16 +335,36 @@ const EditUserForm = () => {
             textAlign: "left",
           }}
         >
-          Edit User
+          Edit Participant
         </Typography>
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <Grid container spacing={4}>
-            {template_fields?.map((val: any, i: number) => (
-              <Grid key={val.id} size={{ xs: 12, md: 6 }}>
+            {visibleFields?.map((val: any) => {
+              const isFullWidth = val.type === FIELDS_TYPE.TEXTBLOCK || val.type === FIELDS_TYPE.TEXTAREA || val.type === FIELDS_TYPE.SWITCH || val.type === FIELDS_TYPE.CHECKBOX || val.type === FIELDS_TYPE.RADIO;
+              if (val.type === FIELDS_TYPE.STEP_BREAK) {
+                return (
+                  <Grid key={val.id} size={{ xs: 12 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {val.label}
+                    </Typography>
+                  </Grid>
+                );
+              }
+              return (
+              <Grid key={val.id} size={{ xs: 12, md: isFullWidth ? 12 : 6 }}>
+                {val.type === FIELDS_TYPE.TEXTBLOCK && (
+                  <Box sx={{ width: "100%", pb: 1 }}>
+                    <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                      {val.label}
+                    </Typography>
+                  </Box>
+                )}
                 {(val.type === FIELDS_TYPE.TEXTFIELD ||
+                  val.type === FIELDS_TYPE.TEXTAREA ||
                   val.type === FIELDS_TYPE.NUMBER_FIELD ||
                   val.type === FIELDS_TYPE.PASSWORD) && (
+                  <Box>
                   <TextField
                     label={val.label}
                     type={
@@ -254,6 +374,9 @@ const EditUserForm = () => {
                         ? "password"
                         : "text"
                     }
+                    multiline={val.type === FIELDS_TYPE.TEXTAREA}
+                    minRows={val.type === FIELDS_TYPE.TEXTAREA ? 4 : undefined}
+                    maxRows={val.type === FIELDS_TYPE.TEXTAREA ? 10 : undefined}
                     variant={val.variant}
                     placeholder={val.placeholder}
                     fullWidth
@@ -271,6 +394,12 @@ const EditUserForm = () => {
                       val.helperText
                     }
                   />
+                  {val.type === FIELDS_TYPE.TEXTAREA && val.config?.maxWords && (
+                    <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+                      Max words: {val.config.maxWords}
+                    </Typography>
+                  )}
+                  </Box>
                 )}
 
                 {val.type === FIELDS_TYPE.TEL_INPUT && (
@@ -477,6 +606,8 @@ const EditUserForm = () => {
                   val.type === FIELDS_TYPE.SWITCH) && (
                   <Box>
                     <FormControlLabel
+                      sx={val.type === FIELDS_TYPE.SWITCH ? { width: "100%", m: 0, justifyContent: "space-between" } : undefined}
+                      labelPlacement={val.type === FIELDS_TYPE.SWITCH ? "start" : "end"}
                       control={
                         val.type === FIELDS_TYPE.CHECKBOX ? (
                           <Checkbox
@@ -578,7 +709,7 @@ const EditUserForm = () => {
                 )}
                 
                 {val.type === FIELDS_TYPE.FILE_UPLOAD && (
-                  <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+                  <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
                       {val.label} {val.required && "*"}
                     </Typography>
@@ -586,52 +717,20 @@ const EditUserForm = () => {
                       {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
                       {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
                     </Typography>
-                    {formik.values[val.id] ? (() => {
-                      const fileValue = formik.values[val.id];
-                      const isFileObj = fileValue instanceof File;
-                      const fileUrl = isFileObj ? URL.createObjectURL(fileValue) : (typeof fileValue === 'string' ? fileValue : '');
-                      const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp|svg)(\?|$)/i.test(url);
-                      const getFileName = (url: string) => {
-                        if (isFileObj) return fileValue.name;
-                        try {
-                          const urlObj = new URL(url);
-                          const segments = urlObj.pathname.split('/');
-                          const decoded = decodeURIComponent(segments.pop() || "");
-                          const parts = decoded.split('-');
-                          return parts.length > 2 ? parts.slice(2).join('-') : decoded;
-                        } catch (e) {
-                          return "Document";
-                        }
-                      };
-
-                      const fileName = getFileName(fileUrl);
-                      const isImg = isFileObj ? fileValue.type.startsWith('image/') : (typeof fileValue === 'string' && isImage(fileValue));
-
-                      return (
-                        <Box sx={{ display: "inline-flex", flexDirection: isImg ? "column" : "row", alignItems: "center", gap: 1.5, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper", mt: 1, position: 'relative' }}>
-                          {isImg ? (
-                            <Box sx={{ borderRadius: 1.5, overflow: "hidden", position: 'relative', width: 150, height: 100, bgcolor: "rgba(0,0,0,0.02)" }}>
-                              <Image src={fileUrl} alt={fileName} fill style={{ objectFit: "cover" }} sizes="150px" />
-                            </Box>
-                          ) : (
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 1.5, bgcolor: "rgba(99, 102, 241, 0.08)", color: "primary.main" }}>
-                              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </Box>
-                          )}
-                          
-                          <Typography variant="caption" noWrap sx={{ width: 150, textAlign: 'center', fontWeight: 600, color: "text.primary" }}>
-                            {fileName}
-                          </Typography>
-
-                          <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, p: 0.5, boxShadow: 2, zIndex: 2 }}>
-                            <CloseIcon sx={{ fontSize: "1rem" }} />
-                          </IconButton>
-                        </Box>
-                      );
-                    })() : (
+                    {formik.values[val.id] ? (
+                      <Box sx={{ mt: 2, position: "relative", display: "flex", justifyContent: "center", width: "100%" }}>
+                        {(() => {
+                        const fileVal = formik.values[val.id];
+                        return (
+                          <FilePreview 
+                            fileVal={fileVal} 
+                            label={val.label} 
+                            onClear={() => formik.setFieldValue(val.id, null)} 
+                          />
+                        );
+                      })()}
+                    </Box>
+                    ) : (
                       <Button variant="outlined" component="label" size="small">
                         Upload File
                         <input 
@@ -654,7 +753,8 @@ const EditUserForm = () => {
                   </Box>
                 )}
               </Grid>
-            ))}
+              );
+            })}
           </Grid>
         </LocalizationProvider>
 
@@ -678,7 +778,13 @@ const EditUserForm = () => {
                 <SaveIcon />
               )
             }
-            onClick={() => formik.handleSubmit()}
+            onClick={() => {
+              if (!formik.dirty) {
+                showSnackbar("Please make some changes before updating", "warning");
+                return;
+              }
+              formik.handleSubmit();
+            }}
             sx={{
               borderRadius: 2,
               px: 6,

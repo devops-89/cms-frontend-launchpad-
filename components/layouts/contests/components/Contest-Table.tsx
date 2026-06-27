@@ -23,7 +23,14 @@ import {
   TextField,
   Typography,
   alpha,
-  useTheme
+  useTheme,
+  TablePagination,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  CircularProgress
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment";
@@ -35,22 +42,46 @@ const ContestTable = () => {
   const router = useRouter();
   const [value, setValue] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [contestToDelete, setContestToDelete] = useState<any>(null);
 
   const tabChangeHandler = (event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
+    setPage(0);
   };
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
+    setPage(0);
   };
 
   const queryClient = useQueryClient();
   const { showSnackbar } = useSnackbar();
 
+  const currentStatus = CONTEST_TABLE_STATUS[value]?.label || "All";
+
   const { data, isPending, error } = useQuery({
-    queryKey: ["contests"],
-    queryFn: () => contestControllers.getContest(),
+    queryKey: ["contests", page, limit, searchQuery, currentStatus],
+    queryFn: () => contestControllers.getContest(page + 1, limit, searchQuery, currentStatus),
     enabled: true,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => contestControllers.deleteContest(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["contests"] });
+      showSnackbar("Contest deleted successfully", "success");
+      setDeleteDialogOpen(false);
+      setContestToDelete(null);
+    },
+    onError: (err: any) => {
+      showSnackbar(
+        err?.response?.data?.message || "Failed to delete contest",
+        "error",
+      );
+    },
   });
 
   const mutation = useMutation({
@@ -104,7 +135,7 @@ const ContestTable = () => {
           }}
         />
       </Box>
-      <Table sx={{ mt: 2 }}>
+      <Table sx={{ mt: 2 }} size="small">
         <TableHead>
           <TableRow>
             {CONTEST_TABLE_HEADER.map((item, index) => (
@@ -253,7 +284,7 @@ const ContestTable = () => {
                   <Typography
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}
                   >
-                    {item.entries || "-"}
+                    {item.entryCount ?? "-"}
                   </Typography>
                 </TableCell>
                 <TableCell>
@@ -278,7 +309,14 @@ const ContestTable = () => {
                     >
                       <Edit fontSize="small" />
                     </IconButton>
-                    <IconButton size="small" color="error">
+                    <IconButton 
+                      size="small" 
+                      color="error"
+                      onClick={() => {
+                        setContestToDelete(item);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
                       <Delete fontSize="small" />
                     </IconButton>
                   </Box>
@@ -288,6 +326,48 @@ const ContestTable = () => {
           )}
         </TableBody>
       </Table>
+      
+      <TablePagination
+        component="div"
+        count={data?.data?.totalDocs || data?.data?.total || contestsList.length || 0}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={limit}
+        onRowsPerPageChange={(e) => {
+          setLimit(parseInt(e.target.value, 10));
+          setPage(0);
+        }}
+      />
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontFamily: roboto.style.fontFamily, fontWeight: 700 }}>
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete this contest? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} color="inherit">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => deleteMutation.mutate(contestToDelete?.id)}
+            color="error"
+            variant="contained"
+            disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending && <CircularProgress size={16} color="inherit" />}
+          >
+            {deleteMutation.isPending ? "Deleting..." : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

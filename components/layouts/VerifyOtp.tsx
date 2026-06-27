@@ -14,25 +14,62 @@ import {
 } from "@mui/material";
 
 import { useFormik } from "formik";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as Yup from "yup";
 
 import { AuthControllers } from "@/api/authControllers";
 import { useAppTheme } from "@/context/ThemeContext";
+import { Suspense } from "react";
+import { useSnackbar } from "@/context/SnackbarContext";
 
-const VerifyOtp = () => {
+const VerifyOtpForm = () => {
   const { colors } = useAppTheme();
-
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const flow = searchParams.get("flow");
+  const emailParam = searchParams.get("email");
+
+  const { showSnackbar } = useSnackbar();
 
   const [loading, setLoading] =
     React.useState(false);
 
-  const [errorMessage, setErrorMessage] =
-    React.useState("");
+  const [timer, setTimer] = React.useState(60);
+  const [canResend, setCanResend] = React.useState(false);
 
-  const [successMessage, setSuccessMessage] =
-    React.useState("");
+  React.useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    } else {
+      setCanResend(true);
+    }
+  }, [timer]);
+
+  const handleResendOtp = async () => {
+    try {
+      const email = emailParam || localStorage.getItem("resetEmail");
+      if (!email) {
+        showSnackbar("Email not found. Please try again.", "error");
+        return;
+      }
+      
+      setLoading(true);
+      await AuthControllers.forgotPassword({ email });
+      showSnackbar("OTP resent successfully", "success");
+      setTimer(60);
+      setCanResend(false);
+    } catch (error: any) {
+      showSnackbar(
+        error?.response?.data?.message || "Failed to resend OTP",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [otp, setOtp] = React.useState([
     "",
@@ -56,16 +93,19 @@ const VerifyOtp = () => {
       try {
         setLoading(true);
 
-        setErrorMessage("");
-        setSuccessMessage("");
-
         const finalOtp = otp.join("");
 
         if (finalOtp.length !== 6) {
-          setErrorMessage(
-            "Enter complete OTP",
-          );
+          showSnackbar("Enter complete OTP", "error");
+          return;
+        }
 
+        const email = emailParam || localStorage.getItem("resetEmail");
+
+        if (flow === "forgot") {
+          // Skip calling verify-otp API for forgot password flow.
+          // The reset-password API will validate the OTP.
+          router.push(`/reset-password?email=${encodeURIComponent(email || "")}&otp=${encodeURIComponent(finalOtp)}`);
           return;
         }
 
@@ -76,9 +116,9 @@ const VerifyOtp = () => {
             },
           );
 
-        setSuccessMessage(
-          response?.data?.message ||
-            "OTP verified successfully",
+        showSnackbar(
+          response?.data?.message || "OTP verified successfully",
+          "success"
         );
 
         setTimeout(() => {
@@ -87,10 +127,9 @@ const VerifyOtp = () => {
           );
         }, 1000);
       } catch (error: any) {
-        setErrorMessage(
-          error?.response?.data
-            ?.message ||
-            "Invalid OTP",
+        showSnackbar(
+          error?.response?.data?.message || "Invalid OTP",
+          "error"
         );
       } finally {
         setLoading(false);
@@ -214,35 +253,7 @@ const VerifyOtp = () => {
               </Typography>
             </Box>
 
-            <Collapse
-              in={Boolean(
-                errorMessage,
-              )}
-            >
-              <Alert
-                severity="error"
-                sx={{
-                  mb: 2,
-                }}
-              >
-                {errorMessage}
-              </Alert>
-            </Collapse>
 
-            <Collapse
-              in={Boolean(
-                successMessage,
-              )}
-            >
-              <Alert
-                severity="success"
-                sx={{
-                  mb: 2,
-                }}
-              >
-                {successMessage}
-              </Alert>
-            </Collapse>
 
             <Box
               sx={{
@@ -364,10 +375,45 @@ const VerifyOtp = () => {
                 ? "Verifying..."
                 : "Verify OTP"}
             </Button>
+
+            <Box sx={{ mt: 3, textAlign: "center" }}>
+              <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY }}>
+                Didn&apos;t receive the OTP?{" "}
+                {canResend ? (
+                  <Button
+                    variant="text"
+                    onClick={handleResendOtp}
+                    disabled={loading}
+                    sx={{
+                      textTransform: "none",
+                      fontWeight: 600,
+                      color: colors.PRIMARY,
+                      p: 0,
+                      minWidth: "auto",
+                      "&:hover": { bgcolor: "transparent", textDecoration: "underline" },
+                    }}
+                  >
+                    Resend OTP
+                  </Button>
+                ) : (
+                  <Typography component="span" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}>
+                    Resend in {timer}s
+                  </Typography>
+                )}
+              </Typography>
+            </Box>
           </Paper>
         </form>
       </Container>
     </Box>
+  );
+};
+
+const VerifyOtp = () => {
+  return (
+    <Suspense fallback={<Box>Loading...</Box>}>
+      <VerifyOtpForm />
+    </Suspense>
   );
 };
 

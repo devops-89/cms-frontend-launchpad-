@@ -56,6 +56,9 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
 
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: (data: { status: string; reason?: string }) => 
@@ -72,8 +75,10 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
     },
   });
 
+  const isInteractive = currentStatus.toLowerCase() !== "draft" && currentStatus.toLowerCase() !== "rejected";
+
   const handleChipClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (currentStatus.toLowerCase() !== "draft" && !mutation.isPending) {
+    if (isInteractive && !mutation.isPending) {
       setAnchorEl(event.currentTarget as unknown as HTMLElement);
     }
   };
@@ -88,9 +93,18 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
       if (newStatus === "rejected") {
         setRejectDialogOpen(true);
       } else {
-        mutation.mutate({ status: newStatus });
+        setPendingStatus(newStatus);
+        setConfirmDialogOpen(true);
       }
     }
+  };
+
+  const handleStatusConfirm = () => {
+    if (pendingStatus) {
+      mutation.mutate({ status: pendingStatus });
+    }
+    setConfirmDialogOpen(false);
+    setPendingStatus(null);
   };
 
   const handleRejectConfirm = () => {
@@ -126,7 +140,7 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
       <Chip
         label={getDisplayStatus(currentStatus)}
         size="small"
-        onClick={currentStatus.toLowerCase() !== "draft" ? handleChipClick : undefined}
+        onClick={isInteractive ? handleChipClick : undefined}
         onDelete={mutation.isPending ? () => {} : undefined}
         deleteIcon={mutation.isPending ? <CircularProgress size={12} sx={{ color: colors.text }} /> : undefined}
         sx={{
@@ -137,10 +151,10 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
           fontSize: "0.75rem",
           textTransform: "capitalize",
           height: 24,
-          cursor: currentStatus.toLowerCase() !== "draft" ? "pointer" : "default",
+          cursor: isInteractive ? "pointer" : "default",
           border: 'none',
           "&:hover": {
-            bgcolor: currentStatus.toLowerCase() !== "draft" ? `${colors.bg}dd` : colors.bg,
+            bgcolor: isInteractive ? `${colors.bg}dd` : colors.bg,
           },
           "& .MuiChip-label": {
             px: 1.5,
@@ -223,8 +237,23 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRejectDialogOpen(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleRejectConfirm} variant="contained" color="error" disabled={!rejectReason.trim()}>
-            Confirm Reject
+          <Button onClick={handleRejectConfirm} variant="contained" color="error" disabled={!rejectReason.trim() || mutation.isPending}>
+            {mutation.isPending ? <CircularProgress size={20} color="inherit" /> : "Confirm Reject"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Status Change</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            Are you sure you want to change the status of this entry to <strong>{pendingStatus ? getDisplayStatus(pendingStatus) : ""}</strong>?
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmDialogOpen(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleStatusConfirm} variant="contained" color="primary" disabled={mutation.isPending}>
+            {mutation.isPending ? <CircularProgress size={20} color="inherit" /> : "Confirm"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -303,7 +332,7 @@ const EntriesList = () => {
 
   return (
     <Box>
-      <Table sx={{ mt: 2 }}>
+      <Table sx={{ mt: 2 }} size="small">
         <TableHead>
           <TableRow>
             <TableCell>
@@ -331,7 +360,7 @@ const EntriesList = () => {
                 Status
               </Typography>
             </TableCell>
-            <TableCell>
+            <TableCell align="right">
               <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
                 Actions
               </Typography>
@@ -340,13 +369,33 @@ const EntriesList = () => {
         </TableHead>
 
         <TableBody>
-          {entries.map((entry: ContestEntry, index: number) => {
+          {entries.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                <Typography sx={{ py: 4, fontFamily: roboto.style.fontFamily, color: "text.secondary" }}>
+                  No entries found.
+                </Typography>
+              </TableCell>
+            </TableRow>
+          ) : entries.map((entry: ContestEntry, index: number) => {
             const entryTitleField = entryFields?.find((f: any) => {
               const l = f.label?.toLowerCase() || "";
               return l.includes("title") || l.includes("project");
             });
-            const entryTitle = entryTitleField ? (entry?.submission?.data?.[entryTitleField.label] || entry?.submission?.data?.[entryTitleField.id]) : (entry?.submission?.data?.ho1p00z0q || entry?.submission?.data?.["Innovation Title"]);
-            
+            const sData = entry?.submission?.data || {};
+            let entryTitle = "";
+            if (entryTitleField && sData) {
+              entryTitle = sData[entryTitleField.label] || sData[entryTitleField.id];
+            }
+            if (!entryTitle) {
+              entryTitle = sData?.name_1 || sData?.ho1p00z0q || sData?.["Innovation Title"] || sData?.zvdskzwrw;
+            }
+            if (!entryTitle) {
+              const values = Object.entries(sData)
+                .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
+                .map(([k, v]) => v);
+              if (values.length > 0) entryTitle = values[0] as string;
+            }
             const firstNameField = userFields.find((f: any) => {
               const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
               return l.includes("firstname") || l === "first";
@@ -370,20 +419,49 @@ const EntriesList = () => {
               authorName = `${first || ""} ${last || ""}`.trim();
             }
             
-            if (!authorName && fullNameField) {
+            if (!authorName && fullNameField && authorData && Object.keys(authorData).length > 0) {
               authorName = authorData[fullNameField.label] || authorData[fullNameField.id];
             }
 
-            if (!authorName) {
+            if (!authorName && authorData && Object.keys(authorData).length > 0) {
               const fallback = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
               if (fallback && (authorData[fallback.label] || authorData[fallback.id])) {
                 authorName = authorData[fallback.label] || authorData[fallback.id];
               } else {
-                authorName = authorData.yg9snrxlh;
+                authorName = authorData.yg9snrxlh || authorData.an7ffo0mu || authorData.qlon5xekd;
+              }
+            }
+
+            // FALLBACK: If no author name yet, check entry submission data itself!
+            if (!authorName && sData) {
+              const allFields = [...userFields, ...entryFields];
+              const fNameField = allFields.find((f: any) => {
+                const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                return l.includes("firstname") || l === "first";
+              });
+              const lNameField = allFields.find((f: any) => {
+                const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
+                return l.includes("lastname") || l === "last";
+              });
+              
+              if (fNameField || lNameField) {
+                const first = fNameField ? (sData[fNameField.label] || sData[fNameField.id]) : "";
+                const last = lNameField ? (sData[lNameField.label] || sData[lNameField.id]) : "";
+                authorName = `${first || ""} ${last || ""}`.trim();
+              }
+              
+              if (!authorName) {
+                 authorName = sData.yg9snrxlh || sData.an7ffo0mu || sData.qlon5xekd || sData.os28hf1aa;
+                 if (authorName && sData.tlb9rveot) authorName += " " + sData.tlb9rveot;
               }
             }
             
-            // Extract thumbnail from submission data
+            if (!authorName && authorData && Object.keys(authorData).length > 0) {
+              const values = Object.entries(authorData)
+                .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
+                .map(([k, v]) => v);
+              if (values.length > 0) authorName = values[0] as string;
+            }// Extract thumbnail from submission data
             const submissionData = entry?.submission?.data || {};
             
             const thumbnailField = entryFields?.find((f: any) => f.label?.toLowerCase().includes("thumbnail"));
@@ -464,8 +542,8 @@ const EntriesList = () => {
                   <EntryStatusDropdown entry={entry} contestId={id} />
                 </TableCell>
 
-                <TableCell>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <TableCell align="right">
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
                     <IconButton
                       size="small"
                       color="info"

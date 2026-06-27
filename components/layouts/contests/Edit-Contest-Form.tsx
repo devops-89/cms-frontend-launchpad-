@@ -11,8 +11,6 @@ import {
   alpha,
   useTheme,
   CircularProgress,
-  Snackbar,
-  Alert,
   AlertColor,
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
@@ -21,6 +19,7 @@ import React, { useState, useEffect } from "react";
 import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { useRouter, useParams } from "next/navigation";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { CountryController } from "@/api/countryControllers";
 import { roboto } from "@/utils/fonts";
 import { useFormik } from "formik";
@@ -36,16 +35,7 @@ const EditContestForm = () => {
   const { templates, isLoading: isLoadingTemplates } = useGetAllTemplates();
   const theme = useTheme();
   const router = useRouter();
-
-  const [snackbar, setSnackbar] = useState<{
-    open: boolean;
-    severity: AlertColor;
-    message: string;
-  }>({
-    open: false,
-    severity: "success",
-    message: "",
-  });
+  const { showSnackbar } = useSnackbar();
 
   const { data: contestData, isLoading: isLoadingContest } = useQuery({
     queryKey: ["contest", id],
@@ -76,6 +66,34 @@ const EditContestForm = () => {
     },
     validationSchema: CONTEST_VALIDATION,
     onSubmit: async (values, { setSubmitting }) => {
+      if (contest) {
+        let initialCountries: string[] = [];
+        if (Array.isArray(contest.available_countries)) {
+          initialCountries = contest.available_countries;
+        } else if (typeof contest.available_countries === "string") {
+          try {
+            initialCountries = JSON.parse(contest.available_countries);
+          } catch (e) {
+            initialCountries = (contest.available_countries as string).split(",").map((r: string) => r.trim());
+          }
+        }
+
+        const isUnchanged =
+          values.name === (contest.name || "") &&
+          values.description === (contest.description || "") &&
+          moment(values.start_date).format("YYYY-MM-DD") === (contest.start_date ? moment(contest.start_date).format("YYYY-MM-DD") : "") &&
+          moment(values.end_date).format("YYYY-MM-DD") === (contest.end_date ? moment(contest.end_date).format("YYYY-MM-DD") : "") &&
+          JSON.stringify([...(values.available_countries || [])].sort()) === JSON.stringify([...initialCountries].sort()) &&
+          values.user_level_template_id === (contest.user_level_template_id || "") &&
+          values.entry_level_template_id === (contest.entry_level_template_id || "");
+
+        if (isUnchanged) {
+          showSnackbar("Please make some changes before updating", "warning");
+          setSubmitting(false);
+          return;
+        }
+      }
+
       try {
         const payload: AddContestPayload = {
           ...values,
@@ -83,20 +101,12 @@ const EditContestForm = () => {
           end_date: moment(values.end_date).format("YYYY-MM-DD"),
         };
         await contestControllers.updateContest(id, payload).then((res) => {
-          setSnackbar({
-            open: true,
-            severity: SEVERITY.SUCCESS,
-            message: res.message || "Contest updated successfully",
-          });
+          showSnackbar(res.message || "Contest updated successfully", "success");
           router.push("/contest-management/contests");
         });
       } catch (error) {
         console.error("Failed to update contest:", error);
-        setSnackbar({
-          open: true,
-          severity: SEVERITY.ERROR,
-          message: "Failed to update contest",
-        });
+        showSnackbar("Failed to update contest", "error");
       } finally {
         setSubmitting(false);
       }
@@ -457,23 +467,6 @@ const EditContestForm = () => {
           </Grid>
         </Grid>
       </Box>
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{
-          horizontal: "right",
-          vertical: "top",
-        }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

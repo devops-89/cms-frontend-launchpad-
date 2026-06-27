@@ -12,8 +12,8 @@ import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
   Close as CloseIcon,
-  InsertDriveFile,
 } from "@mui/icons-material";
+import { FilePreview } from "@/components/widgets/FilePreview";
 import {
   Alert,
   Autocomplete,
@@ -61,24 +61,26 @@ const EditEntryForm = () => {
     queryFn: () => contestControllers.getContestDetails(id),
     enabled: !!id,
   });
-  const template_fields = data?.data?.entryLevelTemplate?.schema?.fields;
-  
   const { data: entryResponse, isPending: isEntryPending } = useQuery({
     queryKey: ["Entry Details", id, entryId],
     queryFn: () => entryControllers.getEntryById(id, entryId),
     enabled: !!id && !!entryId,
   });
   const entryData = entryResponse?.data;
+  
+  const template_fields = entryData?.contest?.entryLevelTemplate?.schema?.fields || entryData?.contest?.entry_level_template?.schema?.fields || data?.data?.entryLevelTemplate?.schema?.fields || data?.data?.entry_level_template?.schema?.fields;
+  
   const initialValues = React.useMemo(() => {
-    return (
-      template_fields?.reduce((acc: any, field: any) => {
-        let storedValue = entryData?.submission?.data?.[field.id] || entryData?.submission?.data?.[field.label] || entryData?.submission?.data?.[field.label?.trim() || ""];
+    const baseValues = template_fields?.reduce((acc: any, field: any) => {
+        const submissionData = entryData?.submission?.data?.data || entryData?.submission?.data || {};
+        
+        let storedValue = submissionData[field.id] || submissionData[field.label] || submissionData[field.label?.trim() || ""];
 
-        if (field.type === FIELDS_TYPE.FILE_UPLOAD && (entryData?.submission?.data?.[`${field.id}_downloadUrl`] || entryData?.submission?.data?.[`${field.label}_downloadUrl`])) {
-          storedValue = entryData.submission.data[`${field.id}_downloadUrl`] || entryData.submission.data[`${field.label}_downloadUrl`];
+        if (field.type === FIELDS_TYPE.FILE_UPLOAD && (submissionData[`${field.id}_downloadUrl`] || submissionData[`${field.label}_downloadUrl`])) {
+          storedValue = submissionData[`${field.id}_downloadUrl`] || submissionData[`${field.label}_downloadUrl`];
         }
 
-        if (storedValue !== undefined) {
+        if (storedValue !== undefined && storedValue !== null) {
           acc[field.id] = storedValue;
           return acc;
         }
@@ -94,9 +96,19 @@ const EditEntryForm = () => {
           acc[field.id] = 0;
         }
         return acc;
-      }, {}) || {}
-    );
+      }, {}) || {};
+
+      const submissionData = entryData?.submission?.data?.data || entryData?.submission?.data || {};
+      Object.keys(submissionData).forEach((key) => {
+        if (key === "status" || key === "isDraft" || key.endsWith("_downloadUrl")) return;
+        const exists = template_fields?.find((f: any) => f.id === key || f.label === key);
+        if (!exists) {
+          baseValues[key] = submissionData[key];
+        }
+      });
+      return baseValues;
   }, [template_fields, entryData]);
+
   const addMemberField = template_fields?.find(
     (f: any) =>
       f.type === FIELDS_TYPE.SELECT &&
@@ -118,6 +130,7 @@ const EditEntryForm = () => {
       let validator: any;
       switch (field.type) {
         case FIELDS_TYPE.TEXTFIELD:
+        case FIELDS_TYPE.TEXTAREA:
         case FIELDS_TYPE.PASSWORD:
         case FIELDS_TYPE.TEL_INPUT:
         case FIELDS_TYPE.SELECT:
@@ -185,12 +198,88 @@ const EditEntryForm = () => {
       }
       schemaFields[field.id] = validator;
     });
+
+    const submissionData = entryData?.submission?.data?.data || entryData?.submission?.data || {};
+    Object.keys(submissionData).forEach((key) => {
+      if (key === "status" || key === "isDraft" || key.endsWith("_downloadUrl")) return;
+      const exists = template_fields?.find((f: any) => f.id === key || f.label === key);
+      if (!exists) {
+        schemaFields[key] = Yup.string(); // Orphaned fields are treated as strings
+      }
+    });
+
     return Yup.object(schemaFields);
-  }, [template_fields, addMemberField]);
+  }, [template_fields, addMemberField, entryData]);
+
+  const getVisibleFields = (values: any) => {
+    const visible: any[] = [];
+    const pages: any[][] = [];
+    let currentChunk: any[] = [];
+    template_fields?.forEach((field: any) => {
+      if (field.type === FIELDS_TYPE.STEP_BREAK && !field.config?.isInline) {
+        if (currentChunk.length > 0) pages.push(currentChunk);
+        currentChunk = [field];
+      } else {
+        currentChunk.push(field);
+      }
+    });
+    if (currentChunk.length > 0) pages.push(currentChunk);
+
+    let currentPageIndex = 0;
+    const visited = new Set<number>();
+
+    while (currentPageIndex < pages.length && !visited.has(currentPageIndex)) {
+      visited.add(currentPageIndex);
+      const pageFields = pages[currentPageIndex];
+      visible.push(...pageFields);
+
+      let targetStepId: string | null = null;
+      let hasBranchingButUnanswered = false;
+
+      for (const field of pageFields) {
+        if (["select", "radio", "autocomplete"].includes(field.type as any) && field.config?.enableBranching) {
+          const val = values[field.id];
+          if (!val) {
+            hasBranchingButUnanswered = true;
+          } else if (field.config.routing?.[val]) {
+            targetStepId = field.config.routing[val];
+          }
+        }
+      }
+
+      if (hasBranchingButUnanswered) break; 
+      if (targetStepId) {
+        const targetIndex = pages.findIndex((p) => p.length > 0 && p[0].type === FIELDS_TYPE.STEP_BREAK && p[0].id === targetStepId);
+        if (targetIndex !== -1) {
+          currentPageIndex = targetIndex;
+          continue;
+        }
+      }
+      currentPageIndex++;
+    }
+    return visible;
+  };
+
   const formik = useFormik({
     initialValues,
-    validationSchema,
     enableReinitialize: true,
+    validate: (values) => {
+      const visible = getVisibleFields(values);
+      const visibleFieldIds = new Set(visible.map(f => f.id));
+      
+      try {
+        validationSchema.validateSync(values, { abortEarly: false });
+        return {};
+      } catch (err: any) {
+        const errors: any = {};
+        err.inner.forEach((error: any) => {
+          if (visibleFieldIds.has(error.path)) {
+            errors[error.path] = error.message;
+          }
+        });
+        return errors;
+      }
+    },
     onSubmit: async (values) => {
       try {
         const formData = new FormData();
@@ -207,16 +296,7 @@ const EditEntryForm = () => {
       }
     },
   });
-  const showMember2 = addMemberField && formik.values[addMemberField.id] === "Yes";
-  React.useEffect(() => {
-    if (!showMember2) {
-      template_fields?.forEach((field: any) => {
-        if (field.label?.toLowerCase().includes("member 2")) {
-          formik.setFieldValue(field.id, "");
-        }
-      });
-    }
-  }, [showMember2, template_fields]);
+
   if (isPending || isEntryPending) {
     return (
       <Box
@@ -245,7 +325,9 @@ const EditEntryForm = () => {
       </Box>
     );
   }
-  let hideMember2 = false;
+
+  const visibleFields = getVisibleFields(formik.values);
+
   return (
     <Box>
       <Breadcrumb
@@ -286,19 +368,17 @@ const EditEntryForm = () => {
         >
           Edit Entry
         </Typography>
-        <form onSubmit={formik.handleSubmit}>
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (!formik.dirty) {
+            showSnackbar("Please make some changes before updating", "warning");
+            return;
+          }
+          formik.handleSubmit(e);
+        }}>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Grid container spacing={4}>
-              {template_fields?.map((val: any) => {
-                if (val.type === FIELDS_TYPE.STEP_BREAK) {
-                  const label = val.label?.toLowerCase() || "";
-                  if (label.includes("second")) {
-                    hideMember2 = !showMember2;
-                  } else if (hideMember2) {
-                    hideMember2 = false;
-                  }
-                }
-                if (hideMember2) return null;
+              {visibleFields?.map((val: any) => {
                 if (val.type === FIELDS_TYPE.STEP_BREAK) {
                   return (
                     <Grid key={val.id} size={{ xs: 12}} >
@@ -308,14 +388,28 @@ const EditEntryForm = () => {
                     </Grid>
                   );
                 }
+                const isFullWidth = val.type === FIELDS_TYPE.TEXTBLOCK || val.type === FIELDS_TYPE.TEXTAREA || val.type === FIELDS_TYPE.SWITCH || val.type === FIELDS_TYPE.CHECKBOX || val.type === FIELDS_TYPE.RADIO;
                 return (
-                  <Grid key={val.id} size={{ xs: 12, md: 6}}>
+                  <Grid key={val.id} size={{ xs: 12, md: isFullWidth ? 12 : 6 }}>
+                    {val.type === FIELDS_TYPE.TEXTBLOCK && (
+                      <Box sx={{ width: "100%", pb: 1 }}>
+                        <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                          {val.label}
+                        </Typography>
+                      </Box>
+                    )}
+
                     {(val.type === FIELDS_TYPE.TEXTFIELD ||
+                      val.type === FIELDS_TYPE.TEXTAREA ||
                       val.type === FIELDS_TYPE.NUMBER_FIELD ||
                       val.type === FIELDS_TYPE.PASSWORD) && (
+                      <Box>
                       <TextField
                         label={val.label}
                         type={ val.type === FIELDS_TYPE.NUMBER_FIELD ? "number" : val.type === FIELDS_TYPE.PASSWORD ? "password" : "text"}
+                        multiline={val.type === FIELDS_TYPE.TEXTAREA}
+                        minRows={val.type === FIELDS_TYPE.TEXTAREA ? 2 : undefined}
+                        maxRows={val.type === FIELDS_TYPE.TEXTAREA ? 6 : undefined}
                         variant={val.variant}
                         placeholder={val.placeholder}
                         fullWidth
@@ -326,6 +420,12 @@ const EditEntryForm = () => {
                         error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
                         helperText={ (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText }
                       />
+                      {val.type === FIELDS_TYPE.TEXTAREA && val.config?.maxWords && (
+                        <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+                          Max words: {val.config.maxWords}
+                        </Typography>
+                      )}
+                      </Box>
                     )}
                     {val.type === FIELDS_TYPE.TEL_INPUT && (
                       <Box>
@@ -394,24 +494,30 @@ const EditEntryForm = () => {
                     )}
                     {(val.type === FIELDS_TYPE.CHECKBOX ||
                       val.type === FIELDS_TYPE.SWITCH) && (
-                      <FormControlLabel
-                        control={
-                          val.type === FIELDS_TYPE.CHECKBOX ? (
-                            <Checkbox
-                              checked={Boolean(formik.values[val.id])}
-                              onChange={formik.handleChange}
-                              name={val.id}
-                            />
-                          ) : (
-                            <Switch
-                              checked={Boolean(formik.values[val.id])}
-                              onChange={formik.handleChange}
-                              name={val.id}
-                            />
-                          )
-                        }
-                        label={val.label}
-                      />
+                      <Box>
+                        <FormControlLabel
+                          sx={val.type === FIELDS_TYPE.SWITCH ? { width: "100%", m: 0, justifyContent: "space-between" } : undefined}
+                          labelPlacement={val.type === FIELDS_TYPE.SWITCH ? "start" : "end"}
+                          control={
+                            val.type === FIELDS_TYPE.CHECKBOX ? (
+                              <Checkbox
+                                name={val.id}
+                                checked={Boolean(formik.values[val.id])}
+                                onChange={formik.handleChange}
+                                onBlur={formik.handleBlur}
+                              />
+                            ) : (
+                              <Switch
+                                name={val.id}
+                                checked={Boolean(formik.values[val.id])}
+                                onChange={formik.handleChange}
+                                onBlur={formik.handleBlur}
+                              />
+                            )
+                          }
+                          label={val.label}
+                        />
+                      </Box>
                     )}
                     {val.type === FIELDS_TYPE.RADIO && (
                       <FormControl>
@@ -456,7 +562,7 @@ const EditEntryForm = () => {
                       </Box>
                     )}
                     {val.type === FIELDS_TYPE.FILE_UPLOAD && (
-                      <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
+                      <Box sx={{ height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
                           {val.label} {val.required && "*"}
                         </Typography>
@@ -464,72 +570,20 @@ const EditEntryForm = () => {
                           {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
                           {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
                         </Typography>
-                        {formik.values[val.id] ? (() => {
-                          const fileValue = formik.values[val.id];
-                          const isFileObj = fileValue instanceof File;
-                          const fileUrl = isFileObj ? URL.createObjectURL(fileValue) : (typeof fileValue === 'string' ? fileValue : '');
-                          const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp|svg)(\?|$)/i.test(url);
-                          const getFileName = (url: string) => {
-                            if (isFileObj) return fileValue.name;
-                            try {
-                              const urlObj = new URL(url);
-                              const segments = urlObj.pathname.split('/');
-                              const decoded = decodeURIComponent(segments.pop() || "");
-                              const parts = decoded.split('-');
-                              return parts.length > 2 ? parts.slice(2).join('-') : decoded;
-                            } catch (e) {
-                              return "Document";
-                            }
-                          };
-
-                          const fileName = getFileName(fileUrl);
-                          const isImg = isFileObj ? fileValue.type.startsWith('image/') : (typeof fileValue === 'string' && isImage(fileValue));
-
-                          return (
-                            <Box sx={{ display: "inline-flex", flexDirection: isImg ? "column" : "row", alignItems: "center", gap: 1.5, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper", mt: 1, position: 'relative' }}>
-                              {isImg ? (
-                                <Box sx={{ borderRadius: 1.5, overflow: "hidden", position: 'relative', width: 150, height: 100, bgcolor: "rgba(0,0,0,0.02)" }}>
-                                  <Image src={fileUrl} alt={fileName} fill style={{ objectFit: "cover" }} sizes="150px" />
-                                </Box>
-                              ) : typeof formik.values[val.id] === 'string' ? (
-                                formik.values[val.id].match(/\.(jpeg|jpg|gif|png|webp)(\?|$)/i) ? (
-                                  <Box sx={{ borderRadius: 1, overflow: "hidden", display: "flex", position: 'relative', width: 150, height: 100 }}>
-                                    <Image src={formik.values[val.id]} alt="File" fill style={{ objectFit: "contain" }} sizes="150px" />
-                                  </Box>
-                                ) : (
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1 }}>
-                                    <Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'rgba(99, 102, 241, 0.1)', borderRadius: 1, color: "primary.main", flexShrink: 0 }}>
-                                      <InsertDriveFile sx={{ fontSize: 24 }} />
-                                    </Box>
-                                    <Box sx={{ flexGrow: 1, minWidth: 0, textAlign: 'left' }}>
-                                      <Typography variant="caption" noWrap sx={{ display: 'block', fontWeight: 600 }}>
-                                        Document File
-                                      </Typography>
-                                      <Typography variant="caption" sx={{ fontWeight: 600, color: "primary.main", textDecoration: "underline", cursor: "pointer" }} onClick={() => window.open(formik.values[val.id], "_blank")}>
-                                        View File
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                )
-                              ) : (
-                                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: 40, height: 40, borderRadius: 1.5, bgcolor: "rgba(99, 102, 241, 0.08)", color: "primary.main" }}>
-                                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                    <path d="M14 2V8H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                </Box>
-                              )}
-                              
-                              <Typography variant="caption" noWrap sx={{ width: 150, textAlign: 'center', fontWeight: 600, color: "text.primary" }}>
-                                {fileName}
-                              </Typography>
-
-                              <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ position: 'absolute', top: -10, right: -10, bgcolor: 'error.main', color: 'white', '&:hover': { bgcolor: 'error.dark' }, p: 0.5, boxShadow: 2, zIndex: 2 }}>
-                                <CloseIcon sx={{ fontSize: "1rem" }} />
-                              </IconButton>
-                            </Box>
-                          );
-                        })() : (
+                        {formik.values[val.id] ? (
+                          <Box sx={{ mt: 2, position: "relative", display: "flex", justifyContent: "center", width: "100%" }}>
+                            {(() => {
+                              const fileVal = formik.values[val.id];
+                              return (
+                                <FilePreview 
+                                  fileVal={fileVal} 
+                                  label={val.label} 
+                                  onClear={() => formik.setFieldValue(val.id, null)} 
+                                />
+                              );
+                            })()}
+                          </Box>
+                        ) : (
                           <Button variant="outlined" component="label" size="small">
                             Upload File
                             <input 
@@ -554,6 +608,88 @@ const EditEntryForm = () => {
                   </Grid>
                 );
               })}
+
+              {/* Render Orphaned Fields */}
+              {(() => {
+                const submissionData = entryData?.submission?.data?.data || entryData?.submission?.data || {};
+                const orphanKeys = Object.keys(submissionData).filter((key) => {
+                  if (key === "status" || key === "isDraft" || key.endsWith("_downloadUrl")) return false;
+                  return !template_fields?.find((f: any) => f.id === key || f.label === key);
+                });
+
+                if (orphanKeys.length === 0) return null;
+
+                return (
+                  <>
+                    <Grid size={{ xs: 12 }}>
+                      <Box sx={{ mt: 2, mb: 1 }}>
+                        <Typography variant="h6" sx={{ fontWeight: 600, color: "warning.main" }}>
+                          Legacy Data Fields
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          These fields were submitted with an older version of the form template and are no longer in the active schema.
+                        </Typography>
+                      </Box>
+                    </Grid>
+                    {orphanKeys.map((key) => {
+                      const isFile = typeof submissionData[key] === 'string' && submissionData[key].startsWith("http");
+                      
+                      if (isFile) {
+                         const fileUrl = submissionData[key];
+                         const isImage = (url: string) => /\.(jpeg|jpg|gif|png|webp|svg)(\?|$)/i.test(url);
+                         return (
+                           <Grid key={key} size={{ xs: 12, md: 6 }}>
+                             <Box sx={{ p: 2, border: "1px dashed", borderColor: "warning.main", borderRadius: "10px", textAlign: "center" }}>
+                               <Typography variant="body2" sx={{ fontWeight: 600, color: "warning.main", mb: 1 }}>
+                                 Legacy File: {key}
+                               </Typography>
+                               <Box sx={{ display: "inline-flex", flexDirection: isImage(fileUrl) ? "column" : "row", alignItems: "center", gap: 1.5, p: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "10px", bgcolor: "background.paper", position: 'relative' }}>
+                                 {isImage(fileUrl) ? (
+                                   <Box sx={{ borderRadius: 1.5, overflow: "hidden", position: 'relative', width: 150, height: 100, bgcolor: "rgba(0,0,0,0.02)" }}>
+                                     <Image src={fileUrl} alt={key} fill style={{ objectFit: "cover" }} sizes="150px" />
+                                   </Box>
+                                 ) : (
+                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 2, py: 1 }}>
+                                     <Typography variant="caption" sx={{ fontWeight: 600, color: "primary.main", textDecoration: "underline", cursor: "pointer" }} onClick={() => window.open(fileUrl, "_blank")}>
+                                       View Legacy File
+                                     </Typography>
+                                   </Box>
+                                 )}
+                                 <Typography variant="caption" noWrap sx={{ width: 150, textAlign: 'center', fontWeight: 600, color: "text.primary" }}>
+                                   {key}
+                                 </Typography>
+                               </Box>
+                             </Box>
+                           </Grid>
+                         );
+                      }
+
+                      return (
+                        <Grid key={key} size={{ xs: 12, md: 6 }}>
+                          <TextField
+                            label={`Legacy Field: ${key}`}
+                            variant="outlined"
+                            fullWidth
+                            name={key}
+                            value={formik.values[key] || ""}
+                            onChange={formik.handleChange}
+                            onBlur={formik.handleBlur}
+                            error={ formik.touched[key] && Boolean(formik.errors[key]) }
+                            helperText={ formik.touched[key] && (formik.errors[key] as string) }
+                            sx={{
+                              "& .MuiOutlinedInput-root": {
+                                "& fieldset": { borderColor: "warning.main" },
+                                "&:hover fieldset": { borderColor: "warning.dark" },
+                                "&.Mui-focused fieldset": { borderColor: "warning.main" },
+                              }
+                            }}
+                          />
+                        </Grid>
+                      );
+                    })}
+                  </>
+                );
+              })()}
             </Grid>
           </LocalizationProvider>
           <Box

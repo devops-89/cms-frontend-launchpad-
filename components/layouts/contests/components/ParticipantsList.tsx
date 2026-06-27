@@ -8,6 +8,8 @@ import {
   Delete,
   Edit,
   MoreVert as MoreIcon,
+  Close as CloseIcon,
+  Visibility as VisibilityIcon
 } from "@mui/icons-material";
 import {
   Box,
@@ -30,7 +32,10 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  Typography
+  Typography,
+  Avatar,
+  Grid,
+  Chip
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "@/context/SnackbarContext";
@@ -47,7 +52,6 @@ const ParticipantsList = () => {
   const { showSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
 
-  const [isDense, setIsDense] = useState(false);
   const [columnAnchorEl, setColumnAnchorEl] = useState<null | HTMLElement>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -58,6 +62,7 @@ const ParticipantsList = () => {
     onSuccess: () => {
       showSnackbar("Participant deleted successfully", "success");
       queryClient.invalidateQueries({ queryKey: ["contest-details", id] });
+      queryClient.invalidateQueries({ queryKey: ["participants", id] });
       setDeleteDialogOpen(false);
       setParticipantToDelete(null);
     },
@@ -98,28 +103,57 @@ const ParticipantsList = () => {
     }
   }, [participants]);
 
+  // Fallback: If backend returns all participants instead of paginating, we slice it on the frontend.
+  const displayedParticipants = participants.length > rowsPerPage 
+    ? participants.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+    : participants;
+
   const dynamicColumns = useMemo(() => {
-    const cols: { id: string; label: string }[] = [];
+    const thumbnailCols: { id: string; label: string }[] = [];
     let nameAdded = false;
+    const otherCols: { id: string; label: string }[] = [];
 
     fields.forEach((field: ContestTemplateField) => {
       const label = field.label?.toLowerCase() || "";
+      
+      // Skip password fields, radio fields, checkboxes, and dob fields
+      if (
+        label.includes("password") || 
+        field.type === "password" || 
+        field.type === "radio" || 
+        field.type === "checkbox" || 
+        field.type === "boolean" || 
+        label === "dob" || 
+        label.includes("date of birth") || 
+        label.includes("birth") ||
+        label.includes("resident") ||
+        label.includes("phone") ||
+        label.includes("mobile") ||
+        label.includes("contact")
+      ) {
+        return;
+      }
+
+      const isFileField = field.type === "file_upload" || field.type === "image" || field.type === "file" || label.includes("avatar") || label.includes("thumbnail") || label.includes("image");
+      if (isFileField) {
+        thumbnailCols.push({ id: field.id, label: "Thumbnail" });
+        return;
+      }
+
       const isNameField = label.includes("first name") || label.includes("last name") || label === "first" || label === "last" || label.includes("name");
       
       if (isNameField) {
         if (!nameAdded) {
-          cols.push({ id: "composite_name", label: "Name" });
           nameAdded = true;
         }
       } else {
-        cols.push({ id: field.id, label: field.label });
+        otherCols.push({ id: field.id, label: field.label });
       }
     });
 
-    // If no name field was found, add it as the first column anyway
-    if (!nameAdded) {
-      cols.unshift({ id: "composite_name", label: "Name" });
-    }
+    const cols = [...thumbnailCols];
+    cols.push({ id: "composite_name", label: "Name" });
+    cols.push(...otherCols);
 
     return cols;
   }, [fields]);
@@ -199,7 +233,7 @@ const ParticipantsList = () => {
       </Menu>
 
       <Paper sx={{ border: `1px solid ${colors.BORDER}`, borderRadius: 2, overflowX: "auto" }} elevation={0}>
-        <Table sx={{ mt: 0, minWidth: 800 }} size={isDense ? "small" : "medium"}>
+        <Table sx={{ mt: 0, minWidth: 800 }} size="small">
           <TableHead>
             <TableRow sx={{ bgcolor: "rgba(0,0,0,0.01)" }}>
               {visibleHeaders.map((h) => (
@@ -212,12 +246,12 @@ const ParticipantsList = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {participants.map((participant: ContestParticipant) => (
+            {displayedParticipants.map((participant: ContestParticipant) => (
               <TableRow
                 key={participant.id}
                 sx={{
                   "&:hover": { bgcolor: "rgba(0,0,0,0.01)" },
-                  "& .MuiTableCell-root": { borderBottom: `1px solid ${colors.BORDER}`, py: isDense ? 1 : 2 },
+                  "& .MuiTableCell-root": { borderBottom: `1px solid ${colors.BORDER}`, py: 1 },
                 }}
               >
                 {dynamicColumns
@@ -249,8 +283,12 @@ const ParticipantsList = () => {
                         displayValue = `${firstName || ""} ${lastName || ""}`.trim();
                       } else if (fullName) {
                         displayValue = fullName;
-                      } else if (participant.submission?.data?.yg9snrxlh) {
-                        displayValue = participant.submission.data.yg9snrxlh;
+                      } else if (formData.yg9snrxlh) {
+                        displayValue = formData.yg9snrxlh;
+                      } else if (formData.an7ffo0mu) {
+                        displayValue = formData.an7ffo0mu;
+                      } else if (formData.qlon5xekd) {
+                        displayValue = formData.qlon5xekd;
                       } else {
                         // Fallback: try to find ANY field that has "name" in it
                         const fallbackNameField = fields.find((f: ContestTemplateField) => f.label?.toLowerCase().includes("name"));
@@ -262,11 +300,58 @@ const ParticipantsList = () => {
                       const field = fields.find((f: ContestTemplateField) => f.id === col.id);
                       const rawData = participant.submission?.data;
                       const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
-                      const rawValue = formData[col.label] || formData[col.id];
+                      let rawValue = formData[col.label] || formData[col.id];
+                      
+                      if (!rawValue && field) {
+                         const labelLower = field.label?.toLowerCase() || col.label?.toLowerCase() || "";
+                         if (labelLower.includes("email")) {
+                           rawValue = formData.ppdwdyx34 || formData.waqb6gjzw;
+                         } else if (labelLower.includes("phone") || labelLower.includes("mobile")) {
+                           rawValue = formData.h7695htwx;
+                         } else if (labelLower.includes("school") || labelLower.includes("college") || labelLower.includes("institution")) {
+                           rawValue = formData['3swf0lufu'];
+                         } else if (labelLower.includes("grade") || labelLower.includes("year")) {
+                           rawValue = formData.wq5kjwwmo;
+                         } else if (labelLower.includes("country")) {
+                           rawValue = formData.gjbq1pwch;
+                         }
+                      }
+
                       displayValue = rawValue || "—";
 
                       if (field?.type === "datePicker" && rawValue) {
                         displayValue = moment(rawValue).format("MMM DD, YYYY");
+                      }
+                      
+                      const isFileField = field?.type === "file_upload" || field?.type === "image" || field?.type === "file" || col.label?.toLowerCase().includes("avatar") || col.label?.toLowerCase().includes("thumbnail") || col.label?.toLowerCase().includes("image");
+                      
+                      if (isFileField) {
+                         let downloadUrl = "";
+                         const isImageUrl = (url: string) => typeof url === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/i.test(url.split('?')[0]);
+                         
+                         const possibleUrl = formData[`${col.id}_downloadUrl`] || formData[`${col.label}_downloadUrl`] || rawValue;
+                         if (possibleUrl && isImageUrl(possibleUrl)) {
+                           downloadUrl = possibleUrl;
+                         }
+                         if (!downloadUrl) {
+                           const downloadUrlKey = Object.keys(formData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(formData[key]));
+                           if (downloadUrlKey) downloadUrl = formData[downloadUrlKey];
+                         }
+
+                         return (
+                           <TableCell key={col.id}>
+                             {downloadUrl ? (
+                               <Box sx={{ width: 40, height: 40, borderRadius: 1.5, overflow: 'hidden', border: `1px solid ${colors.BORDER}` }}>
+                                 <img src={downloadUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                               </Box>
+                             ) : (
+                               <Avatar 
+                                  variant="rounded" 
+                                  sx={{ width: 40, height: 40, border: `1px solid ${colors.BORDER}` }} 
+                               />
+                             )}
+                           </TableCell>
+                         );
                       }
                     }
 
@@ -283,8 +368,21 @@ const ParticipantsList = () => {
                     {(() => {
                       const rawData = participant.submission?.data;
                       const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
-                      const displayStatus = formData.status || participant.status || "Unknown";
-                      const isPending = displayStatus.toLowerCase() === "pending";
+                      let displayStatus = participant.status || formData.status || "Unknown";
+                      if (displayStatus.toLowerCase() === "approved") {
+                        displayStatus = "Active";
+                      }
+                      
+                      const getStatusColor = (status: string) => {
+                        const lower = status.toLowerCase();
+                        if (lower === "draft") return { bg: "#f1f5f9", color: "#475569" };
+                        if (lower === "pending") return { bg: "#fef3c7", color: "#b45309" };
+                        if (lower === "active" || lower === "approved") return { bg: "#dcfce7", color: "#166534" };
+                        if (lower === "banned" || lower === "rejected") return { bg: "#fee2e2", color: "#b91c1c" };
+                        return { bg: "#f3f4f6", color: "#374151" };
+                      };
+                      
+                      const statusColors = getStatusColor(displayStatus);
                       
                       return (
                         <Typography
@@ -296,8 +394,8 @@ const ParticipantsList = () => {
                             px: 1,
                             py: 0.5,
                             borderRadius: "6px",
-                            bgcolor: isPending ? "#fef3c7" : "#dcfce7",
-                            color: isPending ? "#92400e" : "#166534",
+                            bgcolor: statusColors.bg,
+                            color: statusColors.color,
                             width: "fit-content",
                           }}
                         >
@@ -320,6 +418,13 @@ const ParticipantsList = () => {
                       <IconButton
                         size="small"
                         sx={{ color: colors.TEXT_SECONDARY }}
+                        onClick={() => router.push(`/contest-management/contests/${contest?.id}/view-user?participantId=${participant.id}`)}
+                      >
+                        <VisibilityIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        sx={{ color: colors.TEXT_SECONDARY }}
                         onClick={() => router.push(`/contest-management/contests/${contest?.id}/edit-user?participantId=${participant.id}`)}
                       >
                         <Edit fontSize="small" />
@@ -328,6 +433,10 @@ const ParticipantsList = () => {
                         size="small" 
                         sx={{ color: colors.TEXT_SECONDARY }}
                         onClick={() => {
+                          if (participant.entries && participant.entries.length > 0) {
+                            showSnackbar("This participant has active entries. Please delete their entries first.", "error");
+                            return;
+                          }
                           setParticipantToDelete(participant);
                           setDeleteDialogOpen(true);
                         }}
@@ -339,7 +448,7 @@ const ParticipantsList = () => {
                 )}
               </TableRow>
             ))}
-            {participants.length === 0 && (
+            {displayedParticipants.length === 0 && (
               <TableRow>
                 <TableCell colSpan={visibleHeaders.length} align="center" sx={{ py: 4 }}>
                   <Typography variant="body2" color="text.secondary">
@@ -363,13 +472,6 @@ const ParticipantsList = () => {
           setPage(0);
         }}
       />
-
-      <Box sx={{ mt: 2, px: 1 }}>
-        <FormControlLabel
-          control={<Switch checked={isDense} onChange={(e) => setIsDense(e.target.checked)} size="small" />}
-          label={<Typography variant="body2">Dense View</Typography>}
-        />
-      </Box>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

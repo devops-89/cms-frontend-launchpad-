@@ -29,6 +29,7 @@ import {
   Tabs,
   TextField,
   Typography,
+  TablePagination,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import React, { useMemo, useState } from "react";
@@ -39,16 +40,39 @@ import JudgesTableRow from "./components/JudgesTableRow";
 const JudgesList: React.FC = () => {
   const { colors } = useAppTheme();
 
+  const { showModal, hideModal } = useModal();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+  const [statusTab, setStatusTab] = useState(UserStatus.ALL);
+  const [selectedJudges, setSelectedJudges] = useState<string[]>([]);
+  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+  const [columnsMenuAnchorEl, setColumnsMenuAnchorEl] =
+    useState<null | HTMLElement>(null);
+
+  const [visibleHeaders, setVisibleHeaders] =
+    useState<string[]>(JUDGES_TABLE_HEADER);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
   const { data, isPending, error } = useQuery({
-  queryKey: ["judge-list"],
-  queryFn: () =>
-    UserController.getAllJudges(),
-  enabled: true,
-});
+    queryKey: ["judge-list", debouncedSearchTerm],
+    queryFn: () => UserController.getAllJudges(debouncedSearchTerm),
+    enabled: true,
+  });
 
   const apiJudges = useMemo(() => {
-    const users = data?.data?.data?.users || [];
-    return users.map((u: any) => ({
+    const users = data?.data?.data?.users || data?.data?.data || [];
+    const list = Array.isArray(users) ? users : [];
+    return list.map((u: any) => ({
       id: u.id,
       name: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
       email: u.email,
@@ -63,18 +87,9 @@ const JudgesList: React.FC = () => {
     }));
   }, [data]);
 
-  const { showModal, hideModal } = useModal();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusTab, setStatusTab] = useState(UserStatus.ALL);
-  const [isDense, setIsDense] = useState(false);
-  const [selectedJudges, setSelectedJudges] = useState<string[]>([]);
-  const [headerMenuAnchorEl, setHeaderMenuAnchorEl] =
-    useState<null | HTMLElement>(null);
-  const [columnsMenuAnchorEl, setColumnsMenuAnchorEl] =
-    useState<null | HTMLElement>(null);
-
-  const [visibleHeaders, setVisibleHeaders] =
-    useState<string[]>(JUDGES_TABLE_HEADER);
+  React.useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm, statusTab]);
 
   const counts = useMemo(() => {
     const countsMap: Record<string, number> = { All: apiJudges.length };
@@ -88,15 +103,16 @@ const JudgesList: React.FC = () => {
 
   const filteredJudges = useMemo(() => {
     return apiJudges.filter((j: any) => {
-      const matchesSearch =
-        j.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        j.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        j.expertise.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus =
         statusTab === UserStatus.ALL || j.status === statusTab;
-      return matchesSearch && matchesStatus;
+      return matchesStatus;
     });
-  }, [apiJudges, searchTerm, statusTab]);
+  }, [apiJudges, statusTab]);
+
+  const paginatedJudges = useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredJudges.slice(start, start + rowsPerPage);
+  }, [filteredJudges, page, rowsPerPage]);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -345,7 +361,7 @@ const JudgesList: React.FC = () => {
         }}
       >
         <TableContainer sx={{ overflowX: "auto" }}>
-          <Table size={isDense ? "small" : "medium"} sx={{ minWidth: 800 }}>
+          <Table size="small" sx={{ minWidth: 800 }}>
             <JudgesTableHeader
               colors={colors}
               selectedCount={selectedJudges.length}
@@ -354,13 +370,13 @@ const JudgesList: React.FC = () => {
               visibleHeaders={visibleHeaders}
             />
             <TableBody>
-              {filteredJudges.length > 0 ? (
-                filteredJudges.map((judge: any) => (
+              {paginatedJudges.length > 0 ? (
+                paginatedJudges.map((judge: any) => (
                   <JudgesTableRow
                     key={judge.id}
                     judge={judge}
                     colors={colors}
-                    dense={isDense}
+                    dense={true}
                     selected={selectedJudges.includes(judge.id)}
                     onSelect={() => handleSelectJudge(judge.id)}
                     visibleHeaders={visibleHeaders}
@@ -378,7 +394,9 @@ const JudgesList: React.FC = () => {
                     >
                       {isPending
                         ? "Loading judges..."
-                        : `No judges found matching "${searchTerm}"`}
+                        : searchTerm
+                        ? `No judges found matching "${searchTerm}"`
+                        : `No judges found${statusTab !== UserStatus.ALL ? ` for status "${statusTab}"` : ""}.`}
                     </Typography>
                   </TableCell>
                 </TableRow>
@@ -387,29 +405,27 @@ const JudgesList: React.FC = () => {
           </Table>
         </TableContainer>
 
+        <TablePagination
+          component="div"
+          count={filteredJudges.length}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+        />
+
         <Box
           sx={{
-            p: 2,
+            p: 1,
             borderTop: `1px solid ${colors.BORDER}`,
             display: "flex",
-            justifyContent: "space-between",
+            justifyContent: "flex-end",
             alignItems: "center",
           }}
         >
-          <FormControlLabel
-            control={
-              <Switch
-                checked={isDense}
-                onChange={(e) => setIsDense(e.target.checked)}
-                size="small"
-              />
-            }
-            label={
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                Dense
-              </Typography>
-            }
-          />
         </Box>
       </Paper>
     </Box>

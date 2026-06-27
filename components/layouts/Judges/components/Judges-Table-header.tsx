@@ -48,16 +48,16 @@ const JudgesTableHeader: React.FC<JudgesTableHeaderProps> = ({
               whiteSpace: "nowrap",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: i === visibleHeaders.length - 1 ? "flex-end" : "flex-start",
+                gap: 0.5,
+                pl: h === "Name" ? "52px" : 0,
+              }}
+            >
               {h}
-              {h === "Name" && (
-                <Typography
-                  variant="caption"
-                  sx={{ color: colors.TEXT_SECONDARY, fontSize: 16 }}
-                >
-                  ↑
-                </Typography>
-              )}
             </Box>
           </TableCell>
         ))}

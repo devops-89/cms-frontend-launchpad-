@@ -12,6 +12,7 @@ import {
   Checkbox,
   CircularProgress,
   FormControl,
+  InputLabel,
   IconButton,
   ListItemText,
   Menu,
@@ -29,10 +30,17 @@ import {
   TextField,
   TablePagination,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Button,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import moment from "moment";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const getStatusStyles = (status: string) => {
   switch (status) {
@@ -50,18 +58,33 @@ const getStatusStyles = (status: string) => {
   }
 };
 
-const StatusDropdown = ({ user }: { user: USER_DATA }) => {
+const StatusDropdown = ({ user }: { user: any }) => {
   const queryClient = useQueryClient();
-  const [currentStatus, setCurrentStatus] = useState<string>(user.status || "Pending");
+  
+  const getStatus = () => {
+    let st = user.status || "Pending";
+    if (user.participants && user.participants.length > 0) {
+      // Prioritize active/approved status if any, otherwise first
+      const active = user.participants.find((p: any) => p.status !== "Banned" && p.status !== "banned" && p.status !== "rejected" && p.status !== "Rejected");
+      st = active ? active.status : user.participants[0].status;
+    }
+    if (st?.toLowerCase() === "approved") return "Active";
+    return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
+  };
+
+  const [currentStatus, setCurrentStatus] = useState<string>(getStatus());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [selectedContestId, setSelectedContestId] = useState<string>("");
 
   React.useEffect(() => {
-    setCurrentStatus(user.status || "Pending");
-  }, [user.status]);
+    setCurrentStatus(getStatus());
+  }, [user.participants, user.status]);
 
   const mutation = useMutation({
-    mutationFn: (newStatus: string) => UserController.updateUserStatus(user.id, newStatus),
-    onSuccess: (_, newStatus) => {
-      setCurrentStatus(newStatus);
+    mutationFn: ({ newStatus, contestId }: { newStatus: string, contestId?: string }) => 
+      UserController.updateUserStatus(user.id, newStatus.toLowerCase(), contestId),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user-list"] });
     },
     onError: () => {
@@ -70,63 +93,163 @@ const StatusDropdown = ({ user }: { user: USER_DATA }) => {
   });
 
   const handleStatusChange = (e: any) => {
-    mutation.mutate(e.target.value);
+    const newStatus = e.target.value;
+    // Always open popup if Banned is selected so they can choose a contest
+    if (newStatus === "Banned" || newStatus !== currentStatus) {
+      setPendingStatus(newStatus);
+      if (newStatus === "Banned" && activeContests.length === 1) {
+        setSelectedContestId(activeContests[0].contest?.id);
+      } else {
+        setSelectedContestId("");
+      }
+      setConfirmOpen(true);
+    }
+  };
+
+  const confirmChange = () => {
+    if (pendingStatus) {
+      mutation.mutate({ newStatus: pendingStatus, contestId: selectedContestId || undefined });
+    }
+    setConfirmOpen(false);
+  };
+
+  const cancelChange = () => {
+    setPendingStatus(null);
+    setConfirmOpen(false);
   };
 
   const statusStyle = getStatusStyles(currentStatus);
+  const activeContests = (user.participants || []).filter((p: any) => p.status !== "Banned" && p.status !== "banned");
 
-  return (
-    <FormControl variant="standard" fullWidth>
-      <Select
-        value={currentStatus}
-        onChange={handleStatusChange}
-        disableUnderline
-        disabled={mutation.isPending}
-        IconComponent={
-          mutation.isPending
-            ? () => <CircularProgress size={14} sx={{ mr: 1, ml: 0.5, color: statusStyle.color }} />
-            : undefined
-        }
+  if (currentStatus === "Banned") {
+    return (
+      <Box
         sx={{
           fontSize: "0.75rem",
           fontWeight: 700,
           width: "fit-content",
-          "& .MuiSelect-select": {
-            py: 0.5,
-            px: 1,
-            borderRadius: "6px",
-            bgcolor: statusStyle.bgcolor,
-            color: statusStyle.color,
-            display: "flex",
-            alignItems: "center",
-          },
-          "& .MuiSvgIcon-root": {
-            color: statusStyle.color,
-          },
+          py: 0.5,
+          px: 1,
+          borderRadius: "6px",
+          bgcolor: statusStyle.bgcolor,
+          color: statusStyle.color,
+          display: "flex",
+          alignItems: "center",
         }}
       >
-        {Object.values(UserStatus)
-          .filter((s) => s !== UserStatus.ALL)
-          .map((status) => (
-            <MenuItem key={status} value={status} sx={{ fontSize: "0.85rem" }}>
-              {status}
-            </MenuItem>
-          ))}
-      </Select>
-    </FormControl>
+        Banned
+      </Box>
+    );
+  }
+
+  return (
+    <>
+      <FormControl variant="standard" fullWidth>
+        <Select
+          value={currentStatus}
+          onChange={handleStatusChange}
+          disableUnderline
+          disabled={mutation.isPending}
+          IconComponent={
+            mutation.isPending
+              ? () => <CircularProgress size={14} sx={{ mr: 1, ml: 0.5, color: statusStyle.color }} />
+              : undefined
+          }
+          sx={{
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            width: "fit-content",
+            "& .MuiSelect-select": {
+              py: 0.5,
+              px: 1,
+              borderRadius: "6px",
+              bgcolor: statusStyle.bgcolor,
+              color: statusStyle.color,
+              display: "flex",
+              alignItems: "center",
+            },
+            "& .MuiSvgIcon-root": {
+              color: statusStyle.color,
+            },
+          }}
+        >
+          {Object.values(UserStatus)
+            .filter((s) => s === "Banned" || s === currentStatus)
+            .map((status) => {
+              return (
+                <MenuItem key={status} value={status} sx={{ fontSize: "0.85rem" }}>
+                  {status}
+                </MenuItem>
+              );
+            })}
+        </Select>
+      </FormControl>
+
+      <Dialog open={confirmOpen} onClose={cancelChange} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Status Change</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Do you want to change the status to <strong>{pendingStatus}</strong>?
+          </DialogContentText>
+          {pendingStatus === "Banned" && activeContests.length > 1 && (
+            <FormControl fullWidth sx={{ mt: 1 }} size="small">
+              <InputLabel id="select-contest-label">Select Contest</InputLabel>
+              <Select
+                labelId="select-contest-label"
+                value={selectedContestId}
+                label="Select Contest"
+                onChange={(e) => setSelectedContestId(e.target.value)}
+              >
+                {activeContests.map((p: any) => (
+                  <MenuItem key={p.contest?.id} value={p.contest?.id}>
+                    {p.contest?.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelChange} color="inherit">Cancel</Button>
+          <Button 
+            onClick={confirmChange} 
+            color="primary" 
+            variant="contained"
+            disabled={pendingStatus === "Banned" && activeContests.length > 1 && !selectedContestId}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 
 const UserTable: React.FC = () => {
   const { colors } = useAppTheme();
+  const router = useRouter();
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const [statusTab, setStatusTab] = useState("All");
+  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
+
+  React.useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  React.useEffect(() => {
+    setPage(0);
+  }, [debouncedSearchTerm, statusTab]);
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["user-list", page, rowsPerPage],
-    queryFn: () => UserController.getAllUser(UserRole.PARTICIPANT, page + 1, rowsPerPage),
+    queryKey: ["user-list", page, rowsPerPage, debouncedSearchTerm],
+    queryFn: () => UserController.getAllUser(UserRole.PARTICIPANT, page + 1, rowsPerPage, debouncedSearchTerm),
     enabled: true,
   });
 
@@ -136,8 +259,16 @@ const UserTable: React.FC = () => {
   // Filter users on the frontend
   const filteredUsers = React.useMemo(() => {
     const users = user_data?.users || [];
-    if (statusTab === "All") return users;
-    return users.filter((u: any) => u.status === statusTab);
+    if (statusTab === "All" || statusTab === "all") return users;
+    return users.filter((u: any) => {
+      let st = u.status;
+      if (u.participants && u.participants.length > 0) {
+        const active = u.participants.find((p: any) => p.status !== "Banned" && p.status !== "banned" && p.status !== "rejected" && p.status !== "Rejected");
+        st = active ? active.status : u.participants[0].status;
+      }
+      if (st?.toLowerCase() === "approved") st = "Active";
+      return st?.toLowerCase() === statusTab.toLowerCase();
+    });
   }, [user_data, statusTab]);
 
   const ALL_COLUMNS = [
@@ -151,28 +282,35 @@ const UserTable: React.FC = () => {
     },
     {
       header: "Phone number",
-      getValue: (val: USER_DATA) => val.phone,
+      getValue: (val: any) => val.participant_profile_data?.h7695htwx || val.phone,
     },
     {
       header: "Grade",
-      getValue: (val: USER_DATA) => val.participantProfile?.grade,
+      getValue: (val: any) => val.participant_profile_data?.wq5kjwwmo || val.participantProfile?.grade,
     },
     {
       header: "Date of birth",
-      getValue: (val: USER_DATA) => val.participantProfile?.dateOfBirth ? moment(val.participantProfile.dateOfBirth).format("YYYY-MM-DD") : null,
+      getValue: (val: any) => {
+        const dob = val.participant_profile_data?.byf50cwek || val.participantProfile?.dateOfBirth;
+        return dob ? moment(dob).format("YYYY-MM-DD") : null;
+      },
     },
     {
       header: "Status",
-      getValue: (val: USER_DATA) => val.status,
-      render: (val: USER_DATA) => <StatusDropdown user={val} />,
+      getValue: (val: any) => {
+        let st = val.participants?.[0]?.status || val.status;
+        if (st?.toLowerCase() === "approved") return "Active";
+        return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "—";
+      },
+      render: (val: any) => <StatusDropdown user={val} />,
     },
     {
       header: "School Name",
-      getValue: (val: USER_DATA) => val.participantProfile?.schoolName,
+      getValue: (val: any) => val.participant_profile_data?.["3swf0lufu"] || val.participantProfile?.schoolName,
     },
     {
       header: "Country Of Residence",
-      getValue: (val: any) => val.country?.name || val.participantProfile?.country,
+      getValue: (val: any) => val.participant_profile_data?.gjbq1pwch || val.country?.name || val.participantProfile?.country,
     },
     {
       header: "Joined At",
@@ -180,7 +318,16 @@ const UserTable: React.FC = () => {
     },
     {
       header: "Contest",
-      getValue: (val: any) => val.participants?.[0]?.contest?.name || val.contestName || val.contest?.name,
+      getValue: (val: any) => {
+        const activeP = (val.participants || []).filter((p: any) => p.status !== "Banned" && p.status !== "banned");
+        if (activeP.length > 0) {
+          return activeP.map((p: any) => p.contest?.name).join(", ");
+        }
+        if (val.participants && val.participants.length > 0) {
+          return val.participants.map((p: any) => p.contest?.name).join(", ");
+        }
+        return val.contestName || val.contest?.name || "—";
+      },
     },
   ];
 
@@ -217,6 +364,7 @@ const UserTable: React.FC = () => {
   const handleToggleHeader = (header: string) => {
     setVisibleHeaders((prev) => {
       if (prev.includes(header)) {
+        if (prev.length === 1) return prev; // Prevent deselecting last column
         return prev.filter((h) => h !== header);
       } else {
         const next = [...prev, header];
@@ -299,7 +447,12 @@ const UserTable: React.FC = () => {
           spacing={3}
           sx={{ mt: 3, px: 2 }}
         >
-          <TextField placeholder="Search" fullWidth />
+          <TextField 
+            placeholder="Search" 
+            fullWidth 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           <IconButton onClick={handleClick}>
             <MoreVert />
           </IconButton>
@@ -314,7 +467,7 @@ const UserTable: React.FC = () => {
         </Stack>
 
         <TableContainer sx={{ mt: 3, overflowX: "auto" }}>
-          <Table sx={{ minWidth: 1000 }}>
+          <Table sx={{ minWidth: 1000 }} size="small">
             <TableHead>
               <TableRow>
                 {visibleHeaders.map((val, i) => (
@@ -325,17 +478,43 @@ const UserTable: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredUsers.map((val: any) => (
-                <TableRow key={val.id}>
-                  {activeColumns
-                    .filter((col) => visibleHeaders.includes(col.header))
-                    .map((col, idx) => (
-                      <TableCell key={idx} sx={{ whiteSpace: "nowrap" }}>
-                        {col.render ? col.render(val) : col.getValue(val) || "—"}
-                      </TableCell>
-                    ))}
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((val: any) => (
+                  <TableRow 
+                    key={val.id}
+                    hover
+                    onClick={() => router.push(`/user-management/users/${val.id}`)}
+                    sx={{ cursor: "pointer" }}
+                  >
+                    {activeColumns
+                      .filter((col) => visibleHeaders.includes(col.header))
+                      .map((col, idx) => (
+                        <TableCell 
+                          key={idx} 
+                          sx={{ whiteSpace: "nowrap" }}
+                          onClick={(e) => {
+                            // Prevent navigation if clicking on the Status Dropdown
+                            if (col.header === "Status") {
+                              e.stopPropagation();
+                            }
+                          }}
+                        >
+                          {col.render ? col.render(val) : col.getValue(val) || "—"}
+                        </TableCell>
+                      ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={visibleHeaders.length} sx={{ py: 10, textAlign: "center" }}>
+                    <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY }}>
+                      {isPending
+                        ? "Loading users..."
+                        : `No users found${statusTab !== "All" && statusTab !== "all" ? ` for status "${statusTab}"` : ""}.`}
+                    </Typography>
+                  </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </TableContainer>

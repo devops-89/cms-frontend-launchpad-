@@ -2,8 +2,9 @@
 
 import JudgePanelLayout from "@/components/layouts/JudgePanel";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
-import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, IconButton, Menu, MenuItem, Chip, TablePagination } from "@mui/material";
+import { Typography, Box, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Button, CircularProgress, IconButton, Menu, MenuItem, Chip, TablePagination, Avatar } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { EmojiEvents } from "@mui/icons-material";
 import { useAppTheme } from "@/context/ThemeContext";
 import { roboto } from "@/utils/fonts";
 import React, { useEffect, useState } from "react";
@@ -67,7 +68,12 @@ export default function JudgeEntriesPage() {
       setIsLoading(true);
       try {
         const result = await judgeControllers.getAssignedEntries(page + 1, rowsPerPage);
-        setEntries(result.data?.docs || result.data?.data || []);
+        const allEntries = result.data?.docs || result.data?.data || [];
+        const filtered = allEntries.filter((e: any) => {
+          const displayStatus = e.entry?.status?.toLowerCase() || e.status?.toLowerCase();
+          return ['approved', 'evaluated', 'semifinal', 'final', 'winner'].includes(displayStatus) || (e.score !== undefined && e.score !== null && e.score > 0) || (e.entry?.score !== undefined && e.entry?.score !== null && e.entry?.score > 0);
+        });
+        setEntries(filtered);
         setTotal(result.data?.totalDocs || result.data?.total || result.data?.meta?.total || 0);
       } catch (err) {
         console.error("Failed to fetch entries", err);
@@ -101,6 +107,7 @@ export default function JudgeEntriesPage() {
             <Table>
               <TableHead sx={{ backgroundColor: "rgba(0, 0, 0, 0.02)" }}>
                 <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>Thumbnail</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Contest</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
@@ -113,36 +120,93 @@ export default function JudgeEntriesPage() {
               <TableBody>
                 {entries.map((entry) => (
                   <TableRow key={entry.id} hover>
+                  <TableCell>
+                      {(() => {
+                        const submissionData = entry.entry?.submission?.data || {};
+                        const sData = submissionData?.data ? submissionData.data : submissionData;
+                        const entryFields = entry.contest?.entry_level_template?.schema?.fields || entry.contest?.entryLevelTemplate?.schema?.fields || [];
+                        
+                        let thumbnailField = entryFields.find((f: any) => f.label?.toLowerCase().includes("thumbnail"));
+                        let thumbnailUrl = "";
+                        
+                        const isImageUrl = (url: string) => typeof url === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/i.test(url.split('?')[0]);
+
+                        if (thumbnailField) {
+                          const candidate = sData[`${thumbnailField.id}_downloadUrl`] || sData[`${thumbnailField.label}_downloadUrl`] || sData[thumbnailField.id] || sData[thumbnailField.label];
+                          if (candidate && isImageUrl(candidate)) thumbnailUrl = candidate;
+                        }
+                        
+                        if (!thumbnailUrl) {
+                          const downloadUrlKey = Object.keys(sData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(sData[key]));
+                          thumbnailUrl = downloadUrlKey ? sData[downloadUrlKey] : "";
+                        }
+                        
+                        if (!thumbnailUrl) {
+                          const imageUrlKey = Object.keys(sData).find((key) => {
+                            if (key === "status" || key.endsWith("_downloadUrl")) return false;
+                            const val = sData[key];
+                            return isImageUrl(val);
+                          });
+                          if (imageUrlKey) thumbnailUrl = sData[imageUrlKey];
+                        }
+                        
+                        if (thumbnailUrl) {
+                          return (
+                            <Box sx={{ width: 48, height: 48, borderRadius: 2, overflow: 'hidden', border: '1px solid rgba(0,0,0,0.1)' }}>
+                              <img src={thumbnailUrl} alt="Thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </Box>
+                          );
+                        }
+
+                        return (
+                          <Avatar
+                            variant="rounded"
+                            sx={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 2,
+                              background: `linear-gradient(135deg, ${colors.PRIMARY} 0%, ${colors.SECONDARY} 100%)`,
+                              boxShadow: "0 4px 12px rgba(99, 102, 241, 0.2)",
+                            }}
+                          >
+                            <EmojiEvents sx={{ color: "#fff" }} />
+                          </Avatar>
+                        );
+                      })()}
+                    </TableCell>
                     <TableCell>
                       {(() => {
                         const submissionData = entry.entry?.submission?.data || {};
                         const sData = submissionData?.data ? submissionData.data : submissionData;
                         
                         const entryFields = entry.contest?.entry_level_template?.schema?.fields || entry.contest?.entryLevelTemplate?.schema?.fields || [];
-                        const userFields = entry.contest?.user_level_template?.schema?.fields || entry.contest?.userLevelTemplate?.schema?.fields || [];
                         
-                        let titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.label?.toLowerCase().includes("project") || f.label?.toLowerCase().includes("startup"));
-                        if (!titleField) {
-                          titleField = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
-                        }
+                        let titleField = entryFields.find((f: any) => {
+                          const l = f.label?.toLowerCase() || "";
+                          return l.includes("title") || l.includes("project") || l.includes("startup");
+                        });
                         
                         let title = "";
                         if (titleField) {
                           title = sData[titleField.label] || sData[titleField.id];
                         }
                         if (!title) {
-                          title = sData["ho1p00z0q"] || sData["Innovation Title"] || sData["zvdskzwrw"];
+                          title = sData?.name_1 || sData?.ho1p00z0q || sData?.["Innovation Title"] || sData?.zvdskzwrw;
                         }
                         if (!title) {
-                          const values = Object.values(sData).filter(v => 
-                            typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v as string)
-                          );
+                          const values = Object.entries(sData)
+                            .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
+                            .map(([k, v]) => v);
                           if (values.length > 0) title = values[0] as string;
                           else title = `Entry #${entry.entry_id?.substring(0, 8) || entry.id?.substring(0, 8)}`;
                         }
                         if (!title) title = "Untitled";
 
-                        return title;
+                        return (
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}>
+                            {title}
+                          </Typography>
+                        );
                       })()}
                     </TableCell>
                     <TableCell>{entry.contest?.name || "N/A"}</TableCell>
@@ -213,7 +277,7 @@ export default function JudgeEntriesPage() {
                 ))}
                 {entries.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={8} align="center" sx={{ py: 3 }}>
                       No entries assigned to you yet.
                     </TableCell>
                   </TableRow>

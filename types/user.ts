@@ -70,6 +70,7 @@ export interface ContestParticipant {
     data: Record<string, string>;
     createdAt: string;
   };
+  entries?: any[];
 }
 
 export interface ContestEntry {
@@ -211,9 +212,18 @@ export interface VotingPeriodCriterion {
 
 export interface VotingPeriodPayload {
   voting_type?: string;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
   max_score?: number;
   criteria?: VotingPeriodCriterion[];
   judge_ids?: string[];
+}
+
+export enum TEMPLATE_EVENT_TYPE {
+  REGISTRATION_SUCCESSFUL = "registration_successful",
+  ENTRY_SUBMITTED = "entry_submitted",
+  SELECTED_AS_SEMI_FINALIST = "selected_as_semi_finalist",
+  SELECTED_AS_FINALIST = "selected_as_finalist",
+  ANNOUNCED_AS_WINNER = "announced_as_winner",
+  ASSIGNED_AS_JUDGE = "assigned_as_judge",
 }

@@ -10,9 +10,15 @@ export const contestControllers = {
       throw error;
     }
   },
-  getContest: async () => {
+  getContest: async (page: number = 1, limit: number = 10, search: string = "", status: string = "") => {
     try {
-      const response = await contestSecuredApi.get("/");
+      const queryParams = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        ...(search ? { search } : {}),
+        ...(status && status !== "All" ? { status } : {})
+      });
+      const response = await contestSecuredApi.get(`/?${queryParams.toString()}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -21,6 +27,14 @@ export const contestControllers = {
   getContestDetails: async (id: string | undefined) => {
     try {
       const response = await contestSecuredApi.get(`/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  deleteContest: async (id: string) => {
+    try {
+      const response = await contestSecuredApi.delete(`/${id}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -191,6 +205,48 @@ export const contestControllers = {
       const response = await contestSecuredApi.delete(
         `/${contestId}/judges/assignee-entities/${judgeId}`
       );
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  
+  // Notification / Email Templates
+  addEmailTemplate: async (contestId: string, data: any) => {
+    try {
+      const response = await contestSecuredApi.post(`/${contestId}/email-templates`, data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getEmailTemplates: async (contestId: string) => {
+    try {
+      const response = await contestSecuredApi.get(`/${contestId}/email-templates`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  getEmailTemplateById: async (contestId: string, templateId: string) => {
+    try {
+      const response = await contestSecuredApi.get(`/${contestId}/email-templates/${templateId}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  updateEmailTemplate: async (contestId: string, templateId: string, data: any) => {
+    try {
+      const response = await contestSecuredApi.put(`/${contestId}/email-templates/${templateId}`, data);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+  deleteEmailTemplate: async (contestId: string, templateId: string) => {
+    try {
+      const response = await contestSecuredApi.delete(`/${contestId}/email-templates/${templateId}`);
       return response.data;
     } catch (error) {
       throw error;

@@ -117,6 +117,9 @@ const Login = () => {
                 onBlur={formik.handleBlur}
                 error={formik.touched.email && Boolean(formik.errors.email)}
                 helperText={formik.touched.email && formik.errors.email}
+                autoComplete="new-password"
+                slotProps={{ inputLabel: { shrink: true } }}
+                placeholder="Enter your email"
               />
               <TextField
                 margin="normal"
@@ -126,6 +129,7 @@ const Login = () => {
                 type={showPassword ? "text" : "password"}
                 id="password"
                 sx={textFieldStyles}
+                autoComplete="new-password"
                 slotProps={{
                   input: {
                     endAdornment: (
@@ -141,14 +145,14 @@ const Login = () => {
                       </InputAdornment>
                     ),
                   },
+                  inputLabel: { shrink: true },
                 }}
                 value={formik.values.password}
                 onChange={formik.handleChange}
                 onBlur={formik.handleBlur}
-                error={
-                  formik.touched.password && Boolean(formik.errors.password)
-                }
+                error={formik.touched.password && Boolean(formik.errors.password)}
                 helperText={formik.touched.password && formik.errors.password}
+                placeholder="Enter your password"
               />
 
               <Box

@@ -11,6 +11,7 @@ import {
   Save as SaveIcon,
   Close as CloseIcon,
 } from "@mui/icons-material";
+import { FilePreview } from "@/components/widgets/FilePreview";
 import {
   Alert,
   Autocomplete,
@@ -84,9 +85,8 @@ const AddUserForm = () => {
   }, [template_fields]);
 
   const validationSchema = React.useMemo(() => {
-    return Yup.object().shape(
-      template_fields?.reduce((acc: any, field: any) => {
-        let validator;
+    const schemaFields = template_fields?.reduce((acc: any, field: any) => {
+      let validator;
         if (
           field.type === FIELDS_TYPE.NUMBER_FIELD ||
           field.type === FIELDS_TYPE.SLIDER ||
@@ -140,14 +140,79 @@ const AddUserForm = () => {
         }
         acc[field.id] = validator;
         return acc;
-      }, {}) || {},
-    );
+    }, {}) || {};
+    return Yup.object().shape(schemaFields);
   }, [template_fields]);
+
+  const getVisibleFields = (values: any) => {
+    const visible: any[] = [];
+    const pages: any[][] = [];
+    let currentChunk: any[] = [];
+    template_fields?.forEach((field: any) => {
+      if (field.type === FIELDS_TYPE.STEP_BREAK && !field.config?.isInline) {
+        if (currentChunk.length > 0) pages.push(currentChunk);
+        currentChunk = [field];
+      } else {
+        currentChunk.push(field);
+      }
+    });
+    if (currentChunk.length > 0) pages.push(currentChunk);
+
+    let currentPageIndex = 0;
+    const visited = new Set<number>();
+
+    while (currentPageIndex < pages.length && !visited.has(currentPageIndex)) {
+      visited.add(currentPageIndex);
+      const pageFields = pages[currentPageIndex];
+      visible.push(...pageFields);
+
+      let targetStepId: string | null = null;
+      let hasBranchingButUnanswered = false;
+
+      for (const field of pageFields) {
+        if (["select", "radio", "autocomplete"].includes(field.type as any) && field.config?.enableBranching) {
+          const val = values[field.id];
+          if (!val) {
+            hasBranchingButUnanswered = true;
+          } else if (field.config.routing?.[val]) {
+            targetStepId = field.config.routing[val];
+          }
+        }
+      }
+
+      if (hasBranchingButUnanswered) break; 
+      if (targetStepId) {
+        const targetIndex = pages.findIndex((p) => p.length > 0 && p[0].type === FIELDS_TYPE.STEP_BREAK && p[0].id === targetStepId);
+        if (targetIndex !== -1) {
+          currentPageIndex = targetIndex;
+          continue;
+        }
+      }
+      currentPageIndex++;
+    }
+    return visible;
+  };
 
   const formik = useFormik({
     initialValues,
-    validationSchema,
     enableReinitialize: true,
+    validate: (values) => {
+      const visible = getVisibleFields(values);
+      const visibleFieldIds = new Set(visible.map(f => f.id));
+      
+      try {
+        validationSchema.validateSync(values, { abortEarly: false });
+        return {};
+      } catch (err: any) {
+        const errors: any = {};
+        err.inner.forEach((error: any) => {
+          if (visibleFieldIds.has(error.path)) {
+            errors[error.path] = error.message;
+          }
+        });
+        return errors;
+      }
+    },
     onSubmit: async (values) => {
   try {
     const formData = new FormData();
@@ -212,6 +277,8 @@ const AddUserForm = () => {
     );
   }
 
+  const visibleFields = getVisibleFields(formik.values);
+
   return (
     <Box>
       <Breadcrumb
@@ -251,20 +318,43 @@ const AddUserForm = () => {
 
         <LocalizationProvider dateAdapter={AdapterDayjs}>
           <Grid container spacing={4}>
-            {template_fields?.map((val: any, i: number) => (
-              <Grid key={val.id} size={{ xs: 12, md: 6 }}>
+            {visibleFields?.map((val: any) => {
+              const isFullWidth = val.type === FIELDS_TYPE.TEXTBLOCK || val.type === FIELDS_TYPE.TEXTAREA || val.type === FIELDS_TYPE.SWITCH || val.type === FIELDS_TYPE.CHECKBOX || val.type === FIELDS_TYPE.RADIO;
+              if (val.type === FIELDS_TYPE.STEP_BREAK) {
+                return (
+                  <Grid key={val.id} size={{ xs: 12 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                      {val.label}
+                    </Typography>
+                  </Grid>
+                );
+              }
+              return (
+              <Grid key={val.id} size={{ xs: 12, md: isFullWidth ? 12 : 6 }}>
+                {val.type === FIELDS_TYPE.TEXTBLOCK && (
+                  <Box sx={{ width: "100%", pb: 1 }}>
+                    <Typography sx={{ whiteSpace: "pre-wrap" }}>
+                      {val.label}
+                    </Typography>
+                  </Box>
+                )}
                 {(val.type === FIELDS_TYPE.TEXTFIELD ||
+                  val.type === FIELDS_TYPE.TEXTAREA ||
                   val.type === FIELDS_TYPE.NUMBER_FIELD ||
                   val.type === FIELDS_TYPE.PASSWORD) && (
+                  <Box>
                   <TextField
                     label={val.label}
                     type={
                       val.type === FIELDS_TYPE.NUMBER_FIELD
                         ? "number"
                         : val.type === FIELDS_TYPE.PASSWORD
-                          ? "password"
-                          : "text"
+                        ? "password"
+                        : "text"
                     }
+                    multiline={val.type === FIELDS_TYPE.TEXTAREA}
+                    minRows={val.type === FIELDS_TYPE.TEXTAREA ? 4 : undefined}
+                    maxRows={val.type === FIELDS_TYPE.TEXTAREA ? 10 : undefined}
                     variant={val.variant}
                     placeholder={val.placeholder}
                     fullWidth
@@ -282,6 +372,12 @@ const AddUserForm = () => {
                       val.helperText
                     }
                   />
+                  {val.type === FIELDS_TYPE.TEXTAREA && val.config?.maxWords && (
+                    <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
+                      Max words: {val.config.maxWords}
+                    </Typography>
+                  )}
+                  </Box>
                 )}
 
                 {val.type === FIELDS_TYPE.TEL_INPUT && (
@@ -492,6 +588,8 @@ const AddUserForm = () => {
                   val.type === FIELDS_TYPE.SWITCH) && (
                   <Box>
                     <FormControlLabel
+                      sx={val.type === FIELDS_TYPE.SWITCH ? { width: "100%", m: 0, justifyContent: "space-between" } : undefined}
+                      labelPlacement={val.type === FIELDS_TYPE.SWITCH ? "start" : "end"}
                       control={
                         val.type === FIELDS_TYPE.CHECKBOX ? (
                           <Checkbox
@@ -602,14 +700,18 @@ const AddUserForm = () => {
                       {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
                     </Typography>
                     {formik.values[val.id] ? (
-                      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, p: 0.5, px: 1.5, border: "1px solid", borderColor: "divider", borderRadius: "8px", bgcolor: "background.paper", mt: 1 }}>
-                        <Typography variant="caption" noWrap sx={{ maxWidth: 150, fontWeight: 600 }}>
-                          {formik.values[val.id] instanceof File ? formik.values[val.id].name : "File Selected"}
-                        </Typography>
-                        <IconButton size="small" onClick={() => formik.setFieldValue(val.id, "")} sx={{ p: 0.5 }}>
-                          <CloseIcon sx={{ fontSize: "1rem" }} />
-                        </IconButton>
-                      </Box>
+                      <Box sx={{ mt: 2, position: "relative", display: "inline-block", maxWidth: "100%" }}>
+                        {(() => {
+                        const fileVal = formik.values[val.id];
+                        return (
+                          <FilePreview 
+                            fileVal={fileVal} 
+                            label={val.label} 
+                            onClear={() => formik.setFieldValue(val.id, null)} 
+                          />
+                        );
+                      })()}
+                    </Box>
                     ) : (
                       <Button variant="outlined" component="label" size="small">
                         Upload File
@@ -633,7 +735,8 @@ const AddUserForm = () => {
                   </Box>
                 )}
               </Grid>
-            ))}
+              );
+            })}
           </Grid>
         </LocalizationProvider>
 

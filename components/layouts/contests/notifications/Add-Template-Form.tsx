@@ -3,20 +3,28 @@ import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { Box, Button, Grid, TextField, Select, MenuItem, InputLabel, FormControl, Chip, Tooltip, Typography } from "@mui/material";
 import React, { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+import "react-quill-new/dist/quill.snow.css";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { ContentCopy } from "@mui/icons-material";
 import { useAppTheme } from "@/context/ThemeContext";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { getBaseEmailTemplate } from "@/utils/emailTemplates/baseTemplate";
+
+import { TEMPLATE_EVENT_TYPE } from "@/types/user";
+
+const ReactQuill = dynamic(() => import("react-quill-new"), { ssr: false });
 
 const participantEvents = [
-  "Registration Successful",
-  "Entry Submitted",
-  "Selected as Semi-Finalist",
-  "Selected as Finalist",
-  "Announced as Winner",
+  { value: TEMPLATE_EVENT_TYPE.REGISTRATION_SUCCESSFUL, label: "Registration Successful" },
+  { value: TEMPLATE_EVENT_TYPE.ENTRY_SUBMITTED, label: "Entry Submitted" },
+  { value: TEMPLATE_EVENT_TYPE.SELECTED_AS_SEMI_FINALIST, label: "Selected as Semi-Finalist" },
+  { value: TEMPLATE_EVENT_TYPE.SELECTED_AS_FINALIST, label: "Selected as Finalist" },
+  { value: TEMPLATE_EVENT_TYPE.ANNOUNCED_AS_WINNER, label: "Announced as Winner" },
 ];
 
 const judgeEvents = [
-  "Assigned as Judge",
+  { value: TEMPLATE_EVENT_TYPE.ASSIGNED_AS_JUDGE, label: "Assigned as Judge" },
 ];
 
 const AddTemplateForm = () => {
@@ -25,26 +33,33 @@ const AddTemplateForm = () => {
   const contestId = params?.id as string;
   const { colors } = useAppTheme();
   const { addTemplate } = useNotificationTemplates();
+  const { showSnackbar } = useSnackbar();
 
   const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
   const [eventType, setEventType] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
   const [body, setBody] = useState<string>("");
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!eventType || !subject || !body) {
       alert("Please fill in all fields.");
       return;
     }
 
-    addTemplate({
-      id: Math.random().toString(36).substr(2, 9),
-      audience,
-      eventType,
-      subject,
-      body,
-    });
-    router.push(`/contest-management/contests/${contestId}?tab=5`);
+    try {
+      const wrappedBody = getBaseEmailTemplate(body, subject, "{{contest_name}}");
+      
+      await addTemplate({
+        audience,
+        eventType,
+        subject,
+        body: wrappedBody,
+      });
+      showSnackbar("Template created successfully", "success");
+      router.push(`/contest-management/contests/${contestId}?tab=5`);
+    } catch (error) {
+      showSnackbar("Failed to create template", "error");
+    }
   };
 
   const renderVariablesHelper = () => (
@@ -110,7 +125,7 @@ const AddTemplateForm = () => {
                 onChange={(e) => setEventType(e.target.value)}
               >
                 {(audience === "Participant" ? participantEvents : judgeEvents).map((ev) => (
-                  <MenuItem key={ev} value={ev}>{ev}</MenuItem>
+                  <MenuItem key={ev.value} value={ev.value}>{ev.label}</MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -124,15 +139,19 @@ const AddTemplateForm = () => {
             />
           </Grid>
           <Grid size={12}>
-            <TextField
-              label="Email Body"
-              fullWidth
-              multiline
-              rows={8}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Hi {{user_name}}, welcome to {{contest_name}}..."
-            />
+            <InputLabel sx={{ mb: 1, fontSize: "0.875rem", color: colors.TEXT_SECONDARY }}>Email Body</InputLabel>
+            <Box sx={{ 
+              "& .quill": { bgcolor: "white", borderRadius: 1 },
+              "& .ql-container": { minHeight: "250px", fontSize: "16px", fontFamily: "inherit" },
+              "& .ql-editor": { minHeight: "250px" }
+            }}>
+              <ReactQuill
+                theme="snow"
+                value={body}
+                onChange={setBody}
+                placeholder="Hi {{user_name}}, welcome to {{contest_name}}..."
+              />
+            </Box>
             {renderVariablesHelper()}
           </Grid>
           <Grid size={12}>

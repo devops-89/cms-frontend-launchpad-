@@ -23,7 +23,9 @@ export type FieldType =
   | "password"
   | "file_upload"
   | "multiselect"
-  | "step_break";
+  | "step_break"
+  | "textblock"
+  | "textarea";
 export type FieldVariant = "outlined" | "filled" | "standard";
 
 export interface FormField {

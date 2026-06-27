@@ -197,8 +197,6 @@ export const STATUS_OPTIONS = [
   UserStatus.ALL,
   UserStatus.ACTIVE,
   UserStatus.INACTIVE,
-  UserStatus.BANNED,
-  UserStatus.PENDING,
   UserStatus.REJECTED,
 ];
 
@@ -799,6 +797,9 @@ export const CONTEST_TABLE_STATUS = [
   },
   {
     label: UserStatus.OFFLINE,
+  },
+  {
+    label: UserStatus.DRAFT,
   },
 ];
 

@@ -7,6 +7,8 @@ import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useAppTheme } from "@/context/ThemeContext";
 import { getBaseEmailTemplate } from "@/utils/emailTemplates/baseTemplate";
 import { montserrat } from "@/utils/fonts";
+import { useContestDetails } from "@/store/useContestDetails";
+import moment from "moment";
 
 const ViewTemplate = () => {
   const router = useRouter();
@@ -15,23 +17,40 @@ const ViewTemplate = () => {
   const templateId = params?.templateId as string;
   const { colors } = useAppTheme();
   
-  const { templates } = useNotificationTemplates();
+  const { contest } = useContestDetails();
+  const { templates, isLoading } = useNotificationTemplates();
   const template = templates.find(t => t.id === templateId);
 
-  if (!template && templates.length > 0) {
-    return <Box p={4} textAlign="center"><Typography>Template not found.</Typography></Box>;
-  }
-  
-  if (templates.length === 0) {
+  if (isLoading) {
     return <Box p={4} textAlign="center"><CircularProgress /></Box>;
   }
 
+  if (!template) {
+    return <Box p={4} textAlign="center"><Typography>Template not found.</Typography></Box>;
+  }
+
   const getPreviewHtml = (rawBody: string, rawSubject: string) => {
-    let htmlContent = getBaseEmailTemplate(rawBody, rawSubject, "{{contest_name}}");
+    const contestName = contest?.name || "Your Contest";
+    // For preview, we substitute the placeholders with actual contest data where possible,
+    // and fallback to sample data for participant-specific fields.
+    
+    let htmlContent = rawBody;
+    if (!htmlContent.includes('id="cms-email-inner-body"')) {
+      htmlContent = getBaseEmailTemplate(rawBody, rawSubject, contestName);
+    } else {
+      // It's already wrapped (meaning it was saved via the new logic).
+      // Replace the placeholder contest_name manually so it previews correctly.
+      htmlContent = htmlContent.replace(/{{contest_name}}/g, contestName);
+    }
+    
     htmlContent = htmlContent
       .replace(/{{user_name}}/g, "John Doe")
-      .replace(/{{contest_name}}/g, "Global Innovation Hackathon")
-      .replace(/{{entry_title}}/g, "AI Smart Assistant");
+      .replace(/{{participant_name}}/g, "John Doe")
+      .replace(/{{contest_name}}/g, contestName)
+      .replace(/{{entry_title}}/g, "Sample Entry Title")
+      .replace(/{{entry_id}}/g, "ENT-123456")
+      .replace(/{{end_date}}/g, contest?.end_date ? moment(contest.end_date).format("MMMM Do, YYYY") : "the deadline");
+      
     return htmlContent;
   };
 
@@ -61,7 +80,7 @@ const ViewTemplate = () => {
         </Box>
         <Card elevation={0} sx={{ p: 4, borderRadius: 3, border: `1px solid ${colors.BORDER}` }}>
            <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 700, textTransform: "uppercase" }}>Event Type</Typography>
-           <Typography variant="body1" sx={{ mb: 3, fontWeight: 500 }}>{template?.eventType}</Typography>
+           <Typography variant="body1" sx={{ mb: 3, fontWeight: 500 }}>{template?.eventType?.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</Typography>
 
            <Divider sx={{ mb: 3 }} />
 
@@ -72,7 +91,17 @@ const ViewTemplate = () => {
 
            <Typography variant="caption" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 700, textTransform: "uppercase" }}>Body Preview</Typography>
            <Box 
-             sx={{ mt: 1, p: 3, bgcolor: "#f8fafc", borderRadius: 2, border: "1px dashed #cbd5e1" }}
+             sx={{ 
+               mt: 1, 
+               p: 3, 
+               bgcolor: "#f8fafc", 
+               borderRadius: 2, 
+               border: "1px dashed #cbd5e1",
+               overflowX: "auto",
+               "& *": {
+                 wordBreak: "break-word",
+               }
+             }}
              dangerouslySetInnerHTML={{ __html: getPreviewHtml(template?.body || "", template?.subject || "") }}
            />
         </Card>

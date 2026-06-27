@@ -6,6 +6,8 @@ import {
   Assignment as AssignIcon,
   Edit as EditIcon,
   MoreVert as MoreIcon,
+  Visibility as VisibilityIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
 import {
   Avatar,
@@ -71,6 +73,8 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
   const [judge, setJudge] = useState(initialJudge);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [confirmStatusDialogOpen, setConfirmStatusDialogOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<UserStatus | null>(null);
   const open = Boolean(anchorEl);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -86,10 +90,14 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
       UserController.updateUserStatus(judge.id, newStatus),
     onSuccess: (_, newStatus) => {
       setJudge({ ...judge, status: newStatus as UserStatus });
+      showSnackbar("Judge status updated successfully", "success");
       queryClient.invalidateQueries({ queryKey: ["judge-list"] });
+      setPendingStatus(null);
     },
-    onError: () => {
-      console.error("Failed to update status");
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update status";
+      showSnackbar(errorMessage, "error");
+      setPendingStatus(null);
     },
   });
 
@@ -102,14 +110,21 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
       setDeleteDialogOpen(false);
     },
     onError: (error: any) => {
-      console.error(error);
       const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete judge";
       showSnackbar(errorMessage, "error");
     },
   });
 
   const handleStatusChange = (newStatus: UserStatus) => {
-    mutation.mutate(newStatus);
+    setPendingStatus(newStatus);
+    setConfirmStatusDialogOpen(true);
+  };
+
+  const handleConfirmStatusChange = () => {
+    if (pendingStatus) {
+      mutation.mutate(pendingStatus);
+      setConfirmStatusDialogOpen(false);
+    }
   };
 
   const statusStyle = getStatusStyles(judge.status);
@@ -125,6 +140,7 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
           "& .MuiTableCell-root": {
             borderBottom: `1px solid ${colors.BORDER}`,
             py: dense ? 1 : 2,
+            verticalAlign: "middle",
           },
         }}
       >
@@ -225,60 +241,82 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
 
         {visibleHeaders.includes("Status") && (
           <TableCell sx={{ whiteSpace: "nowrap" }}>
-            <FormControl variant="standard" fullWidth>
-              <Select
-                value={judge.status}
-                onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
-                disableUnderline
-                disabled={mutation.isPending}
-                IconComponent={
-                  mutation.isPending
-                    ? () => (
-                        <CircularProgress
-                          size={14}
-                          sx={{ mr: 1, ml: 0.5, color: statusStyle.color }}
-                        />
-                      )
-                    : undefined
-                }
+            {judge.status === UserStatus.REJECTED || judge.status === "Rejected" ? (
+              <Box
                 sx={{
                   fontSize: "0.75rem",
-                  fontWeight: 500,
+                  fontWeight: 700,
                   width: "fit-content",
-                  "& .MuiSelect-select": {
-                    py: 0.5,
-                    px: 1,
-                    borderRadius: "6px",
-                    bgcolor: statusStyle.bgcolor,
-                    color: statusStyle.color,
-                    display: "flex",
-                    alignItems: "center",
-                  },
-                  "& .MuiSvgIcon-root": {
-                    color: statusStyle.color,
-                  },
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: "6px",
+                  bgcolor: statusStyle.bgcolor,
+                  color: statusStyle.color,
+                  display: "flex",
+                  alignItems: "center",
                 }}
               >
-                {Object.values(UserStatus)
-                  .filter((s) => s !== UserStatus.ALL)
-                  .map((status) => (
-                    <MenuItem
-                      key={status}
-                      value={status}
-                      sx={{ fontSize: "0.85rem" }}
-                    >
-                      {status}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
+                Rejected
+              </Box>
+            ) : (
+              <FormControl variant="standard" fullWidth>
+                <Select
+                  value={judge.status}
+                  onChange={(e) => handleStatusChange(e.target.value as UserStatus)}
+                  disableUnderline
+                  disabled={mutation.isPending}
+                  IconComponent={
+                    mutation.isPending
+                      ? () => (
+                          <CircularProgress
+                            size={14}
+                            sx={{ mr: 1, ml: 0.5, color: statusStyle.color }}
+                          />
+                        )
+                      : undefined
+                  }
+                  sx={{
+                    fontSize: "0.75rem",
+                    fontWeight: 500,
+                    width: "fit-content",
+                    "& .MuiSelect-select": {
+                      py: 0.5,
+                      px: 1,
+                      borderRadius: "6px",
+                      bgcolor: statusStyle.bgcolor,
+                      color: statusStyle.color,
+                      display: "flex",
+                      alignItems: "center",
+                    },
+                    "& .MuiSvgIcon-root": {
+                      color: statusStyle.color,
+                    },
+                  }}
+                >
+                  {[UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.REJECTED]
+                    .map((status) => (
+                      <MenuItem
+                        key={status}
+                        value={status}
+                        sx={{ fontSize: "0.85rem" }}
+                      >
+                        {status}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            )}
           </TableCell>
         )}
 
         {visibleHeaders.includes("Actions") && (
           <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-              <IconButton size="small" sx={{ color: colors.TEXT_SECONDARY }}>
+              <IconButton
+                size="small"
+                sx={{ color: colors.TEXT_SECONDARY }}
+                onClick={() => router.push(`/user-management/judges/${judge.id}/edit`)}
+              >
                 <EditIcon fontSize="small" />
               </IconButton>
               <IconButton
@@ -310,8 +348,9 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                     handleCloseMenu();
                     router.push(`/user-management/judges/${judge.id}`);
                   }} 
-                  sx={{ fontSize: "0.85rem" }}
+                  sx={{ fontSize: "0.85rem", display: "flex", gap: 1, alignItems: "center" }}
                 >
+                  <VisibilityIcon fontSize="small" sx={{ color: colors.TEXT_SECONDARY, fontSize: 16 }} />
                   View Details
                 </MenuItem>
                 {judge.status === "Active" && (
@@ -345,8 +384,9 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                     handleCloseMenu();
                     setDeleteDialogOpen(true);
                   }}
-                  sx={{ fontSize: "0.85rem", color: colors.ERROR }}
+                  sx={{ fontSize: "0.85rem", color: colors.ERROR, display: "flex", gap: 1, alignItems: "center" }}
                 >
+                  <DeleteIcon fontSize="small" sx={{ color: colors.ERROR, fontSize: 16 }} />
                   Delete Judge
                 </MenuItem>
               </Menu>
@@ -354,6 +394,54 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
           </TableCell>
         )}
       </TableRow>
+
+      <Dialog
+        open={confirmStatusDialogOpen}
+        onClose={() => setConfirmStatusDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, fontSize: "1.25rem" }}>
+          Confirm Status Change
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body1" sx={{ color: colors.TEXT_SECONDARY }}>
+            Are you sure you want to change the status of <strong>{judge.name}</strong> to <strong>{pendingStatus}</strong>?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setConfirmStatusDialogOpen(false)}
+            variant="outlined"
+            sx={{
+              color: colors.TEXT_SECONDARY,
+              borderColor: colors.BORDER,
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmStatusChange}
+            variant="contained"
+            color="primary"
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              boxShadow: "none",
+            }}
+          >
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={deleteDialogOpen}

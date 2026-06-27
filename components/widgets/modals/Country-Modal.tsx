@@ -22,10 +22,21 @@ interface CountryModalProps {
 }
 
 const validationSchema = Yup.object({
-  name: Yup.string().required("Country Name is required"),
-  code: Yup.string().required("Country Code is required"),
-  phoneCode: Yup.string().required("Phone Code is required"),
-  currencyCode: Yup.string().required("Currency Code is required"),
+  name: Yup.string()
+    .trim()
+    .matches(/^[A-Za-z\s]+$/, "Country Name can only contain alphabets")
+    .required("Country Name is required"),
+  code: Yup.string()
+    .trim()
+    .matches(/^[A-Za-z]+$/, "Country Code can only contain alphabets")
+    .required("Country Code is required"),
+  phoneCode: Yup.number()
+    .typeError("Phone Code must be a valid number")
+    .required("Phone Code is required"),
+  currencyCode: Yup.string()
+    .trim()
+    .matches(/^[A-Za-z]+$/, "Currency Code can only contain alphabets")
+    .required("Currency Code is required"),
   isActive: Yup.boolean(),
 });
 
@@ -61,12 +72,13 @@ const CountryModal: React.FC<CountryModalProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <form onSubmit={formik.handleSubmit}>
+      <form onSubmit={formik.handleSubmit} noValidate>
         <DialogTitle>{isEdit ? "Edit Country" : "Add Country"}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2}>
             <TextField
               fullWidth
+              required
               id="name"
               name="name"
               label="Country Name"
@@ -77,6 +89,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
             />
             <TextField
               fullWidth
+              required
               id="code"
               name="code"
               label="Country Code"
@@ -87,6 +100,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
             />
             <TextField
               fullWidth
+              required
               id="phoneCode"
               name="phoneCode"
               label="Phone Code"
@@ -97,6 +111,7 @@ const CountryModal: React.FC<CountryModalProps> = ({
             />
             <TextField
               fullWidth
+              required
               id="currencyCode"
               name="currencyCode"
               label="Currency Code"
@@ -105,24 +120,14 @@ const CountryModal: React.FC<CountryModalProps> = ({
               error={formik.touched.currencyCode && Boolean(formik.errors.currencyCode)}
               helperText={formik.touched.currencyCode && (formik.errors.currencyCode as string)}
             />
-            <FormControlLabel
-              control={
-                <Switch
-                  id="isActive"
-                  name="isActive"
-                  checked={formik.values.isActive}
-                  onChange={formik.handleChange}
-                />
-              }
-              label="Active"
-            />
+
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose} color="inherit">
             Cancel
           </Button>
-          <Button type="submit" variant="contained" color="primary">
+          <Button type="submit" variant="contained" color="primary" disabled={isEdit && !formik.dirty}>
             {isEdit ? "Update" : "Add"}
           </Button>
         </DialogActions>

@@ -2,9 +2,13 @@ import { UserRole } from "@/utils/enum";
 import { userSecuredApi } from "./config";
 
 export const UserController = {
-  getAllUser: async (role: UserRole, page: number = 1, limit: number = 10) => {
+  getAllUser: async (role: UserRole, page: number = 1, limit: number = 10, search?: string) => {
     try {
-      let result = await userSecuredApi.get(`all?role=${role}&page=${page}&limit=${limit}`);
+      let url = `all?role=${role}&page=${page}&limit=${limit}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      let result = await userSecuredApi.get(url);
       return result;
     } catch (error){
       throw error;
@@ -13,6 +17,7 @@ export const UserController = {
 updateUserStatus: async (
   id: string,
   status: string,
+  contestId?: string
   ) => {
   try {
     let result = await userSecuredApi.patch(
@@ -20,6 +25,7 @@ updateUserStatus: async (
       {
         id,
         status,
+        ...(contestId && { contestId })
       },
     );
 
@@ -46,16 +52,24 @@ updateUserStatus: async (
     throw error;
   }
   },
-  getAllJudges: async () => {
-  try {
-    const result =
-      await userSecuredApi.get(
-        `all?role=judge`,
-      );
-
-    return result;
-  } catch (error) {
-    throw error;
-  }
-},
+  getAllJudges: async (search?: string) => {
+    try {
+      let url = `all?role=judge`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      const result = await userSecuredApi.get(url);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
+  editJudge: async (id: string, data: any) => {
+    try {
+      const result = await userSecuredApi.put(`/${id}`, data);
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

@@ -1,20 +1,26 @@
 "use client";
 import React, { useState } from "react";
-import { Box, Typography, Button, IconButton, Paper, ToggleButtonGroup, ToggleButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip } from "@mui/material";
+import { Box, Typography, Button, IconButton, Paper, ToggleButtonGroup, ToggleButton, Tooltip, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Chip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, CircularProgress } from "@mui/material";
 import { useAppTheme } from "@/context/ThemeContext";
 import { montserrat } from "@/utils/fonts";
 import { Add, Edit, Delete, Visibility, Person, Gavel } from "@mui/icons-material";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useRouter, useParams } from "next/navigation";
+import { useSnackbar } from "@/context/SnackbarContext";
 
 const NotificationsTab = () => {
   const { colors } = useAppTheme();
   const router = useRouter();
   const params = useParams();
   const contestId = params?.id;
+  const { showSnackbar } = useSnackbar();
   
   const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
-  const { templates, deleteTemplate } = useNotificationTemplates();
+  const { templates, deleteTemplate, isLoading } = useNotificationTemplates();
+  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [templateToDelete, setTemplateToDelete] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAudienceChange = (event: React.MouseEvent<HTMLElement>, newAudience: "Participant" | "Judge") => {
     if (newAudience !== null) {
@@ -34,10 +40,32 @@ const NotificationsTab = () => {
     router.push(`/contest-management/contests/${contestId}/notifications/${id}/view`);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this template?")) {
-      deleteTemplate(id);
+  const handleDeleteClick = (id: string) => {
+    setTemplateToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!templateToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteTemplate(templateToDelete);
+      showSnackbar("Template deleted successfully", "success");
+      setDeleteDialogOpen(false);
+      setTemplateToDelete(null);
+    } catch (error) {
+      showSnackbar("Failed to delete template", "error");
+    } finally {
+      setIsDeleting(false);
     }
+  };
+
+
+
+  const handleCloseDialog = () => {
+    if (isDeleting) return;
+    setDeleteDialogOpen(false);
+    setTemplateToDelete(null);
   };
 
   const filteredTemplates = templates.filter(t => t.audience === audience);
@@ -70,7 +98,9 @@ const NotificationsTab = () => {
         </Button>
       </Box>
 
-      {filteredTemplates.length === 0 ? (
+      {isLoading ? (
+        <Box p={4} textAlign="center"><Typography>Loading templates...</Typography></Box>
+      ) : filteredTemplates.length === 0 ? (
         <Paper elevation={0} sx={{ p: 6, textAlign: "center", border: `1px dashed ${colors.BORDER}`, borderRadius: 3, bgcolor: "rgba(0,0,0,0.01)" }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontFamily: montserrat.style.fontFamily }}>No Templates Found</Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>You have not created any templates for {audience}s yet.</Typography>
@@ -90,7 +120,7 @@ const NotificationsTab = () => {
               {filteredTemplates.map((row) => (
                 <TableRow key={row.id} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                   <TableCell>
-                    <Chip label={row.eventType} size="small" sx={{ bgcolor: "rgba(99, 102, 241, 0.1)", color: colors.PRIMARY, fontWeight: 500 }} />
+                    <Chip label={row.eventType.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')} size="small" sx={{ bgcolor: "rgba(99, 102, 241, 0.1)", color: colors.PRIMARY, fontWeight: 500 }} />
                   </TableCell>
                   <TableCell sx={{ maxWidth: 300, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {row.subject}
@@ -103,7 +133,7 @@ const NotificationsTab = () => {
                       <IconButton onClick={() => handleEdit(row.id)} size="small" color="primary" sx={{ mx: 0.5 }}><Edit fontSize="small" /></IconButton>
                     </Tooltip>
                     <Tooltip title="Delete">
-                      <IconButton onClick={() => handleDelete(row.id)} size="small" color="error"><Delete fontSize="small" /></IconButton>
+                      <IconButton onClick={() => handleDeleteClick(row.id)} size="small" color="error"><Delete fontSize="small" /></IconButton>
                     </Tooltip>
                   </TableCell>
                 </TableRow>
@@ -112,6 +142,26 @@ const NotificationsTab = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={handleCloseDialog}>
+        <DialogTitle sx={{ fontFamily: montserrat.style.fontFamily, fontWeight: 600 }}>
+          Confirm Deletion
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this notification template? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={handleCloseDialog} color="inherit" disabled={isDeleting}>
+            Cancel
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained" disabled={isDeleting} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            {isDeleting ? <CircularProgress size={24} color="inherit" /> : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -18,6 +18,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  Select,
+  MenuItem,
+  TablePagination,
 } from "@mui/material";
 import { Add, Edit, Delete } from "@mui/icons-material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +30,13 @@ import Breadcrumb from "@/components/widgets/Breadcrumb";
 import CountryModal from "@/components/widgets/modals/Country-Modal";
 import { useSnackbar } from "@/context/SnackbarContext";
 
+const getStatusStyles = (isActive: boolean) => {
+  if (isActive) {
+    return { bgcolor: "#dcfce7", color: "#166534" }; // Active
+  }
+  return { bgcolor: "#fee2e2", color: "#991b1b" }; // Inactive
+};
+
 const CountryTable = () => {
   const { showSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
@@ -34,6 +44,12 @@ const CountryTable = () => {
   const [editingCountry, setEditingCountry] = useState<any>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [countryToDelete, setCountryToDelete] = useState<number | null>(null);
+  
+  const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
+  const [statusChangeData, setStatusChangeData] = useState<{ country: any, newValue: boolean } | null>(null);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const { data: countriesData, isPending } = useQuery({
     queryKey: ["countries"],
@@ -124,6 +140,44 @@ const CountryTable = () => {
     }
   };
 
+  const handleStatusChangeClick = (country: any, newValue: boolean) => {
+    if (country.isActive === newValue) return;
+    setStatusChangeData({ country, newValue });
+    setStatusConfirmOpen(true);
+  };
+
+  const closeStatusConfirm = () => {
+    setStatusConfirmOpen(false);
+    setStatusChangeData(null);
+  };
+
+  const confirmStatusChange = () => {
+    if (statusChangeData) {
+      const { country, newValue } = statusChangeData;
+      const payload = {
+        name: country.name,
+        code: country.code,
+        phoneCode: country.phoneCode,
+        currencyCode: country.currencyCode,
+        isActive: newValue,
+      };
+      updateMutation.mutate({ id: country.id, payload });
+      closeStatusConfirm();
+    }
+  };
+
+  const handleChangePage = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const sortedCountries = [...countries].sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const paginatedCountries = sortedCountries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
   return (
     <Box sx={{ p: 1 }}>
       <Breadcrumb
@@ -170,13 +224,42 @@ const CountryTable = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                countries.map((country: any) => (
+                paginatedCountries.map((country: any) => (
                   <TableRow key={country.id}>
                     <TableCell>{country.name}</TableCell>
                     <TableCell>{country.code}</TableCell>
                     <TableCell>{country.phoneCode}</TableCell>
                     <TableCell>{country.currencyCode}</TableCell>
-                    <TableCell>{country.isActive ? "Active" : "Inactive"}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={country.isActive ? "true" : "false"}
+                        size="small"
+                        onChange={(e) => handleStatusChangeClick(country, e.target.value === "true")}
+                        variant="standard"
+                        disableUnderline
+                        sx={{
+                          fontSize: "0.75rem",
+                          fontWeight: 700,
+                          width: "90px",
+                          "& .MuiSelect-select": {
+                            py: 0.5,
+                            px: 1,
+                            justifyContent: "center",
+                            borderRadius: "6px",
+                            bgcolor: getStatusStyles(country.isActive).bgcolor,
+                            color: getStatusStyles(country.isActive).color,
+                            display: "flex",
+                            alignItems: "center",
+                          },
+                          "& .MuiSvgIcon-root": {
+                            color: getStatusStyles(country.isActive).color,
+                          },
+                        }}
+                      >
+                        <MenuItem value="true">Active</MenuItem>
+                        <MenuItem value="false">Inactive</MenuItem>
+                      </Select>
+                    </TableCell>
                     <TableCell>
                       <IconButton onClick={() => handleOpenModal(country)} color="primary">
                         <Edit />
@@ -191,6 +274,15 @@ const CountryTable = () => {
             </TableBody>
           </Table>
         </TableContainer>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={countries.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </Card>
 
       <CountryModal
@@ -214,6 +306,23 @@ const CountryTable = () => {
           </Button>
           <Button onClick={confirmDelete} color="error" variant="contained">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={statusConfirmOpen} onClose={closeStatusConfirm}>
+        <DialogTitle>Confirm Status Change</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to change the status of <strong>{statusChangeData?.country?.name}</strong> to <strong>{statusChangeData?.newValue ? "Active" : "Inactive"}</strong>?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeStatusConfirm} color="inherit">
+            Cancel
+          </Button>
+          <Button onClick={confirmStatusChange} color="primary" variant="contained">
+            Confirm
           </Button>
         </DialogActions>
       </Dialog>
