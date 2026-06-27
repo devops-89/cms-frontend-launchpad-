@@ -25,6 +25,8 @@ import {
   TableHead,
   TablePagination,
   TableRow,
+  Tabs,
+  Tab,
   TextField,
   Typography
 } from "@mui/material";
@@ -276,10 +278,16 @@ const EntriesList = () => {
   
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const handleStatusChange = (event: React.SyntheticEvent, newValue: string) => {
+    setStatusFilter(newValue);
+    setPage(0);
+  };
 
   const { data: entriesData, isPending } = useQuery({
-    queryKey: ["entries", id, page, rowsPerPage],
-    queryFn: () => entryControllers.getAllEntries(id, page + 1, rowsPerPage),
+    queryKey: ["entries", id, page, rowsPerPage, statusFilter],
+    queryFn: () => entryControllers.getAllEntries(id, page + 1, rowsPerPage, statusFilter),
     enabled: !!id,
   });
 
@@ -332,6 +340,23 @@ const EntriesList = () => {
 
   return (
     <Box>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2 }}>
+        <Tabs
+          value={statusFilter}
+          onChange={handleStatusChange}
+          variant="scrollable"
+          scrollButtons="auto"
+        >
+          <Tab label="All" value="All" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Pending" value="Pending" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Moderate" value="Approved" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Evaluated" value="Evaluated" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Semifinal" value="Semifinal" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Final" value="Final" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Winner" value="Winner" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Rejected" value="Rejected" sx={{ fontWeight: 600, textTransform: 'none' }} />
+        </Tabs>
+      </Box>
       <Table sx={{ mt: 2 }} size="small">
         <TableHead>
           <TableRow>

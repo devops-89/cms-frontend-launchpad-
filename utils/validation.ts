@@ -35,8 +35,12 @@ export const AddUser_Validation = Yup.object({
 });
 
 export const CONTEST_VALIDATION = Yup.object({
-  name: Yup.string().required("Please Enter Contest Name"),
-  description: Yup.string().required("Please Enter Contest Description"),
+  name: Yup.string()
+    .matches(/[a-zA-Z]/, "Contest Name must contain at least one letter")
+    .required("Please Enter Contest Name"),
+  description: Yup.string()
+    .matches(/[a-zA-Z]/, "Contest Description must contain at least one letter")
+    .required("Please Enter Contest Description"),
   start_date: Yup.date().required("Please Select Start Date"),
   end_date: Yup.date().required("Please Select End Date"),
   available_countries: Yup.array().min(1, "Please Select At Least One Country"),

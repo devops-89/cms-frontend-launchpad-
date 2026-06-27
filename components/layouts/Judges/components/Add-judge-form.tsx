@@ -11,7 +11,7 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import { Visibility, VisibilityOff , ArrowBack} from "@mui/icons-material";
 import { useFormik } from "formik";
 import { matchIsValidTel, MuiTelInput } from "mui-tel-input";
 import React from "react";
@@ -44,7 +44,7 @@ const AddJudgeForm = () => {
         .matches(/^[a-zA-Z\s]+$/, "Only letters and spaces are allowed")
         .required("Last Name is required"),
       email: Yup.string()
-        .email("Invalid email address")
+        .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Invalid email address")
         .required("Email is required"),
       password: Yup.string()
         .required("Password is required")
@@ -82,19 +82,27 @@ const AddJudgeForm = () => {
     },
   });
 
-  const handlePhoneNumber = (value: string) => {
+  const handlePhoneNumber = (value: string, info: any) => {
+    const isCurrentlyValid = matchIsValidTel(formik.values.phoneNumber);
+    const isNewValid = matchIsValidTel(value);
+
+    // Prevent entering more digits if the number is already valid and the new input makes it invalid
+    if (isCurrentlyValid && !isNewValid && value.length > formik.values.phoneNumber.length) {
+      return;
+    }
+
     formik.setFieldValue("phoneNumber", value);
-    const isValidPhoneNumber = matchIsValidTel(value);
-    if (!isValidPhoneNumber) {
+    if (!isNewValid) {
       formik.setFieldError("phoneNumber", "Invalid phone number");
     } else {
       formik.setFieldError("phoneNumber", "");
-      formik.setFieldValue("phoneNumber", value);
     }
   };
 
   return (
-    <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }}>
+    <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }} autoComplete="off">
+      <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
+      <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
       <Grid container spacing={5}>
         <Grid size={6}>
           <TextField
@@ -102,7 +110,12 @@ const AddJudgeForm = () => {
             label="First Name*"
             fullWidth
             value={formik.values.firstName}
-            onChange={formik.handleChange}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "" || /^[a-zA-Z\s]+$/.test(val)) {
+                formik.handleChange(e);
+              }
+            }}
             onBlur={formik.handleBlur}
             error={formik.touched.firstName && Boolean(formik.errors.firstName)}
             helperText={formik.touched.firstName && formik.errors.firstName as string}
@@ -114,7 +127,12 @@ const AddJudgeForm = () => {
             label="Last Name*"
             fullWidth
             value={formik.values.lastName}
-            onChange={formik.handleChange}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val === "" || /^[a-zA-Z\s]+$/.test(val)) {
+                formik.handleChange(e);
+              }
+            }}
             onBlur={formik.handleBlur}
             error={formik.touched.lastName && Boolean(formik.errors.lastName)}
             helperText={formik.touched.lastName && formik.errors.lastName as string}
@@ -126,6 +144,7 @@ const AddJudgeForm = () => {
             label="Email*"
             type="email"
             fullWidth
+            autoComplete="off"
             value={formik.values.email}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}
@@ -139,6 +158,7 @@ const AddJudgeForm = () => {
             label="Password*"
             type={showPassword ? "text" : "password"}
             fullWidth
+            autoComplete="new-password"
             value={formik.values.password}
             onChange={formik.handleChange}
             onBlur={formik.handleBlur}

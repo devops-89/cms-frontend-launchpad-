@@ -3,7 +3,7 @@ import { contestControllers } from "@/api/contestControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useContestDetails } from "@/store/useContestDetails";
 import { montserrat, roboto } from "@/utils/fonts";
-import { Add } from "@mui/icons-material";
+import { Add , ArrowBack} from "@mui/icons-material";
 import { Box, Button, Card, Tab, Tabs, Typography } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -72,14 +72,34 @@ const ContestDetails = () => {
 
   return (
     <Box>
-      <Breadcrumb
-        title={contestData?.name}
-        data={[
-          { title: "Dashboard", href: "/dashboard" },
-          { title: "Contest Management", href: "/contest-management/contests" },
-          { title: contestData?.name, href: "#" },
-        ]}
-      />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Breadcrumb
+          title={contestData?.name}
+          data={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Contest Management", href: "/contest-management/contests" },
+            { title: contestData?.name, href: "#" },
+          ]}
+        />
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => router.back()}
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            borderColor: "#6366f1",
+            color: "#6366f1",
+            textTransform: "none",
+            fontWeight: 600,
+            "&:hover": {
+              borderColor: "#4f46e5",
+              bgcolor: "rgba(99, 102, 241, 0.04)",
+            },
+          }}
+        >
+          Back
+        </Button>
+      </Box>
       <Card
         sx={{
           mt: 2,

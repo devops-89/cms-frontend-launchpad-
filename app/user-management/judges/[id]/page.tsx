@@ -81,13 +81,23 @@ const JudgeDetailsPage = () => {
         />
         <Stack direction="row" spacing={2}>
           <Button
-            startIcon={<ArrowBack />}
-            onClick={() => router.back()}
-            variant="outlined"
-            sx={{ color: colors.TEXT_SECONDARY, borderColor: colors.BORDER, textTransform: "none", fontWeight: 600 }}
-          >
-            Back
-          </Button>
+          startIcon={<ArrowBack />}
+          onClick={() => router.back()}
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            borderColor: "#6366f1",
+            color: "#6366f1",
+            textTransform: "none",
+            fontWeight: 600,
+            "&:hover": {
+              borderColor: "#4f46e5",
+              bgcolor: "rgba(99, 102, 241, 0.04)",
+            },
+          }}
+        >
+          Back
+        </Button>
           {!isPending && (
             <Button
               startIcon={<EditOutlined />}

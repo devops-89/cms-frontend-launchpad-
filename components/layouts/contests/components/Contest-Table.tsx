@@ -84,20 +84,7 @@ const ContestTable = () => {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      contestControllers.updateStatus({ status }, id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["contests"] });
-      showSnackbar("Status updated successfully", "success");
-    },
-    onError: (err: any) => {
-      showSnackbar(
-        err?.response?.data?.message || "Failed to update status",
-        "error",
-      );
-    },
-  });
+
 
   const contestsList = Array.isArray(data?.data?.docs) ? data.data.docs : [];
 
@@ -118,20 +105,21 @@ const ContestTable = () => {
 
   return (
     <Box>
-      <Tabs value={value} onChange={tabChangeHandler}>
-        {CONTEST_TABLE_STATUS.map((item, index) => (
-          <Tab key={index} label={item.label} />
-        ))}
-      </Tabs>
-      <Box sx={{ textAlign: "center" }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Tabs value={value} onChange={tabChangeHandler}>
+          {CONTEST_TABLE_STATUS.map((item, index) => (
+            <Tab key={index} label={item.label} sx={{ textTransform: 'none', fontWeight: 600 }} />
+          ))}
+        </Tabs>
         <TextField
-          placeholder="Search"
+          placeholder="Search..."
           value={searchQuery}
           onChange={handleSearchChange}
+          size="small"
           sx={{
             fontFamily: roboto.style.fontFamily,
-            mt: 2,
-            width: "100%",
+            width: "300px",
+            mr: 1
           }}
         />
       </Box>
@@ -197,17 +185,7 @@ const ContestTable = () => {
                     {item.name}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Typography
-                    sx={{
-                      color: "text.secondary",
-                      fontFamily: roboto.style.fontFamily,
-                      fontSize: 13,
-                    }}
-                  >
-                    {item.description.slice(0, 20) + "..."}
-                  </Typography>
-                </TableCell>
+
                 <TableCell>
                   <Typography
                     sx={{ fontFamily: roboto.style.fontFamily, fontSize: 13 }}
@@ -223,62 +201,36 @@ const ContestTable = () => {
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Select
-                    value={item.status || UserStatus.DRAFT}
-                    size="small"
-                    onChange={(e) =>
-                      mutation.mutate({
-                        id: item.id,
-                        status: e.target.value as string,
-                      })
-                    }
+                  <Box
                     sx={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 1.5,
                       fontSize: 12,
                       fontWeight: 600,
-                      height: 30,
-                      minWidth: 110,
-                      borderRadius: 1.5,
+                      minWidth: 90,
                       textTransform: "capitalize",
-                      "& .MuiSelect-select": {
-                        py: 0.5,
-                        px: 1.5,
-                        display: "flex",
-                        alignItems: "center",
-                        bgcolor: alpha(
-                          theme.palette[
-                            getStatusColor(
-                              (item.status || UserStatus.DRAFT) as UserStatus,
-                            ) as "success" | "warning" | "error" | "info"
-                          ]?.main || theme.palette.grey[400],
-                          0.1,
-                        ),
-                        color:
-                          theme.palette[
-                            getStatusColor(
-                              (item.status || UserStatus.DRAFT) as UserStatus,
-                            ) as "success" | "warning" | "error" | "info"
-                          ]?.main || theme.palette.grey[700],
-                        borderRadius: 1,
-                      },
-                      "& fieldset": { border: "none" },
-                      "&:hover fieldset": { border: "none" },
+                      bgcolor: alpha(
+                        theme.palette[
+                          getStatusColor(
+                            (item.status || UserStatus.DRAFT) as UserStatus,
+                          ) as "success" | "warning" | "error" | "info"
+                        ]?.main || theme.palette.grey[400],
+                        0.1,
+                      ),
+                      color:
+                        theme.palette[
+                          getStatusColor(
+                            (item.status || UserStatus.DRAFT) as UserStatus,
+                          ) as "success" | "warning" | "error" | "info"
+                        ]?.main || theme.palette.grey[700],
                     }}
-                    disabled={mutation.isPending}
                   >
-                    {[
-                      UserStatus.PUBLISHED,
-                      UserStatus.DRAFT,
-                      UserStatus.OFFLINE,
-                    ].map((status) => (
-                      <MenuItem
-                        key={status}
-                        value={status}
-                        sx={{ fontSize: 13, textTransform: "capitalize" }}
-                      >
-                        {status}
-                      </MenuItem>
-                    ))}
-                  </Select>
+                    {item.status || UserStatus.DRAFT}
+                  </Box>
                 </TableCell>
                 <TableCell>
                   <Typography

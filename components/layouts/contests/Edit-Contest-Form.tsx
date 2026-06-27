@@ -17,7 +17,7 @@ import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 import React, { useState, useEffect } from "react";
 import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
-import { Close as CloseIcon } from "@mui/icons-material";
+import { Close as CloseIcon , ArrowBack} from "@mui/icons-material";
 import { useRouter, useParams } from "next/navigation";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { CountryController } from "@/api/countryControllers";
@@ -157,6 +157,7 @@ const EditContestForm = () => {
   return (
     <Box>
       <Box mb={4}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Breadcrumb
           title="Edit Contest"
           data={[
@@ -171,6 +172,25 @@ const EditContestForm = () => {
             },
           ]}
         />
+        <Button
+          startIcon={<ArrowBack />}
+          onClick={() => router.back()}
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            borderColor: "#6366f1",
+            color: "#6366f1",
+            textTransform: "none",
+            fontWeight: 600,
+            "&:hover": {
+              borderColor: "#4f46e5",
+              bgcolor: "rgba(99, 102, 241, 0.04)",
+            },
+          }}
+        >
+          Back
+        </Button>
+      </Box>
       </Box>
 
       <Box component="form" onSubmit={formik.handleSubmit as any} noValidate>
@@ -367,7 +387,7 @@ const EditContestForm = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Select User Registration Form Template*"
+                  label="User Registration Template*"
                   error={
                     formik.touched.user_level_template_id &&
                     Boolean(formik.errors.user_level_template_id)
@@ -411,7 +431,7 @@ const EditContestForm = () => {
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  label="Select User Entry Form Template*"
+                  label="Entry Submission Template*"
                   error={
                     formik.touched.entry_level_template_id &&
                     Boolean(formik.errors.entry_level_template_id)

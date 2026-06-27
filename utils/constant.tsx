@@ -150,6 +150,11 @@ export const SIDEBAR = [
         href: "/user-management/users",
       },
       {
+        label: "Public",
+        icon: Public,
+        href: "/user-management/public",
+      },
+      {
         label: "Judges",
         icon: Gavel,
         href: "/user-management/judges",
@@ -780,7 +785,6 @@ export const JUDGES = [
 export const CONTEST_TABLE_HEADER = [
   // "Id",
   "Contest Name",
-  "Description",
   "Start Date",
   "End Date",
   "Status",

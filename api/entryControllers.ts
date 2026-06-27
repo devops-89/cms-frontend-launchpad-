@@ -21,11 +21,14 @@ export const entryControllers = {
     contestId: string,
     page: number = 1,
     limit: number = 10,
+    status?: string
   ) => {
     try {
-      const response = await contestSecuredApi.get(
-        `/${contestId}/entries?page=${page}&limit=${limit}`,
-      );
+      let url = `/${contestId}/entries?page=${page}&limit=${limit}`;
+      if (status && status !== "all" && status !== "All") {
+        url += `&status=${status.toLowerCase()}`;
+      }
+      const response = await contestSecuredApi.get(url);
 
       return response.data;
     } catch (error) {

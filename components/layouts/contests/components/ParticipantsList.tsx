@@ -433,7 +433,7 @@ const ParticipantsList = () => {
                         size="small" 
                         sx={{ color: colors.TEXT_SECONDARY }}
                         onClick={() => {
-                          if (participant.entries && participant.entries.length > 0) {
+                          if ((participant as any).entries && (participant as any).entries.length > 0) {
                             showSnackbar("This participant has active entries. Please delete their entries first.", "error");
                             return;
                           }

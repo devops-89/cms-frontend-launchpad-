@@ -14,6 +14,18 @@ export const UserController = {
       throw error;
     }
   },
+  getPublicUsers: async (page: number = 1, limit: number = 10, search?: string) => {
+    try {
+      let url = `all?role=public&page=${page}&limit=${limit}`;
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
+      }
+      let result = await userSecuredApi.get(url);
+      return result;
+    } catch (error){
+      throw error;
+    }
+  },
 updateUserStatus: async (
   id: string,
   status: string,

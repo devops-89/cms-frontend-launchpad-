@@ -333,7 +333,9 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                   >
                     {loading
                       ? "Saving Template..."
-                      : "Launch Experience Template"}
+                      : initialData 
+                        ? "Update Template" 
+                        : "Launch Experience Template"}
                   </Button>
                 </Paper>
               </Grid>

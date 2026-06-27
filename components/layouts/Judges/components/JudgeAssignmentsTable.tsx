@@ -147,7 +147,19 @@ const JudgeAssignmentsTable: React.FC<JudgeAssignmentsTableProps> = ({ entryAssi
                 <TableCell>
                   <Box sx={{ display: "grid", gridTemplateColumns: "repeat(2, max-content)", gap: 1 }}>
                     {group.entries.map((entryTitle: string, i: number) => (
-                      <Chip key={i} label={entryTitle} size="small" variant="outlined" />
+                      <Chip 
+                        key={i} 
+                        label={entryTitle} 
+                        size="small" 
+                        variant="outlined" 
+                        onClick={() => {
+                          window.location.href = `/contest-management/entries/${group.entry_ids[i]}?contestId=${group.contest?.id}`;
+                        }}
+                        sx={{ 
+                          cursor: 'pointer', 
+                          '&:hover': { bgcolor: 'rgba(0,0,0,0.05)' } 
+                        }}
+                      />
                     ))}
                   </Box>
                 </TableCell>

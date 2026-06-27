@@ -147,18 +147,20 @@ const ViewUserDetails = () => {
         <Button
           startIcon={<ArrowBackIcon />}
           onClick={() => router.back()}
-          variant="contained"
-          sx={{ 
-            bgcolor: '#ffffff', 
-            color: '#1e293b', 
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-            borderRadius: '10px',
-            textTransform: 'none',
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            borderColor: "#6366f1",
+            color: "#6366f1",
+            textTransform: "none",
             fontWeight: 600,
-            '&:hover': { bgcolor: '#f1f5f9', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
+            "&:hover": {
+              borderColor: "#4f46e5",
+              bgcolor: "rgba(99, 102, 241, 0.04)",
+            },
           }}
         >
-          Back to List
+          Back
         </Button>
       </Box>
 

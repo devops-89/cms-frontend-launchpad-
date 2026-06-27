@@ -361,7 +361,8 @@ const AddEntryForm = () => {
 
   return (
     <Box>
-      <Breadcrumb
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Breadcrumb
         title="Add Entry to Contest"
         data={[
           { title: "Dashboard", href: "/dashboard" },
@@ -373,6 +374,25 @@ const AddEntryForm = () => {
           { title: "Add Entry", href: "#" },
         ]}
       />
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.back()}
+          variant="outlined"
+          sx={{
+            borderRadius: 2,
+            borderColor: "#6366f1",
+            color: "#6366f1",
+            textTransform: "none",
+            fontWeight: 600,
+            "&:hover": {
+              borderColor: "#4f46e5",
+              bgcolor: "rgba(99, 102, 241, 0.04)",
+            },
+          }}
+        >
+          Back
+        </Button>
+      </Box>
       <Card
         sx={{
           mt: 4,
