@@ -63,11 +63,6 @@ const StatusDropdown = ({ user }: { user: any }) => {
   
   const getStatus = () => {
     let st = user.status || "Pending";
-    if (user.participants && user.participants.length > 0) {
-      // Prioritize active/approved status if any, otherwise first
-      const active = user.participants.find((p: any) => p.status !== "Banned" && p.status !== "banned" && p.status !== "rejected" && p.status !== "Rejected");
-      st = active ? active.status : user.participants[0].status;
-    }
     if (st?.toLowerCase() === "approved") return "Active";
     return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
   };
@@ -261,11 +256,7 @@ const UserTable: React.FC = () => {
     const users = user_data?.users || [];
     if (statusTab === "All" || statusTab === "all") return users;
     return users.filter((u: any) => {
-      let st = u.status;
-      if (u.participants && u.participants.length > 0) {
-        const active = u.participants.find((p: any) => p.status !== "Banned" && p.status !== "banned" && p.status !== "rejected" && p.status !== "Rejected");
-        st = active ? active.status : u.participants[0].status;
-      }
+      let st = u.status || "Pending";
       if (st?.toLowerCase() === "approved") st = "Active";
       return st?.toLowerCase() === statusTab.toLowerCase();
     });
@@ -298,7 +289,7 @@ const UserTable: React.FC = () => {
     {
       header: "Status",
       getValue: (val: any) => {
-        let st = val.participants?.[0]?.status || val.status;
+        let st = val.status || "Pending";
         if (st?.toLowerCase() === "approved") return "Active";
         return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "—";
       },
