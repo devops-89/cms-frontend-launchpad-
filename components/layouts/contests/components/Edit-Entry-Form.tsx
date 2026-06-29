@@ -49,6 +49,34 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import * as Yup from "yup";
 
+const extractS3Key = (url: string) => {
+  if (!url || typeof url !== 'string') return url;
+  if (!url.startsWith('http://') && !url.startsWith('https://')) return url;
+  
+  try {
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname;
+    
+    const entriesIdx = path.indexOf('/entries/');
+    if (entriesIdx !== -1) {
+      return path.slice(entriesIdx + 1);
+    }
+    const usersIdx = path.indexOf('/users/');
+    if (usersIdx !== -1) {
+      return path.slice(usersIdx + 1);
+    }
+    
+    let cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    const segments = cleanPath.split('/');
+    if (segments.length > 1 && (segments[0].includes('bucket') || segments[0].includes('launchpad'))) {
+      cleanPath = segments.slice(1).join('/');
+    }
+    return cleanPath;
+  } catch (e) {
+    return url;
+  }
+};
+
 const EditEntryForm = () => {
   const { showSnackbar } = useSnackbar();
   const params = useParams();
@@ -81,7 +109,11 @@ const EditEntryForm = () => {
         }
 
         if (storedValue !== undefined && storedValue !== null) {
-          acc[field.id] = storedValue;
+          if (field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH) {
+            acc[field.id] = storedValue === true || String(storedValue).toLowerCase() === "true" || storedValue === "Yes";
+          } else {
+            acc[field.id] = storedValue;
+          }
           return acc;
         }
         acc[field.id] = "";
@@ -189,11 +221,16 @@ const EditEntryForm = () => {
           validator = validator.when(addMemberField.id, {
             is: "Yes",
             then: (schema: any) =>
-              schema.required(`${field.label} is required`),
+              field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
+                ? schema.oneOf([true], "This field is required")
+                : schema.required(`${field.label} is required`),
             otherwise: (schema: any) => schema.notRequired(),
           });
         } else {
-          validator = validator.required(`${field.label} is required`);
+          validator = 
+            field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
+              ? validator.oneOf([true], "This field is required")
+              : validator.required(`${field.label} is required`);
         }
       }
       schemaFields[field.id] = validator;
@@ -285,7 +322,26 @@ const EditEntryForm = () => {
         const formData = new FormData();
         for (const key in values) {
           if (values[key] !== undefined && values[key] !== null) {
-            formData.append(key, values[key]);
+            const value = values[key];
+            const fieldDef = template_fields?.find((f: any) => f.id === key);
+            
+            if (fieldDef && (fieldDef.type === FIELDS_TYPE.FILE_UPLOAD || fieldDef.type === "file" || fieldDef.type === "image")) {
+              if (value instanceof File) {
+                formData.append(key, value);
+              } else if (typeof value === "string") {
+                const submissionData = entryData?.submission?.data?.data || entryData?.submission?.data || {};
+                const originalValue = submissionData[key] || submissionData[fieldDef.label] || submissionData[fieldDef.label?.trim() || ""] || value;
+                formData.append(key, originalValue);
+              } else if (value === null) {
+                formData.append(key, "");
+              }
+            } else {
+              if (value !== "") {
+                formData.append(key, value);
+              } else {
+                formData.append(key, "");
+              }
+            }
           }
         }
         await entryControllers.updateEntrySubmission(id, entryId, formData);
@@ -537,6 +593,11 @@ const EditEntryForm = () => {
                           }
                           label={val.label}
                         />
+                        {formik.touched[val.id] && formik.errors[val.id] && (
+                          <FormHelperText error sx={{ ml: 0 }}>
+                            {formik.errors[val.id] as string}
+                          </FormHelperText>
+                        )}
                       </Box>
                     )}
                     {val.type === FIELDS_TYPE.RADIO && (

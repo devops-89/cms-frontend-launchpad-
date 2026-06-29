@@ -274,7 +274,7 @@ const ParticipantsList = () => {
                       });
 
                       const rawData = participant.submission?.data;
-                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participantProfile?.submission?.data?.data || (participant as any).participantProfile?.submission?.data || (participant as any).user?.participantProfile?.submission?.data?.data || (participant as any).user?.participantProfile?.submission?.data || (participant as any).participant_profile_data || {};
                       const firstName = firstNameField ? (formData[firstNameField.label] || formData[firstNameField.id]) : "";
                       const lastName = lastNameField ? (formData[lastNameField.label] || formData[lastNameField.id]) : "";
                       const fullName = fullNameField ? (formData[fullNameField.label] || formData[fullNameField.id]) : "";
@@ -299,7 +299,7 @@ const ParticipantsList = () => {
                     } else {
                       const field = fields.find((f: ContestTemplateField) => f.id === col.id);
                       const rawData = participant.submission?.data;
-                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participantProfile?.submission?.data?.data || (participant as any).participantProfile?.submission?.data || (participant as any).user?.participantProfile?.submission?.data?.data || (participant as any).user?.participantProfile?.submission?.data || (participant as any).participant_profile_data || {};
                       let rawValue = formData[col.label] || formData[col.id];
                       
                       if (!rawValue && field) {
@@ -334,7 +334,10 @@ const ParticipantsList = () => {
                            downloadUrl = possibleUrl;
                          }
                          if (!downloadUrl) {
-                           const downloadUrlKey = Object.keys(formData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(formData[key]));
+                           let downloadUrlKey = Object.keys(formData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(formData[key]));
+                           if (!downloadUrlKey) {
+                             downloadUrlKey = Object.keys(formData).find((key) => isImageUrl(formData[key]));
+                           }
                            if (downloadUrlKey) downloadUrl = formData[downloadUrlKey];
                          }
 
@@ -367,7 +370,7 @@ const ParticipantsList = () => {
                   <TableCell>
                     {(() => {
                       const rawData = participant.submission?.data;
-                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participant_profile_data || {};
+                      const formData = rawData?.data || rawData || (participant as any).data || (participant as any).participantProfile?.submission?.data?.data || (participant as any).participantProfile?.submission?.data || (participant as any).participant_profile_data || {};
                       let displayStatus = participant.status || formData.status || "Unknown";
                       if (displayStatus.toLowerCase() === "approved") {
                         displayStatus = "Active";

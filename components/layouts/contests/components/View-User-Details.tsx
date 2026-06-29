@@ -41,7 +41,8 @@ const ViewUserDetails = () => {
   });
   
   const rawDetails = participantResponse?.data || participantResponse;
-  const formData = rawDetails?.participant_profile_data || rawDetails?.submission?.data?.data || rawDetails?.submission?.data || rawDetails?.data || {};
+  const participant = rawDetails;
+  const formData = participant?.submission?.data || participant?.participantProfile?.submission?.data?.data || participant?.participantProfile?.submission?.data || participant?.user?.participantProfile?.submission?.data?.data || participant?.user?.participantProfile?.submission?.data || participant?.participant_profile_data || participant?.submission?.data?.data || participant?.submission?.data || participant?.data || {};
 
   if (isContestPending || isParticipantPending) {
     return (
@@ -284,15 +285,17 @@ const ViewUserDetails = () => {
                   return null;
                 }
 
-                const isLink = value.startsWith("http");
+                const downloadUrl = formData[`${key}_downloadUrl`] || formData[`${fieldMatch?.label}_downloadUrl`] || (fieldMatch?.label?.trim() ? formData[`${fieldMatch.label.trim()}_downloadUrl`] : null);
+                const actualValue = downloadUrl || value;
+                const isLink = typeof actualValue === 'string' && (actualValue.startsWith("http") || /\.(png|jpe?g|gif|webp|svg|bmp|mp4|pdf|doc|docx)(\?|$)/i.test(actualValue.split('?')[0]));
 
                 // Format Dates properly
-                let displayValue: any = value;
+                let displayValue: any = actualValue;
                 if (!isLink) {
                    if (labelLower === 'dob' || labelLower.includes('dateofbirth') || labelLower.includes('birth') || fieldMatch?.type === 'datePicker') {
                       // format date only, no time
-                      if (moment(value).isValid()) {
-                         displayValue = moment(value).format('DD MMM, YYYY');
+                      if (moment(actualValue).isValid()) {
+                         displayValue = moment(actualValue).format('DD MMM, YYYY');
                       }
                    }
                 }
@@ -307,7 +310,7 @@ const ViewUserDetails = () => {
                         <Box>
                           <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mb: 0.5 }}>{displayLabel}</Typography>
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                            <a href={value} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'none' }}>
+                            <a href={actualValue} target="_blank" rel="noreferrer" style={{ color: '#6366f1', textDecoration: 'none' }}>
                               View Attached File
                             </a>
                           </Typography>

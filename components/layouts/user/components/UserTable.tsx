@@ -58,13 +58,30 @@ const getStatusStyles = (status: string) => {
   }
 };
 
+const resolveUserStatus = (u: any) => {
+  if (u.participants && u.participants.length > 0) {
+    const allBanned = u.participants.every((p: any) => p.status?.toLowerCase() === "banned");
+    if (allBanned) return "Banned";
+
+    const active = u.participants.find((p: any) => p.status?.toLowerCase() !== "banned");
+    if (active) {
+      const st = active.status;
+      if (st?.toLowerCase() === "approved") return "Active";
+      return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
+    }
+  }
+  
+  let st = u.status || "Pending";
+  if (st?.toLowerCase() === "approved") return "Active";
+  if (st?.toLowerCase() === "banned") return "Banned";
+  return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
+};
+
 const StatusDropdown = ({ user }: { user: any }) => {
   const queryClient = useQueryClient();
   
   const getStatus = () => {
-    let st = user.status || "Pending";
-    if (st?.toLowerCase() === "approved") return "Active";
-    return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
+    return resolveUserStatus(user);
   };
 
   const [currentStatus, setCurrentStatus] = useState<string>(getStatus());
@@ -256,9 +273,8 @@ const UserTable: React.FC = () => {
     const users = user_data?.users || [];
     if (statusTab === "All" || statusTab === "all") return users;
     return users.filter((u: any) => {
-      let st = u.status || "Pending";
-      if (st?.toLowerCase() === "approved") st = "Active";
-      return st?.toLowerCase() === statusTab.toLowerCase();
+      const resolved = resolveUserStatus(u);
+      return resolved.toLowerCase() === statusTab.toLowerCase();
     });
   }, [user_data, statusTab]);
 
@@ -288,11 +304,7 @@ const UserTable: React.FC = () => {
     },
     {
       header: "Status",
-      getValue: (val: any) => {
-        let st = val.status || "Pending";
-        if (st?.toLowerCase() === "approved") return "Active";
-        return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "—";
-      },
+      getValue: (val: any) => resolveUserStatus(val),
       render: (val: any) => <StatusDropdown user={val} />,
     },
     {
@@ -336,9 +348,11 @@ const UserTable: React.FC = () => {
 
   const [visibleHeaders, setVisibleHeaders] = useState<string[]>([]);
   
-  // Update visible headers when active headers change
+  // Update visible headers when active headers change - default to standard columns
   React.useEffect(() => {
-    setVisibleHeaders(ALL_HEADERS);
+    const defaultVisible = ["Name", "Email", "Status", "Joined At", "Contest"];
+    const defaults = ALL_HEADERS.filter((h) => defaultVisible.includes(h));
+    setVisibleHeaders(defaults);
   }, [user_data]);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);

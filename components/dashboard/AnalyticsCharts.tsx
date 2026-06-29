@@ -25,8 +25,10 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
     return participants.filter((p) => {
       const date =
         p.joinedAt ||
-        (p.participantProfile && p.participantProfile.createdAt) ||
-        p.createdAt;
+        p.joined_at ||
+        (p.participantProfile && (p.participantProfile.createdAt || p.participantProfile.created_at)) ||
+        p.createdAt ||
+        p.created_at;
       if (!date) return false;
       return moment(date).format("MMM DD") === dateStr;
     }).length;
@@ -43,8 +45,8 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
   const topContests = [...contests]
     .sort(
       (a, b) =>
-        (b.entries || b.total_entries || 0) -
-        (a.entries || a.total_entries || 0),
+        (b.entryCount || b.total_entries || b.entries || 0) -
+        (a.entryCount || a.total_entries || a.entries || 0),
     )
     .slice(0, 4);
 
@@ -57,8 +59,11 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
 
   const contestData =
     topContests.length > 0
-      ? topContests.map((c) => c.entries || c.total_entries || 0)
+      ? topContests.map((c) => c.entryCount || c.total_entries || c.entries || 0)
       : [0];
+
+  const maxUserActivity = Math.max(...sessionsData, ...newUsersData, 5);
+  const maxContestData = Math.max(...contestData, 5);
 
   return (
     <Grid container spacing={3} sx={{ mt: 1 }}>
@@ -91,6 +96,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                 },
               ]}
               xAxis={[{ scaleType: "point", data: xLabels }]}
+              yAxis={[{ tickMinStep: 1, min: 0, max: maxUserActivity }]}
               sx={{
                 "& .MuiAreaElement-root": {
                   fillOpacity: 0.1,
@@ -128,6 +134,7 @@ const AnalyticsCharts: React.FC<AnalyticsChartsProps> = ({
                   data: contestLabels,
                 },
               ]}
+              yAxis={[{ tickMinStep: 1, min: 0, max: maxContestData }]}
             />
           </Box>
         </Paper>

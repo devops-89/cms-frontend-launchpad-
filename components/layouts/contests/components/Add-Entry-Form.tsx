@@ -209,11 +209,16 @@ const AddEntryForm = () => {
             validator = validator.when(addMemberField.id, {
               is: "Yes",
               then: (schema: any) =>
-                schema.required(`${field.label} is required`),
+                field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
+                  ? schema.oneOf([true], "This field is required")
+                  : schema.required(`${field.label} is required`),
               otherwise: (schema: any) => schema.notRequired(),
             });
           } else {
-            validator = validator.required(`${field.label} is required`);
+            validator = 
+              field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
+                ? validator.oneOf([true], "This field is required")
+                : validator.required(`${field.label} is required`);
           }
         }
         schemaFields[field.id] = validator;

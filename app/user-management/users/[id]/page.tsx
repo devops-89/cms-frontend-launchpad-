@@ -22,10 +22,20 @@ const UserDetailsPage = () => {
 
   const user = data?.data?.data || data?.data;
 
+  const profileData = user?.participantProfile?.submission?.data?.data || user?.participantProfile?.submission?.data || user?.participant_profile_data || {};
+
   let displayAvatar = user?.avatarUrl || user?.participantProfile?.avatarUrl || "";
   if (!displayAvatar && user) {
-    const profileData = user.participant_profile_data || user.participantProfile?.submission?.data || {};
-    const downloadUrlKey = Object.keys(profileData).find(key => key.endsWith("_downloadUrl"));
+    const isImageUrl = (url: any) => typeof url === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/i.test(url.split('?')[0]);
+    
+    let downloadUrlKey = Object.keys(profileData).find(key => 
+      key.endsWith("_downloadUrl") && !key.endsWith("_downloadUrl_downloadUrl") && isImageUrl(profileData[key])
+    );
+    
+    if (!downloadUrlKey) {
+      downloadUrlKey = Object.keys(profileData).find(key => isImageUrl(profileData[key]));
+    }
+    
     if (downloadUrlKey) {
       displayAvatar = profileData[downloadUrlKey];
     }
@@ -37,22 +47,22 @@ const UserDetailsPage = () => {
   let displayCountry = user?.country?.name || user?.participantProfile?.country;
   let displayPhone = user?.phone || user?.participantProfile?.phone;
 
-  if (user?.participant_profile_data && user?.formTemplate?.schema?.fields) {
+  if (profileData && user?.formTemplate?.schema?.fields) {
     const fields = user.formTemplate.schema.fields;
     const schoolField = fields.find((f: any) => f.label?.toLowerCase().includes("school"));
-    if (schoolField && user.participant_profile_data[schoolField.id]) displaySchool = user.participant_profile_data[schoolField.id];
+    if (schoolField && profileData[schoolField.id]) displaySchool = profileData[schoolField.id];
 
     const gradeField = fields.find((f: any) => f.label?.toLowerCase().includes("grade"));
-    if (gradeField && user.participant_profile_data[gradeField.id]) displayGrade = user.participant_profile_data[gradeField.id];
+    if (gradeField && profileData[gradeField.id]) displayGrade = profileData[gradeField.id];
 
     const dobField = fields.find((f: any) => f.label?.toLowerCase().includes("date of birth") || f.label?.toLowerCase().includes("dob"));
-    if (dobField && user.participant_profile_data[dobField.id]) displayDob = user.participant_profile_data[dobField.id];
+    if (dobField && profileData[dobField.id]) displayDob = profileData[dobField.id];
     
     const countryField = fields.find((f: any) => f.label?.toLowerCase().includes("country"));
-    if (countryField && user.participant_profile_data[countryField.id]) displayCountry = user.participant_profile_data[countryField.id];
+    if (countryField && profileData[countryField.id]) displayCountry = profileData[countryField.id];
     
     const phoneField = fields.find((f: any) => f.label?.toLowerCase().includes("phone"));
-    if (phoneField && user.participant_profile_data[phoneField.id]) displayPhone = user.participant_profile_data[phoneField.id];
+    if (phoneField && profileData[phoneField.id]) displayPhone = profileData[phoneField.id];
   }
 
 
@@ -70,6 +80,25 @@ const UserDetailsPage = () => {
       default:
         return { bgcolor: "rgba(107, 114, 128, 0.1)", color: "#6b7280", border: "1px solid rgba(107, 114, 128, 0.2)" };
     }
+  };
+
+  const resolveUserStatus = (u: any) => {
+    if (u?.participants && u.participants.length > 0) {
+      const allBanned = u.participants.every((p: any) => p.status?.toLowerCase() === "banned");
+      if (allBanned) return "Banned";
+
+      const active = u.participants.find((p: any) => p.status?.toLowerCase() !== "banned");
+      if (active) {
+        const st = active.status;
+        if (st?.toLowerCase() === "approved") return "Active";
+        return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
+      }
+    }
+    
+    let st = u?.status || "Pending";
+    if (st?.toLowerCase() === "approved") return "Active";
+    if (st?.toLowerCase() === "banned") return "Banned";
+    return st ? st.charAt(0).toUpperCase() + st.slice(1).toLowerCase() : "Pending";
   };
 
   const InfoItem = ({ icon: Icon, label, value }: { icon: any, label: string, value: string }) => (
@@ -169,11 +198,11 @@ const UserDetailsPage = () => {
                 </Typography>
 
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
-                  {user.status && (
+                  {user && (
                     <Chip 
-                      label={user.status}
+                      label={resolveUserStatus(user)}
                       sx={{ 
-                        ...getStatusColor(user.status),
+                        ...getStatusColor(resolveUserStatus(user)),
                         fontWeight: 700,
                         borderRadius: '8px',
                         px: 1
@@ -296,6 +325,85 @@ const UserDetailsPage = () => {
                             }} 
                           />
                         </Box>
+
+                        {p.entries && p.entries.length > 0 && (
+                          <>
+                            <Divider sx={{ my: 2, borderColor: '#e2e8f0' }} />
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#475569', mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#ec4899' }} />
+                              Submitted Entries ({p.entries.length})
+                            </Typography>
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                              {p.entries.map((entry: any) => {
+                                const entryFields = p.contest?.entryLevelTemplate?.schema?.fields || p.contest?.entry_level_template?.schema?.fields || [];
+                                const titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.id?.toLowerCase().includes("title"));
+                                const submissionData = entry.submission?.data || {};
+                                let entryTitle = titleField ? (submissionData[titleField.id] || submissionData[titleField.label]) : "";
+                                if (!entryTitle) {
+                                  entryTitle = submissionData.lwiwu56nx || submissionData.title || "Innovation Entry";
+                                }
+                                
+                                return (
+                                  <Box 
+                                    key={entry.id} 
+                                    sx={{ 
+                                      p: 2, 
+                                      borderRadius: 2, 
+                                      bgcolor: '#ffffff', 
+                                      border: '1px solid #e2e8f0', 
+                                      display: 'flex', 
+                                      justifyContent: 'space-between', 
+                                      alignItems: 'center',
+                                      transition: 'all 0.2s',
+                                      '&:hover': {
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
+                                        borderColor: '#cbd5e1'
+                                      }
+                                    }}
+                                  >
+                                    <Box sx={{ minWidth: 0, flex: 1, pr: 2 }}>
+                                      <Typography variant="body2" noWrap sx={{ fontWeight: 700, color: '#1e293b' }}>
+                                        {entryTitle}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mt: 0.5 }}>
+                                        Submitted: {moment(entry.created_at || entry.createdAt || entry.submission?.createdAt).format("MMM DD, YYYY")}
+                                      </Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                      <Chip 
+                                        label={entry.status} 
+                                        size="small" 
+                                        sx={{ 
+                                          ...getStatusColor(entry.status),
+                                          textTransform: "capitalize", 
+                                          fontWeight: 700, 
+                                          fontSize: "0.7rem", 
+                                          borderRadius: '4px',
+                                          height: 20
+                                        }} 
+                                      />
+                                      <Button 
+                                        variant="outlined" 
+                                        size="small" 
+                                        onClick={() => router.push(`/contest-management/entries/${entry.id}?contestId=${entry.contest_id || p.contest_id}`)}
+                                        sx={{ 
+                                          textTransform: 'none', 
+                                          fontSize: '0.75rem', 
+                                          py: 0.2, 
+                                          px: 1, 
+                                          borderRadius: 1.5,
+                                          fontWeight: 600
+                                        }}
+                                      >
+                                        View
+                                      </Button>
+                                    </Box>
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          </>
+                        )}
                       </Box>
                     </Grid>
                   ))}
