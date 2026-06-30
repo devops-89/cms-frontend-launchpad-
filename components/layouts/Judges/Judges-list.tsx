@@ -36,6 +36,7 @@ import React, { useMemo, useState } from "react";
 import AssignJudgesDialog from "./components/AssignJudgesDialog";
 import JudgesTableHeader from "./components/Judges-Table-header";
 import JudgesTableRow from "./components/JudgesTableRow";
+import { usePermissions } from "@/context/PermissionContext";
 
 const JudgesList: React.FC = () => {
   const { colors } = useAppTheme();
@@ -55,6 +56,10 @@ const JudgesList: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const { hasPermission } = usePermissions();
+  const canEdit = hasPermission("Judges", "canEdit");
+  const canDelete = hasPermission("Judges", "canDelete");
+  const canCreate = hasPermission("Judges", "canCreate");
 
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -64,15 +69,20 @@ const JudgesList: React.FC = () => {
   }, [searchTerm]);
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["judge-list", debouncedSearchTerm],
-    queryFn: () => UserController.getAllJudges(debouncedSearchTerm),
+    queryKey: ["judge-list", debouncedSearchTerm, statusTab],
+    queryFn: () => UserController.getAllJudges(debouncedSearchTerm, statusTab),
     enabled: true,
   });
 
   const apiJudges = useMemo(() => {
     const users = data?.data?.data?.users || data?.data?.data || [];
     const list = Array.isArray(users) ? users : [];
-    return list.map((u: any) => ({
+    return list
+      .filter((u: any) => {
+        const st = String(u.status).toLowerCase();
+        return st !== "rejected" && st !== "blocked" && st !== "banned";
+      })
+      .map((u: any) => ({
       id: u.id,
       name: `${u.firstName || ""} ${u.lastName || ""}`.trim(),
       email: u.email,
@@ -102,12 +112,8 @@ const JudgesList: React.FC = () => {
   }, [apiJudges]);
 
   const filteredJudges = useMemo(() => {
-    return apiJudges.filter((j: any) => {
-      const matchesStatus =
-        statusTab === UserStatus.ALL || j.status === statusTab;
-      return matchesStatus;
-    });
-  }, [apiJudges, statusTab]);
+    return apiJudges;
+  }, [apiJudges]);
 
   const paginatedJudges = useMemo(() => {
     const start = page * rowsPerPage;
@@ -227,7 +233,7 @@ const JudgesList: React.FC = () => {
           }}
         >
           <TextField
-            placeholder="Search judges by name, email or expertise..."
+            placeholder="Search by name or email..."
             size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -318,7 +324,7 @@ const JudgesList: React.FC = () => {
               },
             }}
           >
-            {allSelectedActive && (
+            {allSelectedActive && canCreate && (
               <MenuItem
                 disabled={selectedJudges.length === 0}
                 onClick={() => {
@@ -337,15 +343,18 @@ const JudgesList: React.FC = () => {
                 Assign selected to Contest
               </MenuItem>
             )}
-            <MenuItem
-              disabled={selectedJudges.length === 0}
-              onClick={() => {
-                setHeaderMenuAnchorEl(null);
-              }}
-              sx={{ fontSize: "0.85rem", color: colors.ERROR }}
-            >
-              Delete selected
-            </MenuItem>
+            {canDelete && (
+              <MenuItem
+                disabled={selectedJudges.length === 0}
+                onClick={() => {
+                  setHeaderMenuAnchorEl(null);
+                  // TODO: Bulk delete logic
+                }}
+                sx={{ fontSize: "0.85rem", color: colors.ERROR }}
+              >
+                Delete selected
+              </MenuItem>
+            )}
           </Menu>
         </Box>
       </Box>

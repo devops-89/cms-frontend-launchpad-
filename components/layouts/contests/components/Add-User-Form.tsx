@@ -42,7 +42,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useFormik } from "formik";
-import { MuiTelInput } from "mui-tel-input";
+import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import * as Yup from "yup";
@@ -131,6 +131,10 @@ const AddUserForm = () => {
             );
           }
           validator = fileValidator;
+        } else if (field.type === FIELDS_TYPE.TEL_INPUT) {
+          validator = Yup.string().test("is-valid-phone", "Invalid phone number", (value) => value ? matchIsValidTel(value) : false);
+        } else if (field.type === FIELDS_TYPE.TEXTFIELD && field.id === "email") {
+          validator = Yup.string().trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Invalid email address");
         } else {
           validator = Yup.string();
         }
@@ -233,7 +237,7 @@ const AddUserForm = () => {
     );
 
     router.push(
-      `/contest-management/contests/${id}`,
+      `/contest-management/contests/${id}?tab=1`,
     );
   } catch (err: any) {
     showSnackbar(
@@ -381,13 +385,16 @@ const AddUserForm = () => {
                     required={val.required}
                     name={val.id}
                     value={formik.values[val.id] || ""}
-                    onChange={formik.handleChange}
+                    onChange={(e) => {
+                      formik.handleChange(e);
+                      formik.setFieldTouched(val.id, true, false);
+                    }}
                     onBlur={formik.handleBlur}
                     error={
-                      formik.touched[val.id] && Boolean(formik.errors[val.id])
+                      (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id])
                     }
                     helperText={
-                      (formik.touched[val.id] &&
+                      ((formik.touched[val.id] || Boolean(formik.values[val.id])) &&
                         (formik.errors[val.id] as string)) ||
                       val.helperText
                     }
@@ -409,7 +416,22 @@ const AddUserForm = () => {
                       required={val.required}
                       name={val.id}
                       value={formik.values[val.id] || ""}
-                      onChange={(value) => formik.setFieldValue(val.id, value)}
+                      onChange={(value) => {
+                        const prevValue = formik.values[val.id] || "";
+                        const isCurrentlyValid = matchIsValidTel(prevValue);
+                        const isNewValid = matchIsValidTel(value);
+                        const prevDigits = prevValue.replace(/\D/g, "");
+                        const newDigits = value.replace(/\D/g, "");
+
+                        if (isCurrentlyValid && !isNewValid && newDigits.length > prevDigits.length) {
+                          if (newDigits.startsWith(prevDigits)) {
+                            return;
+                          }
+                        }
+
+                        formik.setFieldValue(val.id, value);
+                        formik.setFieldTouched(val.id, true, false);
+                      }}
                       onBlur={() => formik.setFieldTouched(val.id, true)}
                       error={
                         formik.touched[val.id] && Boolean(formik.errors[val.id])

@@ -43,7 +43,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useFormik } from "formik";
-import { MuiTelInput } from "mui-tel-input";
+import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import * as Yup from "yup";
@@ -80,22 +80,46 @@ const AddEntryForm = () => {
   );
   const validationSchema = React.useMemo(() => {
     const schemaFields: Record<string, Yup.AnySchema> = {};
+    let isSecondMemberSection = false;
     template_fields?.forEach((field: any) => {
+      if (field.type === FIELDS_TYPE.STEP_BREAK) {
+        const label = field.label?.toLowerCase() || "";
+        if (label.includes("second")) {
+          isSecondMemberSection = true;
+        } else {
+          isSecondMemberSection = false;
+        }
+        return;
+      }
       let validator: any;
       switch (field.type) {
         case FIELDS_TYPE.TEXTFIELD:
+        case FIELDS_TYPE.TEXTAREA:
         case FIELDS_TYPE.PASSWORD:
-        case FIELDS_TYPE.TEL_INPUT:
         case FIELDS_TYPE.SELECT:
         case FIELDS_TYPE.RADIO:
         case FIELDS_TYPE.AUTOCOMPLETE:
-        case FIELDS_TYPE.COUNTRY_SELECTOR: validator = Yup.string();
+        case FIELDS_TYPE.COUNTRY_SELECTOR: 
+          validator = Yup.string();
+          if (field.type === FIELDS_TYPE.TEXTFIELD) {
+             const lbl = field.label?.toLowerCase() || "";
+             if (lbl.includes("email")) {
+                validator = validator.trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Please Enter Valid Email");
+             } else if ((lbl.includes("name") || lbl.includes("city") || lbl.includes("state") || lbl.includes("country")) && !lbl.includes("school") && !lbl.includes("company") && !lbl.includes("file") && !lbl.includes("username")) {
+                validator = validator.matches(/^[^\d]*$/, `${field.label} cannot contain numbers`);
+             }
+          }
+          break;
+        case FIELDS_TYPE.TEL_INPUT:
+          validator = Yup.string().test("is-valid-phone", "Invalid Phone Number", (value) => value ? matchIsValidTel(value) : false);
           break;
         case FIELDS_TYPE.NUMBER_FIELD:
         case FIELDS_TYPE.SLIDER:
-        case FIELDS_TYPE.RATING: validator = Yup.number();
+        case FIELDS_TYPE.RATING: 
+          validator = Yup.number();
           break;
-        case FIELDS_TYPE.DATE_PICKER: validator = Yup.string();
+        case FIELDS_TYPE.DATE_PICKER: 
+          validator = Yup.string();
           break;
         case FIELDS_TYPE.FILE_UPLOAD: {
           let fileValidator = Yup.mixed();
@@ -133,97 +157,31 @@ const AddEntryForm = () => {
           break;
         }
         case FIELDS_TYPE.CHECKBOX:
-        case FIELDS_TYPE.SWITCH: validator = Yup.boolean();
+        case FIELDS_TYPE.SWITCH: 
+          validator = Yup.boolean();
           break;
         default: return;
       }
-      let isSecondMemberSection = false;
-      template_fields?.forEach((field: any) => {
-        if (field.type === FIELDS_TYPE.STEP_BREAK) {
-          const label = field.label?.toLowerCase() || "";
-          if (label.includes("second")) {
-            isSecondMemberSection = true;
-          } else {
-            isSecondMemberSection = false;
-          }
-        }
-        let validator: any;
-        switch (field.type) {
-          case FIELDS_TYPE.TEXTFIELD:
-          case FIELDS_TYPE.TEXTAREA:
-          case FIELDS_TYPE.PASSWORD:
-          case FIELDS_TYPE.TEL_INPUT:
-          case FIELDS_TYPE.SELECT:
-          case FIELDS_TYPE.RADIO:
-          case FIELDS_TYPE.AUTOCOMPLETE:
-          case FIELDS_TYPE.COUNTRY_SELECTOR: validator = Yup.string();
-          break;
-          case FIELDS_TYPE.NUMBER_FIELD:
-          case FIELDS_TYPE.SLIDER:
-          case FIELDS_TYPE.RATING:validator = Yup.number();
-            break;
-          case FIELDS_TYPE.DATE_PICKER: validator = Yup.string();
-            break;
-          case FIELDS_TYPE.FILE_UPLOAD: {
-            let fileValidator = Yup.mixed();
-            if (field.config?.maxSize) {
-              const maxSize = Number(field.config.maxSize) * 1024 * 1024;
-              fileValidator = fileValidator.test(
-                "fileSize",
-                `File size is too large (Max: ${field.config.maxSize}MB)`,
-                (value: any) => {
-                  if (!value) return true;
-                  if (value instanceof File) return value.size <= maxSize;
-                  return true;
-                }
-              );
-            }
-            if (field.config?.allowedExtensions) {
-              const allowed = typeof field.config.allowedExtensions === 'string' 
-                ? field.config.allowedExtensions.split(",").map((e: string) => e.trim().toLowerCase()) 
-                : field.config.allowedExtensions;
-              fileValidator = fileValidator.test(
-                "fileType",
-                `Unsupported file type (Allowed: ${allowed.join(", ")})`,
-                (value: any) => {
-                  if (!value) return true;
-                  if (value instanceof File) {
-                    const extMatch = value.name.match(/\.[0-9a-z]+$/i);
-                    const extension = extMatch ? extMatch[0].toLowerCase() : "";
-                    return allowed.includes(extension);
-                  }
-                  return true;
-                }
-              );
-            }
-            validator = fileValidator;
-            break;
-          }
-          case FIELDS_TYPE.CHECKBOX:
-          case FIELDS_TYPE.SWITCH: validator = Yup.boolean();
-            break;
-          default: return;
-        }
-        if (field.required) {
-          if (isSecondMemberSection && addMemberField) {
-            validator = validator.when(addMemberField.id, {
-              is: "Yes",
-              then: (schema: any) =>
-                field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
-                  ? schema.oneOf([true], "This field is required")
-                  : schema.required(`${field.label} is required`),
-              otherwise: (schema: any) => schema.notRequired(),
-            });
-          } else {
-            validator = 
+      if (field.required && validator) {
+        if (isSecondMemberSection && addMemberField) {
+          validator = validator.when(addMemberField.id, {
+            is: "Yes",
+            then: (schema: any) =>
               field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
-                ? validator.oneOf([true], "This field is required")
-                : validator.required(`${field.label} is required`);
-          }
+                ? schema.oneOf([true], "This field is required")
+                : schema.required(`${field.label} is required`),
+            otherwise: (schema: any) => schema.notRequired(),
+          });
+        } else {
+          validator = 
+            field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
+              ? validator.oneOf([true], "This field is required")
+              : validator.required(`${field.label} is required`);
         }
+      }
+      if (validator) {
         schemaFields[field.id] = validator;
-      });
-      schemaFields[field.id] = validator;
+      }
     });
     return Yup.object(schemaFields);
   }, [template_fields, addMemberField]);
@@ -316,7 +274,7 @@ const AddEntryForm = () => {
         
         await entryControllers.createEntry(id, formData);
         showSnackbar("Entry added successfully!", "success");
-        router.push(`/contest-management/contests/${id}`);
+        router.push(`/contest-management/contests/${id}?tab=2`);
       } catch (err: any) {
         console.log(err);
         showSnackbar(
@@ -511,10 +469,10 @@ const AddEntryForm = () => {
                         required={val.false}
                         name={val.id}
                         value={formik.values[val.id] || ""}
-                        onChange={formik.handleChange}
+                        onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
                         onBlur={formik.handleBlur}
-                        error={ formik.touched[val.id] && Boolean(formik.errors[val.id])}
-                        helperText={ (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText }
+                        error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id])}
+                        helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
                       />
                       {val.type === FIELDS_TYPE.TEXTAREA && val.config?.maxWords && (
                         <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
@@ -532,12 +490,12 @@ const AddEntryForm = () => {
                           required={val.false}
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={(value) => formik.setFieldValue(val.id, value) }
+                          onChange={(value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
                           onBlur={() => formik.setFieldTouched(val.id, true)}
-                          error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
+                          error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
                           defaultCountry={val.config?.defaultCountry}
                         />
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
                         )}
                       </Box>
@@ -548,11 +506,11 @@ const AddEntryForm = () => {
                           label={val.label}
                           sx={{ width: "100%" }}
                           value={ formik.values[val.id] ? dayjs(formik.values[val.id]) : null }
-                          onChange={(newValue) => formik.setFieldValue( val.id, newValue && newValue.isValid() ? newValue.toISOString() : null ) }
+                          onChange={(newValue) => { formik.setFieldValue( val.id, newValue && newValue.isValid() ? newValue.toISOString() : null ); formik.setFieldTouched(val.id, true, false); } }
                           slotProps={{
                             textField: {
-                              error: formik.touched[val.id] && Boolean(formik.errors[val.id]),
-                              helperText: (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText,
+                              error: (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]),
+                              helperText: ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText,
                               required: val.false,
                             },
                           }}
@@ -565,23 +523,23 @@ const AddEntryForm = () => {
                       <FormControl
                         fullWidth
                         variant={val.variant}
-                        error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
+                        error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
                       >
                         <InputLabel>{val.label}</InputLabel>
                         <Select
                           label={val.label}
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={formik.handleChange}
+                          onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
                           onBlur={formik.handleBlur}
                         >
                           {(val.options as string[])?.map((opt: string) => (
                             <MenuItem key={opt} value={opt}> {opt} </MenuItem>
                           ))}
                         </Select>
-                        {(formik.touched[val.id] && formik.errors[val.id]) ||
+                        {((formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id]) ||
                         val.helperText ? (
-                          <FormHelperText> {(formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText} </FormHelperText>
+                          <FormHelperText error={Boolean(formik.errors[val.id])}> {((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText} </FormHelperText>
                         ) : null}
                       </FormControl>
                     )}
@@ -594,13 +552,13 @@ const AddEntryForm = () => {
                             label={val.label}
                             variant={val.variant}
                             placeholder={val.placeholder}
-                            error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
-                            helperText={ (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText }
+                            error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
+                            helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
                             required={val.false}
                           />
                         )}
                         value={formik.values[val.id] || null}
-                        onChange={(_, newValue) => formik.setFieldValue(val.id, newValue) }
+                        onChange={(_, newValue) => { formik.setFieldValue(val.id, newValue); formik.setFieldTouched(val.id, true, false); } }
                         onBlur={() => formik.setFieldTouched(val.id, true)}
                       />
                     )}
@@ -611,14 +569,14 @@ const AddEntryForm = () => {
                             <TextField
                               {...params}
                               label={val.label || "Country Of Residence"}
-                              error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
-                              helperText={ (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText }
+                              error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
+                              helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
                               required={val.false}
                             />
                           )}
                           options={val.options}
                           value={formik.values[val.id] || null}
-                          onChange={(_, newValue) => formik.setFieldValue(val.id, newValue) }
+                          onChange={(_, newValue) => { formik.setFieldValue(val.id, newValue); formik.setFieldTouched(val.id, true, false); } }
                           onBlur={() => formik.setFieldTouched(val.id, true)}
                         />
                       ) : (
@@ -658,14 +616,14 @@ const AddEntryForm = () => {
                                 },
                               }}
                               fullWidth
-                              error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
-                              helperText={ (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText }
+                              error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
+                              helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
                               required={val.false}
                             />
                           )}
                           value={
                             countries.find( (c) => c.label === formik.values[val.id]) || null }
-                          onChange={(_, newValue) => formik.setFieldValue(val.id, newValue?.label || "") }
+                          onChange={(_, newValue) => { formik.setFieldValue(val.id, newValue?.label || ""); formik.setFieldTouched(val.id, true, false); } }
                           onBlur={() => formik.setFieldTouched(val.id, true)}
                         />
                       ))}
@@ -693,7 +651,7 @@ const AddEntryForm = () => {
                           }
                           label={val.label}
                         />
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
                         )}
                       </Box>
@@ -709,15 +667,15 @@ const AddEntryForm = () => {
                         <RadioGroup
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={formik.handleChange}
+                          onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
                           onBlur={formik.handleBlur}
                         >
                           {(val.options as string[])?.map((opt: string) => (
                             <FormControlLabel key={opt} value={opt} control={<Radio />} label={opt}/>
                           ))}
                         </RadioGroup>
-                        {formik.touched[val.id] && formik.errors[val.id] && (
-                          <FormHelperText>
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
+                          <FormHelperText error={Boolean(formik.errors[val.id])}>
                             {formik.errors[val.id] as string} </FormHelperText>
                         )}
                       </FormControl>
@@ -731,7 +689,7 @@ const AddEntryForm = () => {
                           <Slider
                             name={val.id}
                             value={formik.values[val.id] || 0}
-                            onChange={(_, value) =>formik.setFieldValue(val.id, value)}
+                            onChange={(_, value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); }}
                             onBlur={() => formik.setFieldTouched(val.id, true)}
                             valueLabelDisplay="auto"
                           />
@@ -739,11 +697,11 @@ const AddEntryForm = () => {
                           <Rating
                             name={val.id}
                             value={Number(formik.values[val.id]) || 0}
-                            onChange={(_, value) => formik.setFieldValue(val.id, value) }
+                            onChange={(_, value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
                             onBlur={() => formik.setFieldTouched(val.id, true)}
                           />
                         )}
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
                         )}
                       </Box>
@@ -785,7 +743,7 @@ const AddEntryForm = () => {
                             />
                           </Button>
                         )}
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
                             {formik.errors[val.id] as string}
                           </FormHelperText>

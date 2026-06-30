@@ -11,6 +11,7 @@ import { ThemeContextProvider } from "@/context/ThemeContext";
 import { FormProvider } from "@/context/FormContext";
 import { SnackbarProvider } from "@/context/SnackbarContext";
 import QueryProvider from "@/context/QueryProvider";
+import { PermissionProvider } from "@/context/PermissionContext";
 import LayoutWrapper from "@/components/widgets/Layout-Wrapper";
 
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
@@ -32,7 +33,9 @@ export default function RootLayout({
             <ThemeContextProvider>
               <FormProvider>
                 <SnackbarProvider>
-                  <LayoutWrapper>{children}</LayoutWrapper>
+                  <PermissionProvider>
+                    <LayoutWrapper>{children}</LayoutWrapper>
+                  </PermissionProvider>
                 </SnackbarProvider>
               </FormProvider>
             </ThemeContextProvider>

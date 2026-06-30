@@ -4,12 +4,15 @@ import { LogoutOutlined, Person } from "@mui/icons-material";
 import { Avatar, Box, Button, Paper, Tooltip, Typography } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import LayoutProvider from "./Layout-Provider";
+import { AuthControllers } from "@/api/authControllers";
 const Header = () => {
   const { colors } = useAppTheme();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const [user, setUser] = useState<any>(null);
 
@@ -31,13 +34,27 @@ const Header = () => {
     }
   }, []);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
+      const refreshToken = isJudgePanel 
+        ? localStorage.getItem("judge_refresh_token") || "" 
+        : localStorage.getItem("refresh_token") || "";
+        
+      await AuthControllers.logout({ refreshToken });
+    } catch (err) {
+      console.error("Logout API failed, continuing with local cleanup...", err);
+    }
+    
+    queryClient.clear();
     const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
     if (isJudgePanel) {
       localStorage.removeItem("judge_access_token");
+      localStorage.removeItem("judge_refresh_token");
       localStorage.removeItem("judge_user");
     } else {
       localStorage.removeItem("token");
+      localStorage.removeItem("refresh_token");
       localStorage.removeItem("user");
     }
     router.push("/");
@@ -159,7 +176,7 @@ const Header = () => {
               <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1.5 }}>
                 <Box>
                   <Typography variant="subtitle2" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}>
-                    {user?.role?.toUpperCase() === "JUDGE" ? "Judge" : "Admin"}
+                    {user?.role?.toUpperCase() === "JUDGE" ? "Judge" : (user?.roleEntity?.name || "Admin")}
                   </Typography>
                 </Box>
               </Box>

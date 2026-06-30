@@ -49,7 +49,7 @@ export const AuthControllers = {
   }
   },
 
-  logout: async (data: LOGOUTPAYLOAD) => {
+  logout: async (data: LOGOUTPAYLOAD | {} = {}) => {
   try {
     let result = await authSecuredApi.post(
       "logout",
@@ -105,7 +105,7 @@ refreshToken: async (data: LOGOUTPAYLOAD) => {
   }
 },
 
-verifyOtp: async (data: any) => {
+verifyOtp: async (data: Record<string, unknown>) => {
   try {
     let result =
       await authPublicApi.post(
@@ -113,6 +113,15 @@ verifyOtp: async (data: any) => {
         data,
       );
 
+    return result;
+  } catch (error) {
+    throw error;
+  }
+},
+
+resendOtp: async (data: Record<string, unknown>) => {
+  try {
+    let result = await authPublicApi.post("resend-otp", data);
     return result;
   } catch (error) {
     throw error;

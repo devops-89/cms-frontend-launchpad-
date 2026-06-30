@@ -20,6 +20,7 @@ import { montserrat } from "@/utils/fonts";
 import FormBuilderCard from "./Form-Builder-Card";
 import { useGetAllTemplates } from "@/hooks/form/useGetAllTemplates";
 import { FORM_CONTROLLERS } from "@/api/formControllers";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface TemplateListProps {
   onEdit: (template: any) => void;
@@ -31,6 +32,11 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
 
   const { showSnackbar } = useSnackbar();
   const router = useRouter();
+
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("Form Builder", "canCreate");
+  const canEdit = hasPermission("Form Builder", "canEdit");
+  const canDelete = hasPermission("Form Builder", "canDelete");
 
   const handleCreateNew = () => router.push("/form-builder/add");
 
@@ -91,26 +97,28 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
             Manage and deploy your custom form architectures
           </Typography>
         </Box>
-        <Button
-          variant="outlined"
-          startIcon={<AddIcon />}
-          onClick={handleCreateNew}
-          sx={{
-            py: 1.5,
-            px: 4,
-            borderRadius: "15px",
-            textTransform: "none",
-            fontWeight: 600,
-            fontSize: "0.95rem",
-            "&:hover": {
-              transform: "translateY(-3px)",
-              boxShadow: `0px 15px 30px ${alpha(theme.palette.primary.main, 0.4)}`,
-            },
-            transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
-          }}
-        >
-          Create New Template
-        </Button>
+        {canCreate && (
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={handleCreateNew}
+            sx={{
+              py: 1.5,
+              px: 4,
+              borderRadius: "15px",
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.95rem",
+              "&:hover": {
+                transform: "translateY(-3px)",
+                boxShadow: `0px 15px 30px ${alpha(theme.palette.primary.main, 0.4)}`,
+              },
+              transition: "all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+            }}
+          >
+            Create New Template
+          </Button>
+        )}
       </Box>
 
       {loading ? (
@@ -153,17 +161,19 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
           <Typography variant="body2" sx={{ color: "text.disabled", mb: 3 }}>
             Start building your first experience architecture
           </Typography>
-          <Button
-            variant="outlined"
-            onClick={handleCreateNew}
-            sx={{
-              borderRadius: "12px",
-              textTransform: "none",
-              fontWeight: 600,
-            }}
-          >
-            Open Form Builder
-          </Button>
+          {canCreate && (
+            <Button
+              variant="outlined"
+              onClick={handleCreateNew}
+              sx={{
+                borderRadius: "12px",
+                textTransform: "none",
+                fontWeight: 600,
+              }}
+            >
+              Open Form Builder
+            </Button>
+          )}
         </Box>
       ) : (
         <Grid container spacing={3}>
@@ -174,6 +184,8 @@ const TemplateList: React.FC<TemplateListProps> = ({ onEdit }) => {
                   template={template}
                   onEdit={onEdit}
                   onDelete={handleDeleteClick}
+                  canEdit={canEdit}
+                  canDelete={canDelete}
                 />
               </Grid>
             ))}

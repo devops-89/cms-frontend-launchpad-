@@ -21,11 +21,15 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { DeleteOutline } from "@mui/icons-material";
+import { usePermissions } from "@/context/PermissionContext";
 import { UserController } from "@/api/userControllers";
 import { UserRole } from "@/utils/enum";
 import { VotingPeriodPayload } from "@/types/user";
 
 const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
+  const { hasPermission } = usePermissions();
+  const canCreateVotingPeriod = hasPermission("Contest Management", "canCreate");
+  const canDeleteVotingPeriod = hasPermission("Contest Management", "canDelete");
   const { hideModal } = useModal();
   const params = useParams();
   const id = params?.id;
@@ -280,7 +284,7 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
                     }}
                     required
                   />
-                  {criteria.length > 1 && (
+                  {criteria.length > 1 && canDeleteVotingPeriod && (
                     <IconButton
                       color="error"
                       onClick={() => {
@@ -293,14 +297,16 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
                   )}
                 </Stack>
               ))}
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setCriteria([...criteria, { description: "", weighting: "" }])}
-                sx={{ textTransform: "capitalize", mt: 1 }}
-              >
-                Add another
-              </Button>
+              {canCreateVotingPeriod && (
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setCriteria([...criteria, { description: "", weighting: "" }])}
+                  sx={{ textTransform: "capitalize", mt: 1 }}
+                >
+                  Add another
+                </Button>
+              )}
             </Box>
           )}
 

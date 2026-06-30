@@ -37,6 +37,9 @@ const validationSchema = Yup.object({
     .trim()
     .matches(/^[A-Za-z]+$/, "Currency Code can only contain alphabets")
     .required("Currency Code is required"),
+  currencyName: Yup.string()
+    .trim()
+    .required("Currency Name is required"),
   isActive: Yup.boolean(),
 });
 
@@ -45,6 +48,7 @@ const defaultValues = {
   code: "",
   phoneCode: "",
   currencyCode: "",
+  currencyName: "",
   isActive: true,
 };
 
@@ -119,6 +123,17 @@ const CountryModal: React.FC<CountryModalProps> = ({
               onChange={formik.handleChange}
               error={formik.touched.currencyCode && Boolean(formik.errors.currencyCode)}
               helperText={formik.touched.currencyCode && (formik.errors.currencyCode as string)}
+            />
+            <TextField
+              fullWidth
+              required
+              id="currencyName"
+              name="currencyName"
+              label="Currency Name"
+              value={formik.values.currencyName}
+              onChange={formik.handleChange}
+              error={formik.touched.currencyName && Boolean(formik.errors.currencyName)}
+              helperText={formik.touched.currencyName && (formik.errors.currencyName as string)}
             />
 
           </Stack>

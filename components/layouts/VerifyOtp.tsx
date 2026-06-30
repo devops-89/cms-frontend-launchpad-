@@ -34,7 +34,7 @@ const VerifyOtpForm = () => {
   const { showSnackbar } = useSnackbar();
 
   const [loading, setLoading] = React.useState(false);
-  const [timer, setTimer] = React.useState(300);
+  const [timer, setTimer] = React.useState(60);
   const [canResend, setCanResend] = React.useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
@@ -60,9 +60,9 @@ const VerifyOtpForm = () => {
       }
       
       setLoading(true);
-      await AuthControllers.forgotPassword({ email });
+      await AuthControllers.resendOtp({ email });
       showSnackbar("OTP resent successfully", "success");
-      setTimer(300);
+      setTimer(60);
       setCanResend(false);
     } catch (error: any) {
       showSnackbar(

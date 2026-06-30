@@ -14,6 +14,7 @@ import OverviewTab from "./Overview-Tab";
 import ParticipantsList from "./ParticipantsList";
 import SettingsTab from "./Settings-Tab";
 import VotesTab from "./Votes-Tab";
+import { usePermissions } from "@/context/PermissionContext";
 
 const ContestDetails = () => {
   const params = useParams();
@@ -22,11 +23,15 @@ const ContestDetails = () => {
   const id = params?.id;
   const initialTab = searchParams ? parseInt(searchParams.get("tab") || "0", 10) : 0;
   const [tabValue, setTabValue] = useState(isNaN(initialTab) ? 0 : initialTab);
+  
+  const { hasPermission } = usePermissions();
+  const canEditContest = hasPermission("Contests", "canEdit");
 
   const contestId = (Array.isArray(id) ? id[0] : id) as string;
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
+    router.replace(`/contest-management/contests/${contestId}?tab=${newValue}`);
   };
 
   const { data, isPending, error } = useQuery({
@@ -123,7 +128,7 @@ const ContestDetails = () => {
             {contestData?.name}
           </Typography>
 
-          {[1, 2].includes(tabValue) && (
+          {canEditContest && [1, 2].includes(tabValue) && (
             <Button
               variant="contained"
               startIcon={<Add />}

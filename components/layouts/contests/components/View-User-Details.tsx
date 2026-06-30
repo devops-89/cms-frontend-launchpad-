@@ -86,8 +86,9 @@ const ViewUserDetails = () => {
   }
 
   const isImageUrl = (url: string) => typeof url === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)(\?|$)/i.test(url.split('?')[0]);
-  const downloadUrlKey = Object.keys(formData).find(k => k.endsWith('_downloadUrl') && isImageUrl(formData[k]));
-  const avatarUrl = downloadUrlKey ? formData[downloadUrlKey] : undefined;
+  const submissionData = participant?.submission?.data?.data || participant?.submission?.data || formData;
+  const downloadUrlKey = Object.keys(submissionData).find(k => k.endsWith('_downloadUrl') && isImageUrl(submissionData[k]));
+  const avatarUrl = downloadUrlKey ? submissionData[downloadUrlKey] : undefined;
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {

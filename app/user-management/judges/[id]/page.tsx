@@ -57,7 +57,7 @@ const JudgeDetailsPage = () => {
   });
 
   const judgeData = data?.data?.data || data?.data;
-  const entryAssignments = judgeData?.entryAssignments || [];
+  const entryAssignments = judgeData?.entryAssignments || judgeData?.judgeProfile?.contestAssignments || [];
   const statusStyle = getStatusStyles(judgeData?.status || "Pending");
   const fullName = judgeData ? `${judgeData.firstName} ${judgeData.lastName}` : "";
   const initials = fullName
@@ -220,24 +220,7 @@ const JudgeDetailsPage = () => {
                     </Typography>
                   )}
 
-                  <Divider sx={{ mb: 4, borderColor: colors.BORDER }} />
 
-                  <Grid container spacing={3}>
-                    <Grid size={{ xs: 6 }}>
-                      <Box sx={{ p: 2, borderRadius: 2, bgcolor: "#f8fafc", border: `1px solid ${colors.BORDER}` }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1, color: colors.TEXT_SECONDARY }}>
-                          <AssignmentTurnedInOutlined fontSize="small" />
-                          <Typography variant="caption" sx={{ fontWeight: 600, textTransform: "uppercase" }}>
-                            Assigned Entries
-                          </Typography>
-                        </Box>
-                        <Typography variant="h4" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY }}>
-                          {entryAssignments.length}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    {/* Add more stats here in the future if needed */}
-                  </Grid>
                 </Box>
               </Grid>
             </Grid>

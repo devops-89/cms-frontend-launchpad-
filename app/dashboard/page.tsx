@@ -34,11 +34,42 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import moment from "moment";
 import { useRouter } from "next/navigation";
+import { usePermissions } from "@/context/PermissionContext";
+import { SIDEBAR } from "@/utils/constant";
 import React from "react";
 
 export default function DashboardPage() {
   const { colors } = useAppTheme();
   const router = useRouter();
+  const { hasPermission, isAdmin, isLoading: isPermissionsLoading } = usePermissions();
+
+  React.useEffect(() => {
+    if (!isPermissionsLoading && !isAdmin) {
+      let firstRoute = "";
+      for (const item of SIDEBAR) {
+        if (!item || !item.label) continue;
+        if (item.label === "Dashboard") continue;
+        if (item.label === "Permission Management") continue;
+
+        if (item.subModules && item.subModules.length > 0) {
+          const permittedSub = item.subModules.find((sub: any) => hasPermission(sub.label, "canView"));
+          if (permittedSub && permittedSub.href) {
+            firstRoute = permittedSub.href;
+            break;
+          }
+        } else {
+          if (hasPermission(item.label, "canView") && item.href) {
+            firstRoute = item.href;
+            break;
+          }
+        }
+      }
+
+      if (firstRoute) {
+        router.replace(firstRoute);
+      }
+    }
+  }, [isAdmin, isPermissionsLoading, hasPermission, router]);
 
   // Fetch contests (large limit to get all live data for overview)
   const { data: contestsData, isPending: isContestsPending } = useQuery({
@@ -151,7 +182,17 @@ export default function DashboardPage() {
     },
   ];
 
-  const isLoading = isContestsPending || isParticipantsPending;
+  const isLoadingData = isContestsPending || isParticipantsPending;
+
+  if (isPermissionsLoading || !isAdmin) {
+    return (
+      <DashboardLayout>
+        <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
+          <CircularProgress />
+        </Box>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -177,7 +218,7 @@ export default function DashboardPage() {
           </Typography>
         </Box>
 
-        {isLoading ? (
+        {isLoadingData ? (
           <Box sx={{ display: "flex", justifyContent: "center", mt: 10 }}>
             <CircularProgress />
           </Box>

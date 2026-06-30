@@ -56,7 +56,8 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
         .matches(/^[a-zA-Z\s]+$/, "Only letters and spaces are allowed")
         .required("Last Name is required"),
       email: Yup.string()
-        .email("Invalid email address")
+        .trim()
+        .matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Invalid email address")
         .required("Email is required"),
       phoneNumber: Yup.string()
         .required("Phone Number is required")
@@ -94,15 +95,23 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
     },
   });
 
-  const handlePhoneNumber = (value: string) => {
-    formik.setFieldValue("phoneNumber", value);
-    const isValidPhoneNumber = matchIsValidTel(value);
-    if (!isValidPhoneNumber) {
-      formik.setFieldError("phoneNumber", "Invalid phone number");
-    } else {
-      formik.setFieldError("phoneNumber", "");
-      formik.setFieldValue("phoneNumber", value);
+  const handlePhoneNumber = (value: string, info: any) => {
+    const prevValue = formik.values.phoneNumber || "";
+    const isCurrentlyValid = matchIsValidTel(prevValue);
+    const isNewValid = matchIsValidTel(value);
+
+    const prevDigits = prevValue.replace(/\D/g, "");
+    const newDigits = value.replace(/\D/g, "");
+
+    // Prevent entering more digits if the number is already valid and the new input makes it invalid
+    if (isCurrentlyValid && !isNewValid && newDigits.length > prevDigits.length) {
+      if (newDigits.startsWith(prevDigits)) {
+        return; // Block appending extra digits
+      }
     }
+
+    formik.setFieldValue("phoneNumber", value);
+    formik.setFieldTouched("phoneNumber", true, false);
   };
 
   return (
@@ -114,7 +123,7 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
             label="First Name*"
             fullWidth
             value={formik.values.firstName}
-            onChange={formik.handleChange}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.firstName && Boolean(formik.errors.firstName)}
             helperText={formik.touched.firstName && formik.errors.firstName as string}
@@ -126,7 +135,7 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
             label="Last Name*"
             fullWidth
             value={formik.values.lastName}
-            onChange={formik.handleChange}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.lastName && Boolean(formik.errors.lastName)}
             helperText={formik.touched.lastName && formik.errors.lastName as string}
@@ -139,7 +148,7 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
             type="email"
             fullWidth
             value={formik.values.email}
-            onChange={formik.handleChange}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.email && Boolean(formik.errors.email)}
             helperText={formik.touched.email && formik.errors.email as string}

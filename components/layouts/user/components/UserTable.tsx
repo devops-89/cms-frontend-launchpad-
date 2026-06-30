@@ -38,6 +38,8 @@ import {
   Button,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { usePermissions } from "@/context/PermissionContext";
 import moment from "moment";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -79,6 +81,8 @@ const resolveUserStatus = (u: any) => {
 
 const StatusDropdown = ({ user }: { user: any }) => {
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+  const canEditUser = hasPermission("Users", "canEdit");
   
   const getStatus = () => {
     return resolveUserStatus(user);
@@ -156,46 +160,56 @@ const StatusDropdown = ({ user }: { user: any }) => {
 
   return (
     <>
-      <FormControl variant="standard" fullWidth>
-        <Select
-          value={currentStatus}
-          onChange={handleStatusChange}
-          disableUnderline
-          disabled={mutation.isPending}
-          IconComponent={
-            mutation.isPending
-              ? () => <CircularProgress size={14} sx={{ mr: 1, ml: 0.5, color: statusStyle.color }} />
-              : undefined
-          }
-          sx={{
-            fontSize: "0.75rem",
-            fontWeight: 700,
-            width: "fit-content",
-            "& .MuiSelect-select": {
-              py: 0.5,
-              px: 1,
-              borderRadius: "6px",
-              bgcolor: statusStyle.bgcolor,
-              color: statusStyle.color,
-              display: "flex",
-              alignItems: "center",
-            },
-            "& .MuiSvgIcon-root": {
-              color: statusStyle.color,
-            },
-          }}
-        >
-          {Object.values(UserStatus)
-            .filter((s) => s === "Banned" || s === currentStatus)
-            .map((status) => {
-              return (
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        {canEditUser ? (
+          <FormControl size="small" variant="standard" fullWidth>
+            <Select
+              value={currentStatus}
+              onChange={handleStatusChange}
+              disableUnderline
+              disabled={mutation.isPending}
+              IconComponent={mutation.isPending ? () => <CircularProgress size={14} sx={{ mr: 1, ml: 0.5, color: statusStyle.color }} /> : undefined}
+              sx={{
+                fontSize: "0.75rem",
+                fontWeight: 700,
+                "& .MuiSelect-select": {
+                  py: 0.5,
+                  px: 1.5,
+                  borderRadius: "6px",
+                  bgcolor: statusStyle.bgcolor,
+                  color: statusStyle.color,
+                  display: "flex",
+                  alignItems: "center",
+                },
+                "& .MuiSvgIcon-root": {
+                  color: statusStyle.color,
+                },
+              }}
+            >
+              {[UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BANNED].map((status) => (
                 <MenuItem key={status} value={status} sx={{ fontSize: "0.85rem" }}>
                   {status}
                 </MenuItem>
-              );
-            })}
-        </Select>
-      </FormControl>
+              ))}
+            </Select>
+          </FormControl>
+        ) : (
+          <Box
+            sx={{
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              width: "fit-content",
+              py: 0.5,
+              px: 1.5,
+              borderRadius: "6px",
+              bgcolor: statusStyle.bgcolor,
+              color: statusStyle.color,
+            }}
+          >
+            {currentStatus}
+          </Box>
+        )}
+      </Box>
 
       <Dialog open={confirmOpen} onClose={cancelChange} maxWidth="xs" fullWidth>
         <DialogTitle>Confirm Status Change</DialogTitle>
@@ -260,8 +274,18 @@ const UserTable: React.FC = () => {
   }, [debouncedSearchTerm, statusTab]);
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["user-list", page, rowsPerPage, debouncedSearchTerm],
-    queryFn: () => UserController.getAllUser(UserRole.PARTICIPANT, page + 1, rowsPerPage, debouncedSearchTerm),
+    queryKey: ["user-list", page, rowsPerPage, debouncedSearchTerm, statusTab],
+    queryFn: () => {
+      let apiStatus = statusTab;
+      if (apiStatus === "Active") apiStatus = "approved";
+      if (apiStatus === "Banned") apiStatus = "banned";
+      
+      if (apiStatus === "Pending") {
+        return UserController.getPendingUsers(page + 1, rowsPerPage, debouncedSearchTerm);
+      }
+      
+      return UserController.getAllUser(UserRole.PARTICIPANT, page + 1, rowsPerPage, debouncedSearchTerm, apiStatus);
+    },
     enabled: true,
   });
 
@@ -270,13 +294,8 @@ const UserTable: React.FC = () => {
 
   // Filter users on the frontend
   const filteredUsers = React.useMemo(() => {
-    const users = user_data?.users || [];
-    if (statusTab === "All" || statusTab === "all") return users;
-    return users.filter((u: any) => {
-      const resolved = resolveUserStatus(u);
-      return resolved.toLowerCase() === statusTab.toLowerCase();
-    });
-  }, [user_data, statusTab]);
+    return user_data?.users || [];
+  }, [user_data]);
 
   const ALL_COLUMNS = [
     {
@@ -453,7 +472,7 @@ const UserTable: React.FC = () => {
           sx={{ mt: 3, px: 2 }}
         >
           <TextField 
-            placeholder="Search" 
+            placeholder="Search by name or email..." 
             fullWidth 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

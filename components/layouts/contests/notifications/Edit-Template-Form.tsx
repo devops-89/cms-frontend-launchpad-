@@ -74,9 +74,19 @@ const EditTemplateForm = () => {
     return <Box p={4} textAlign="center"><Typography>Template not found.</Typography></Box>;
   }
 
+  const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
+
   const handleSave = async () => {
-    if (!eventType || !subject || !body) {
-      alert("Please fill in all fields.");
+    const newErrors = {
+      eventType: !eventType,
+      subject: !subject.trim(),
+      body: !body.trim() || body.trim() === "<p><br></p>",
+    };
+
+    setErrors(newErrors);
+
+    if (Object.values(newErrors).some(Boolean)) {
+      showSnackbar("Please fill in all required fields.", "error");
       return;
     }
 
@@ -148,12 +158,15 @@ const EditTemplateForm = () => {
             </FormControl>
           </Grid>
           <Grid size={{ xs: 12, sm: 6 }}>
-            <FormControl fullWidth>
+            <FormControl fullWidth error={errors.eventType}>
               <InputLabel>Event Type</InputLabel>
               <Select
                 value={eventType}
                 label="Event Type"
-                disabled
+                onChange={(e) => {
+                  setEventType(e.target.value);
+                  setErrors((prev) => ({ ...prev, eventType: false }));
+                }}
               >
                 {(audience === "Participant" ? participantEvents : judgeEvents).map((ev) => (
                   <MenuItem key={ev.value} value={ev.value}>{ev.label}</MenuItem>
@@ -165,14 +178,18 @@ const EditTemplateForm = () => {
             <TextField
               label="Email Subject"
               fullWidth
+              error={errors.subject}
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                setSubject(e.target.value);
+                setErrors((prev) => ({ ...prev, subject: false }));
+              }}
             />
           </Grid>
           <Grid size={12}>
-            <InputLabel sx={{ mb: 1, fontSize: "0.875rem", color: colors.TEXT_SECONDARY }}>Email Body</InputLabel>
+            <InputLabel sx={{ mb: 1, fontSize: "0.875rem", color: errors.body ? "error.main" : colors.TEXT_SECONDARY }}>Email Body</InputLabel>
             <Box sx={{ 
-              "& .quill": { bgcolor: "white", borderRadius: 1 },
+              "& .quill": { bgcolor: "white", borderRadius: 1, border: errors.body ? "1px solid red" : "none" },
               "& .ql-container": { minHeight: "250px", fontSize: "16px", fontFamily: "inherit" },
               "& .ql-editor": { minHeight: "250px" }
             }}>

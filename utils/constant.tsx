@@ -159,11 +159,21 @@ export const SIDEBAR = [
         icon: Gavel,
         href: "/user-management/judges",
       },
+    ],
+  },
+  {
+    label: "Permission Management",
+    subModules: [
       {
-        label: "Permission Management",
-        href: "/user-management/permissions",
+        label: "Roles & Permissions",
         icon: PersonSharp,
+        href: "/permission-management/permissions",
       },
+      {
+        label: "Admin Users",
+        icon: People,
+        href: "/permission-management/employees",
+      }
     ],
   },
   {
@@ -194,6 +204,7 @@ export const COUNTRY_TABLE_HEADER = [
   "Code",
   "Phone Code",
   "Currency Code",
+  "Currency Name",
   "Status",
   "Actions",
 ];
@@ -202,7 +213,6 @@ export const STATUS_OPTIONS = [
   UserStatus.ALL,
   UserStatus.ACTIVE,
   UserStatus.INACTIVE,
-  UserStatus.REJECTED,
 ];
 
 export const JUDGES_TABLE_HEADER = [

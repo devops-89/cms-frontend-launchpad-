@@ -38,17 +38,25 @@ const AddJudgeForm = () => {
     },
     validationSchema: Yup.object({
       firstName: Yup.string()
+        .trim()
         .matches(/^[a-zA-Z\s]+$/, "Only letters and spaces are allowed")
+        .min(2, "First Name must be at least 2 characters")
+        .max(50, "First Name must not exceed 50 characters")
         .required("First Name is required"),
       lastName: Yup.string()
+        .trim()
         .matches(/^[a-zA-Z\s]+$/, "Only letters and spaces are allowed")
+        .min(2, "Last Name must be at least 2 characters")
+        .max(50, "Last Name must not exceed 50 characters")
         .required("Last Name is required"),
       email: Yup.string()
-        .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, "Invalid email address")
+        .trim()
+        .matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Invalid email address")
         .required("Email is required"),
       password: Yup.string()
         .required("Password is required")
-        .min(6, "Password must be at least 6 characters"),
+        .min(8, "Password must be at least 8 characters")
+        .max(64, "Password must not exceed 64 characters"),
       phoneNumber: Yup.string()
         .required("Phone Number is required")
         .test("is-valid-phone", "Invalid phone number", (value) =>
@@ -83,26 +91,28 @@ const AddJudgeForm = () => {
   });
 
   const handlePhoneNumber = (value: string, info: any) => {
-    const isCurrentlyValid = matchIsValidTel(formik.values.phoneNumber);
+    const prevValue = formik.values.phoneNumber || "";
+    const isCurrentlyValid = matchIsValidTel(prevValue);
     const isNewValid = matchIsValidTel(value);
 
+    const prevDigits = prevValue.replace(/\D/g, "");
+    const newDigits = value.replace(/\D/g, "");
+
     // Prevent entering more digits if the number is already valid and the new input makes it invalid
-    if (isCurrentlyValid && !isNewValid && value.length > formik.values.phoneNumber.length) {
-      return;
+    if (isCurrentlyValid && !isNewValid && newDigits.length > prevDigits.length) {
+      if (newDigits.startsWith(prevDigits)) {
+        return; // Block appending extra digits
+      }
     }
 
     formik.setFieldValue("phoneNumber", value);
-    if (!isNewValid) {
-      formik.setFieldError("phoneNumber", "Invalid phone number");
-    } else {
-      formik.setFieldError("phoneNumber", "");
-    }
+    formik.setFieldTouched("phoneNumber", true, false);
   };
 
   return (
     <Box component="form" onSubmit={formik.handleSubmit} sx={{ mt: 3 }} autoComplete="off">
-      <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
-      <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
+      <input type="email" name="hidden-email" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" />
+      <input type="password" name="hidden-password" style={{ display: 'none' }} tabIndex={-1} aria-hidden="true" />
       <Grid container spacing={5}>
         <Grid size={6}>
           <TextField
@@ -110,12 +120,7 @@ const AddJudgeForm = () => {
             label="First Name*"
             fullWidth
             value={formik.values.firstName}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "" || /^[a-zA-Z\s]+$/.test(val)) {
-                formik.handleChange(e);
-              }
-            }}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.firstName && Boolean(formik.errors.firstName)}
             helperText={formik.touched.firstName && formik.errors.firstName as string}
@@ -127,12 +132,7 @@ const AddJudgeForm = () => {
             label="Last Name*"
             fullWidth
             value={formik.values.lastName}
-            onChange={(e) => {
-              const val = e.target.value;
-              if (val === "" || /^[a-zA-Z\s]+$/.test(val)) {
-                formik.handleChange(e);
-              }
-            }}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.lastName && Boolean(formik.errors.lastName)}
             helperText={formik.touched.lastName && formik.errors.lastName as string}
@@ -144,9 +144,9 @@ const AddJudgeForm = () => {
             label="Email*"
             type="email"
             fullWidth
-            autoComplete="off"
+            autoComplete="new-password"
             value={formik.values.email}
-            onChange={formik.handleChange}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.email && Boolean(formik.errors.email)}
             helperText={formik.touched.email && formik.errors.email as string}
@@ -160,7 +160,7 @@ const AddJudgeForm = () => {
             fullWidth
             autoComplete="new-password"
             value={formik.values.password}
-            onChange={formik.handleChange}
+            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("password", true, false); }}
             onBlur={formik.handleBlur}
             error={formik.touched.password && Boolean(formik.errors.password)}
             helperText={formik.touched.password && formik.errors.password as string}

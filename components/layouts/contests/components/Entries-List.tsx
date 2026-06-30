@@ -33,6 +33,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { usePermissions } from "@/context/PermissionContext";
 
 const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: string }) => {
   const queryClient = useQueryClient();
@@ -273,9 +274,13 @@ const EntriesList = () => {
   const [entryToDelete, setEntryToDelete] = useState<ContestEntry | null>(null);
 
   const id = (Array.isArray(params?.id) ? params.id[0] : params?.id) as string;
-
   const { contest } = useContestDetails();
-  
+
+  const { hasPermission } = usePermissions();
+  const canViewEntry = hasPermission("Contests", "canView");
+  const canEditEntry = hasPermission("Contests", "canEdit");
+  const canDeleteEntry = hasPermission("Contests", "canDelete");
+
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [statusFilter, setStatusFilter] = useState("All");
@@ -385,11 +390,13 @@ const EntriesList = () => {
                 Status
               </Typography>
             </TableCell>
-            <TableCell align="right">
-              <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
-                Actions
-              </Typography>
-            </TableCell>
+            {(canViewEntry || canEditEntry || canDeleteEntry) && (
+              <TableCell align="right">
+                <Typography sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
+                  Actions
+                </Typography>
+              </TableCell>
+            )}
           </TableRow>
         </TableHead>
 
@@ -567,44 +574,52 @@ const EntriesList = () => {
                   <EntryStatusDropdown entry={entry} contestId={id} />
                 </TableCell>
 
-                <TableCell align="right">
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
-                    <IconButton
-                      size="small"
-                      color="info"
-                      onClick={() =>
-                        router.push(
-                          `/contest-management/entries/${entry.id}?contestId=${entry.contest_id}`
-                        )
-                      }
-                    >
-                      <RemoveRedEye fontSize="small" />
-                    </IconButton>
+                {(canViewEntry || canEditEntry || canDeleteEntry) && (
+                  <TableCell align="right">
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1 }}>
+                      {canViewEntry && (
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() =>
+                            router.push(
+                              `/contest-management/entries/${entry.id}?contestId=${entry.contest_id}`
+                            )
+                          }
+                        >
+                          <RemoveRedEye fontSize="small" />
+                        </IconButton>
+                      )}
 
-                    <IconButton
-                      size="small"
-                      sx={{ color: "#8b5cf6" }}
-                      onClick={() =>
-                        router.push(
-                          `/contest-management/contests/${entry?.contest_id}/entries/edit-entry?entryId=${entry.id}`
-                        )
-                      }
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
+                      {canEditEntry && (
+                        <IconButton
+                          size="small"
+                          sx={{ color: "#8b5cf6" }}
+                          onClick={() =>
+                            router.push(
+                              `/contest-management/contests/${entry?.contest_id}/entries/edit-entry?entryId=${entry.id}`
+                            )
+                          }
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      )}
 
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => {
-                        setEntryToDelete(entry);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
+                      {canDeleteEntry && (
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => {
+                            setEntryToDelete(entry);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}

@@ -32,6 +32,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import AssignJudgesDialog from "./AssignJudgesDialog";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface JudgesTableRowProps {
   judge: any;
@@ -51,6 +52,7 @@ const getStatusStyles = (status: UserStatus | string) => {
     case "Draft":
       return { bgcolor: "#ffedd5", color: "#c2410c" };
     case "Banned":
+    case "Blocked":
     case "Rejected":
       return { bgcolor: "#fee2e2", color: "#991b1b" };
     default:
@@ -70,12 +72,16 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
   const queryClient = useQueryClient();
   const { showModal, hideModal } = useModal();
   const { showSnackbar } = useSnackbar();
+  const { hasPermission } = usePermissions();
   const [judge, setJudge] = useState(initialJudge);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [confirmStatusDialogOpen, setConfirmStatusDialogOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<UserStatus | null>(null);
   const open = Boolean(anchorEl);
+
+  const canEditUser = hasPermission("Judges", "canEdit");
+  const canDeleteUser = hasPermission("Judges", "canDelete");
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -241,7 +247,7 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
 
         {visibleHeaders.includes("Status") && (
           <TableCell sx={{ whiteSpace: "nowrap" }}>
-            {judge.status === UserStatus.REJECTED || judge.status === "Rejected" ? (
+            {String(judge.status).toLowerCase() === "banned" || String(judge.status).toLowerCase() === "rejected" || String(judge.status).toLowerCase() === "blocked" ? (
               <Box
                 sx={{
                   fontSize: "0.75rem",
@@ -256,9 +262,9 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                   alignItems: "center",
                 }}
               >
-                Rejected
+                {judge.status}
               </Box>
-            ) : (
+            ) : canEditUser ? (
               <FormControl variant="standard" fullWidth>
                 <Select
                   value={judge.status}
@@ -293,7 +299,7 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                     },
                   }}
                 >
-                  {[UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.REJECTED]
+                  {[UserStatus.ACTIVE, UserStatus.INACTIVE]
                     .map((status) => (
                       <MenuItem
                         key={status}
@@ -305,6 +311,17 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                     ))}
                 </Select>
               </FormControl>
+            ) : (
+              <Chip
+                label={judge.status}
+                size="small"
+                sx={{
+                  fontWeight: 600,
+                  fontSize: "0.75rem",
+                  bgcolor: judge.status === "Active" ? `${colors.SUCCESS}15` : `${colors.ERROR}15`,
+                  color: judge.status === "Active" ? colors.SUCCESS : colors.ERROR,
+                }}
+              />
             )}
           </TableCell>
         )}
@@ -312,13 +329,15 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
         {visibleHeaders.includes("Actions") && (
           <TableCell align="right" sx={{ whiteSpace: "nowrap" }}>
             <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-              <IconButton
-                size="small"
-                sx={{ color: colors.TEXT_SECONDARY }}
-                onClick={() => router.push(`/user-management/judges/${judge.id}/edit`)}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
+              {canEditUser && (
+                <IconButton
+                  size="small"
+                  sx={{ color: colors.TEXT_SECONDARY }}
+                  onClick={() => router.push(`/user-management/judges/${judge.id}/edit`)}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              )}
               <IconButton
                 size="small"
                 sx={{ color: colors.TEXT_SECONDARY }}
@@ -379,16 +398,18 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
                     Assign to Contest
                   </MenuItem>
                 )}
-                <MenuItem
-                  onClick={() => {
-                    handleCloseMenu();
-                    setDeleteDialogOpen(true);
-                  }}
-                  sx={{ fontSize: "0.85rem", color: colors.ERROR, display: "flex", gap: 1, alignItems: "center" }}
-                >
-                  <DeleteIcon fontSize="small" sx={{ color: colors.ERROR, fontSize: 16 }} />
-                  Delete Judge
-                </MenuItem>
+                {canDeleteUser && (
+                  <MenuItem
+                    onClick={() => {
+                      handleCloseMenu();
+                      setDeleteDialogOpen(true);
+                    }}
+                    sx={{ fontSize: "0.85rem", color: colors.ERROR, display: "flex", gap: 1, alignItems: "center" }}
+                  >
+                    <DeleteIcon fontSize="small" sx={{ color: colors.ERROR, fontSize: 16 }} />
+                    Delete Judge
+                  </MenuItem>
+                )}
               </Menu>
             </Box>
           </TableCell>

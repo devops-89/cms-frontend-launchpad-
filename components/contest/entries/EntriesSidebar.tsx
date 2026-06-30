@@ -19,6 +19,7 @@ import {
   ListAlt as EntriesIcon,
 } from "@mui/icons-material";
 import { useAppTheme } from "@/context/ThemeContext";
+import { usePermissions } from "@/context/PermissionContext";
 
 export type SubSection =
   | "entries"
@@ -68,6 +69,13 @@ const EntriesSidebar: React.FC<EntriesSidebarProps> = ({
   onNavClick,
 }) => {
   const { colors } = useAppTheme();
+  const { hasPermission } = usePermissions();
+  const canCreateEntry = hasPermission("Contest Management", "canCreate");
+
+  const filteredNavItems = NAV_ITEMS.filter((item) => {
+    if (item.id === "add-entry" && !canCreateEntry) return false;
+    return true;
+  });
 
   return (
     <Paper
@@ -82,7 +90,7 @@ const EntriesSidebar: React.FC<EntriesSidebarProps> = ({
       }}
     >
       <List disablePadding>
-        {NAV_ITEMS.map((item, index) => (
+        {filteredNavItems.map((item, index) => (
           <React.Fragment key={item.id}>
             <ListItemButton
               selected={activeSection === item.id}

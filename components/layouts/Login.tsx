@@ -20,6 +20,7 @@ import {
 import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import React from "react";
+import FullScreenLoader from "@/components/widgets/FullScreenLoader";
 
 const Login = () => {
   const { colors, mode } = useAppTheme();
@@ -67,6 +68,7 @@ const Login = () => {
       }}
     >
       <Container maxWidth="sm">
+        <FullScreenLoader open={isLoading} message="Logging in..." />
         <form onSubmit={formik.handleSubmit}>
           <Paper
             elevation={0}

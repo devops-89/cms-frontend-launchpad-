@@ -34,7 +34,8 @@ const ForgotPassword = () => {
 
     validationSchema: Yup.object({
       email: Yup.string()
-        .email("Invalid email address")
+        .trim()
+        .matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Invalid email address")
         .required("Email is required"),
     }),
 

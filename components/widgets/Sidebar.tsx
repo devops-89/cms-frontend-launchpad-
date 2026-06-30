@@ -8,10 +8,12 @@ import {
   ListItemButton,
   ListItemText,
   Typography,
+  CircularProgress,
 } from "@mui/material";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { usePermissions } from "@/context/PermissionContext";
 
 const Sidebar = () => {
   const router = useRouter();
@@ -24,6 +26,30 @@ const Sidebar = () => {
   const handleNavigate = (href: string) => {
     router.push(href);
   };
+
+  const { hasPermission, isLoading, isAdmin } = usePermissions();
+
+  const filteredSidebar = SIDEBAR.map((val) => {
+    if (!val || Object.keys(val).length === 0 || !val.label) return null;
+
+    if (val.label === "Permission Management" && !isAdmin) return null;
+    if (val.label === "Dashboard" && !isAdmin) return null;
+
+    if (val.subModules && val.subModules.length > 0) {
+      // Filter submodules based on their own permissions
+      const filteredSubModules = val.subModules.filter((sub) => hasPermission(sub.label, "canView"));
+      
+      // If no submodules are permitted, hide the parent
+      if (filteredSubModules.length === 0) return null;
+      
+      // Return parent with filtered submodules
+      return { ...val, subModules: filteredSubModules };
+    }
+
+    // For items without submodules, check the parent's permission
+    const canViewParent = hasPermission(val.label, "canView");
+    return canViewParent ? val : null;
+  }).filter(Boolean);
 
   return (
     <Box>
@@ -44,8 +70,13 @@ const Sidebar = () => {
             <Typography variant="h6">Ignite Innovation</Typography>
           </Box>
           <Box sx={{ p: 2 }}>
+            {isLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                <CircularProgress size={30} />
+              </Box>
+            ) : (
             <List component="nav">
-              {SIDEBAR.map((val, i) => {
+              {filteredSidebar.map((val: any, i: number) => {
                 if (!val || Object.keys(val).length === 0) return null;
 
                 const hasSubModules =
@@ -95,7 +126,7 @@ const Sidebar = () => {
                     {hasSubModules && (
                       <Collapse in={isOpen} timeout="auto" unmountOnExit>
                         <List component="div" disablePadding>
-                          {val.subModules.map((sub, j) => (
+                          {val.subModules.map((sub: any, j: number) => (
                             <ListItemButton
                               key={j}
                               onClick={() => handleNavigate(sub.href)}
@@ -126,8 +157,9 @@ const Sidebar = () => {
                     )}
                   </React.Fragment>
                 );
-              })}
-            </List>
+                })}
+              </List>
+            )}
           </Box>
         </Box>
       </Box>

@@ -1,6 +1,7 @@
 "use client";
 import { contestControllers } from "@/api/contestControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { usePermissions } from "@/context/PermissionContext";
 import {
   CONTEST_TABLE_HEADER,
   CONTEST_TABLE_STATUS,
@@ -59,6 +60,11 @@ const ContestTable = () => {
 
   const queryClient = useQueryClient();
   const { showSnackbar } = useSnackbar();
+  const { hasPermission } = usePermissions();
+
+  const canViewContest = hasPermission("Contests", "canView");
+  const canEditContest = hasPermission("Contests", "canEdit");
+  const canDeleteContest = hasPermission("Contests", "canDelete");
 
   const currentStatus = CONTEST_TABLE_STATUS[value]?.label || "All";
 
@@ -125,21 +131,20 @@ const ContestTable = () => {
       </Box>
       <Table sx={{ mt: 2 }} size="small">
         <TableHead>
-          <TableRow>
-            {CONTEST_TABLE_HEADER.map((item, index) => (
-              <TableCell key={index}>
-                <Typography
-                  sx={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                    fontFamily: roboto.style.fontFamily,
-                  }}
-                >
-                  {item}
-                </Typography>
-              </TableCell>
-            ))}
-          </TableRow>
+              <TableRow>
+                {CONTEST_TABLE_HEADER.filter(header => header !== "Actions" || (canViewContest || canEditContest || canDeleteContest)).map((header) => (
+                  <TableCell
+                    key={header}
+                    sx={{
+                      fontFamily: roboto.style.fontFamily,
+                      fontSize: 14,
+                      fontWeight: 600,
+                    }}
+                  >
+                    {header}
+                  </TableCell>
+                ))}
+              </TableRow>
         </TableHead>
         <TableBody>
           {isPending ? (
@@ -239,40 +244,48 @@ const ContestTable = () => {
                     {item.entryCount ?? "-"}
                   </Typography>
                 </TableCell>
-                <TableCell>
-                  <Box sx={{ display: "flex", gap: 1 }}>
-                    <IconButton
-                      size="small"
-                      color="info"
-                      onClick={() =>
-                        router.push(`/contest-management/contests/${item.id}`)
-                      }
-                    >
-                      <RemoveRedEye fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() =>
-                        router.push(
-                          `/contest-management/contests/${item.id}/edit`,
-                        )
-                      }
-                    >
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton 
-                      size="small" 
-                      color="error"
-                      onClick={() => {
-                        setContestToDelete(item);
-                        setDeleteDialogOpen(true);
-                      }}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </TableCell>
+                {(canViewContest || canEditContest || canDeleteContest) && (
+                  <TableCell>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      {canViewContest && (
+                        <IconButton
+                          size="small"
+                          color="info"
+                          onClick={() =>
+                            router.push(`/contest-management/contests/${item.id}`)
+                          }
+                        >
+                          <RemoveRedEye fontSize="small" />
+                        </IconButton>
+                      )}
+                      {canEditContest && (
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() =>
+                            router.push(
+                              `/contest-management/contests/${item.id}/edit`,
+                            )
+                          }
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      )}
+                      {canDeleteContest && (
+                        <IconButton 
+                          size="small" 
+                          color="error"
+                          onClick={() => {
+                            setContestToDelete(item);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </TableCell>
+                )}
               </TableRow>
             ))
           )}

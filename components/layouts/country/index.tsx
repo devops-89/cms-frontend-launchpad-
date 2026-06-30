@@ -29,6 +29,7 @@ import { COUNTRY_TABLE_HEADER } from "@/utils/constant";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import CountryModal from "@/components/widgets/modals/Country-Modal";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { usePermissions } from "@/context/PermissionContext";
 
 const getStatusStyles = (isActive: boolean) => {
   if (isActive) {
@@ -38,6 +39,11 @@ const getStatusStyles = (isActive: boolean) => {
 };
 
 const CountryTable = () => {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("Country Management", "canCreate");
+  const canEdit = hasPermission("Country Management", "canEdit");
+  const canDelete = hasPermission("Country Management", "canDelete");
+
   const { showSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
@@ -120,6 +126,7 @@ const CountryTable = () => {
       code: values.code,
       phoneCode: values.phoneCode,
       currencyCode: values.currencyCode,
+      currencyName: values.currencyName,
       isActive: values.isActive,
     };
     if (editingCountry) {
@@ -159,6 +166,7 @@ const CountryTable = () => {
         code: country.code,
         phoneCode: country.phoneCode,
         currencyCode: country.currencyCode,
+        currencyName: country.currencyName,
         isActive: newValue,
       };
       updateMutation.mutate({ id: country.id, payload });
@@ -191,21 +199,23 @@ const CountryTable = () => {
       <Card sx={{ mt: 2, border: "1px solid #eeeeee", p: 2 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
           <Typography variant="h6">Country List</Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<Add />}
-            onClick={() => handleOpenModal()}
-          >
-            Add Country
-          </Button>
+          {canCreate && (
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<Add />}
+              onClick={() => handleOpenModal()}
+            >
+              Add Country
+            </Button>
+          )}
         </Stack>
 
         <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                {COUNTRY_TABLE_HEADER.map((header) => (
+                {COUNTRY_TABLE_HEADER.filter(header => header !== "Actions" || (canEdit || canDelete)).map((header) => (
                   <TableCell key={header}>{header}</TableCell>
                 ))}
               </TableRow>
@@ -230,6 +240,7 @@ const CountryTable = () => {
                     <TableCell>{country.code}</TableCell>
                     <TableCell>{country.phoneCode}</TableCell>
                     <TableCell>{country.currencyCode}</TableCell>
+                    <TableCell>{country.currencyName}</TableCell>
                     <TableCell>
                       <Select
                         value={country.isActive ? "true" : "false"}
@@ -237,6 +248,7 @@ const CountryTable = () => {
                         onChange={(e) => handleStatusChangeClick(country, e.target.value === "true")}
                         variant="standard"
                         disableUnderline
+                        disabled={!canEdit}
                         sx={{
                           fontSize: "0.75rem",
                           fontWeight: 700,
@@ -260,14 +272,20 @@ const CountryTable = () => {
                         <MenuItem value="false">Inactive</MenuItem>
                       </Select>
                     </TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleOpenModal(country)} color="primary">
-                        <Edit />
-                      </IconButton>
-                      <IconButton onClick={() => handleDeleteClick(country.id)} color="error">
-                        <Delete />
-                      </IconButton>
-                    </TableCell>
+                    {(canEdit || canDelete) && (
+                      <TableCell>
+                        {canEdit && (
+                          <IconButton onClick={() => handleOpenModal(country)} color="primary">
+                            <Edit />
+                          </IconButton>
+                        )}
+                        {canDelete && (
+                          <IconButton onClick={() => handleDeleteClick(country.id)} color="error">
+                            <Delete />
+                          </IconButton>
+                        )}
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               )}

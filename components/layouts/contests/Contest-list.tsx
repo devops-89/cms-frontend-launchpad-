@@ -1,3 +1,4 @@
+"use client";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { montserrat } from "@/utils/fonts";
 import { Add } from "@mui/icons-material";
@@ -5,8 +6,12 @@ import { Box, Button, Card, Stack } from "@mui/material";
 import React from "react";
 import ContestTable from "./components/Contest-Table";
 import Link from "next/link";
+import { usePermissions } from "@/context/PermissionContext";
 
 const ContestList = () => {
+  const { hasPermission } = usePermissions();
+  const canCreateContest = hasPermission("Contests", "canCreate");
+
   return (
     <Box>
       <Stack
@@ -27,15 +32,17 @@ const ContestList = () => {
             },
           ]}
         />
-        <Link href="/contest-management/contests/add-contest">
-          <Button
-            variant="outlined"
-            sx={{ fontFamily: montserrat.style.fontFamily, p: 1.5 }}
-            startIcon={<Add />}
-          >
-            Create Contest
-          </Button>
-        </Link>
+        {canCreateContest && (
+          <Link href="/contest-management/contests/add-contest">
+            <Button
+              variant="outlined"
+              sx={{ fontFamily: montserrat.style.fontFamily, p: 1.5 }}
+              startIcon={<Add />}
+            >
+              Create Contest
+            </Button>
+          </Link>
+        )}
       </Stack>
       <Card
         sx={{

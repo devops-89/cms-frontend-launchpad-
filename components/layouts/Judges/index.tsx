@@ -1,11 +1,16 @@
+"use client";
 import React from "react";
 import JudgesList from "./Judges-list";
 import { Box, Button, Stack } from "@mui/material";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { Add } from "@mui/icons-material";
 import Link from "next/link";
+import { usePermissions } from "@/context/PermissionContext";
 
 const JudgesLayout = () => {
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("Judges", "canCreate");
+
   return (
     <Box>
       <Stack
@@ -27,11 +32,13 @@ const JudgesLayout = () => {
             },
           ]}
         />
-        <Link href="/user-management/judges/add-judge">
-          <Button variant="outlined" endIcon={<Add />}>
-            Add Judge
-          </Button>
-        </Link>
+        {canCreate && (
+          <Link href="/user-management/judges/add-judge">
+            <Button variant="outlined" endIcon={<Add />}>
+              Add Judge
+            </Button>
+          </Link>
+        )}
       </Stack>
       <JudgesList />
     </Box>

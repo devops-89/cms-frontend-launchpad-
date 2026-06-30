@@ -23,11 +23,14 @@ import { contestControllers } from "@/api/contestControllers";
 import moment from "moment";
 import { CircularProgress, IconButton } from "@mui/material";
 import { Edit } from "@mui/icons-material";
+import { usePermissions } from "@/context/PermissionContext";
 
 const VotesTab = ({ contestId }: { contestId: string }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { showModal } = useModal();
+  const { hasPermission } = usePermissions();
+  const canEditContest = hasPermission("Contests", "canEdit");
 
   const handleShowModal = () => {
     showModal(<AddVotingPeriod />);
@@ -45,7 +48,7 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
 
   const voteData = votingPeriodsData?.data || [];
 
-  const headers = ["Voting Type", "Start Date", "End Date", "Actions"];
+  const headers = ["Voting Type", "Start Date", "End Date", "Actions"].filter(h => h !== "Actions" || canEditContest);
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value);
@@ -77,18 +80,20 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
         >
           Voting List
         </Typography>
-        <Button
-          sx={{
-            backgroundColor: COLORS.PRIMARY,
-            color: "#ffffff",
-            fontFamily: roboto.style.fontFamily,
-            textTransform: "capitalize",
-            borderRadius: 2,
-          }}
-          onClick={handleShowModal}
-        >
-          Add Voting Period
-        </Button>
+        {canEditContest && (
+          <Button
+            sx={{
+              backgroundColor: COLORS.PRIMARY,
+              color: "#ffffff",
+              fontFamily: roboto.style.fontFamily,
+              textTransform: "capitalize",
+              borderRadius: 2,
+            }}
+            onClick={handleShowModal}
+          >
+            Add Voting Period
+          </Button>
+        )}
       </Stack>
 
       {/* <TextField
@@ -152,17 +157,19 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
                   >
                     {moment(row.end_date).format("YYYY-MM-DD")}
                   </TableCell>
-                  <TableCell align="right">
-                    <Button
-                      size="small"
-                      color="primary"
-                      startIcon={<Edit fontSize="small" />}
-                      onClick={() => handleEditClick(row)}
-                      sx={{ textTransform: "capitalize", fontFamily: roboto.style.fontFamily }}
-                    >
-                      Edit
-                    </Button>
-                  </TableCell>
+                  {canEditContest && (
+                    <TableCell align="right">
+                      <Button
+                        size="small"
+                        color="primary"
+                        startIcon={<Edit fontSize="small" />}
+                        onClick={() => handleEditClick(row)}
+                        sx={{ textTransform: "capitalize", fontFamily: roboto.style.fontFamily }}
+                      >
+                        Edit
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             ) : (

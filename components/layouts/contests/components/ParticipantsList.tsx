@@ -40,6 +40,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSnackbar } from "@/context/SnackbarContext";
 import moment from "moment";
+import { usePermissions } from "@/context/PermissionContext";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -51,6 +52,10 @@ const ParticipantsList = () => {
   const { colors } = useAppTheme();
   const { showSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
+  const { hasPermission } = usePermissions();
+  const canViewParticipant = hasPermission("Contests", "canView");
+  const canEditParticipant = hasPermission("Contests", "canEdit");
+  const canDeleteParticipant = hasPermission("Contests", "canDelete");
 
   const [columnAnchorEl, setColumnAnchorEl] = useState<null | HTMLElement>(null);
   const [visibleColumns, setVisibleColumns] = useState<string[]>([]);
@@ -159,13 +164,16 @@ const ParticipantsList = () => {
   }, [fields]);
 
   const allColumns = useMemo(() => {
-    return [
+    const cols = [
       ...dynamicColumns,
       { id: "status", label: "Status" },
       { id: "joined_at", label: "Joined At" },
-      { id: "actions", label: "Actions" },
     ];
-  }, [dynamicColumns]);
+    if (canViewParticipant || canEditParticipant || canDeleteParticipant) {
+      cols.push({ id: "actions", label: "Actions" });
+    }
+    return cols;
+  }, [dynamicColumns, canViewParticipant, canEditParticipant, canDeleteParticipant]);
 
   useEffect(() => {
     if (allColumns.length > 0 && visibleColumns.length === 0) {
@@ -334,11 +342,12 @@ const ParticipantsList = () => {
                            downloadUrl = possibleUrl;
                          }
                          if (!downloadUrl) {
-                           let downloadUrlKey = Object.keys(formData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(formData[key]));
+                           const submissionData = participant?.submission?.data?.data || participant?.submission?.data || formData;
+                           let downloadUrlKey = Object.keys(submissionData).find((key) => key.endsWith("_downloadUrl") && isImageUrl(submissionData[key]));
                            if (!downloadUrlKey) {
-                             downloadUrlKey = Object.keys(formData).find((key) => isImageUrl(formData[key]));
+                             downloadUrlKey = Object.keys(submissionData).find((key) => isImageUrl(submissionData[key]));
                            }
-                           if (downloadUrlKey) downloadUrl = formData[downloadUrlKey];
+                           if (downloadUrlKey) downloadUrl = submissionData[downloadUrlKey];
                          }
 
                          return (
@@ -418,34 +427,40 @@ const ParticipantsList = () => {
                 {visibleColumns.includes("actions") && (
                   <TableCell align="right">
                     <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                      <IconButton
-                        size="small"
-                        sx={{ color: colors.TEXT_SECONDARY }}
-                        onClick={() => router.push(`/contest-management/contests/${contest?.id}/view-user?participantId=${participant.id}`)}
-                      >
-                        <VisibilityIcon fontSize="small" />
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        sx={{ color: colors.TEXT_SECONDARY }}
-                        onClick={() => router.push(`/contest-management/contests/${contest?.id}/edit-user?participantId=${participant.id}`)}
-                      >
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton 
-                        size="small" 
-                        sx={{ color: colors.TEXT_SECONDARY }}
-                        onClick={() => {
-                          if ((participant as any).entries && (participant as any).entries.length > 0) {
-                            showSnackbar("This participant has active entries. Please delete their entries first.", "error");
-                            return;
-                          }
-                          setParticipantToDelete(participant);
-                          setDeleteDialogOpen(true);
-                        }}
-                      >
-                        <Delete fontSize="small" />
-                      </IconButton>
+                      {canViewParticipant && (
+                        <IconButton
+                          size="small"
+                          sx={{ color: colors.TEXT_SECONDARY }}
+                          onClick={() => router.push(`/contest-management/contests/${contest?.id}/view-user?participantId=${participant.id}`)}
+                        >
+                          <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                      {canEditParticipant && (
+                        <IconButton
+                          size="small"
+                          sx={{ color: colors.TEXT_SECONDARY }}
+                          onClick={() => router.push(`/contest-management/contests/${contest?.id}/edit-user?participantId=${participant.id}`)}
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      )}
+                      {canDeleteParticipant && (
+                        <IconButton 
+                          size="small" 
+                          sx={{ color: colors.TEXT_SECONDARY }}
+                          onClick={() => {
+                            if ((participant as any).entries && (participant as any).entries.length > 0) {
+                              showSnackbar("This participant has active entries. Please delete their entries first.", "error");
+                              return;
+                            }
+                            setParticipantToDelete(participant);
+                            setDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
                     </Box>
                   </TableCell>
                 )}

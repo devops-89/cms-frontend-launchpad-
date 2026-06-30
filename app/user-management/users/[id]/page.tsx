@@ -336,11 +336,19 @@ const UserDetailsPage = () => {
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                               {p.entries.map((entry: any) => {
                                 const entryFields = p.contest?.entryLevelTemplate?.schema?.fields || p.contest?.entry_level_template?.schema?.fields || [];
+                                const innovationTitleField = entryFields.find((f: any) => f.label?.trim().toLowerCase() === "innovation title");
                                 const titleField = entryFields.find((f: any) => f.label?.toLowerCase().includes("title") || f.id?.toLowerCase().includes("title"));
                                 const submissionData = entry.submission?.data || {};
-                                let entryTitle = titleField ? (submissionData[titleField.id] || submissionData[titleField.label]) : "";
+                                
+                                let entryTitle = "";
+                                if (innovationTitleField) {
+                                  entryTitle = submissionData[innovationTitleField.label] || submissionData[innovationTitleField.id] || submissionData[innovationTitleField.label?.trim()];
+                                }
+                                if (!entryTitle && titleField) {
+                                  entryTitle = submissionData[titleField.id] || submissionData[titleField.label];
+                                }
                                 if (!entryTitle) {
-                                  entryTitle = submissionData.lwiwu56nx || submissionData.title || "Innovation Entry";
+                                  entryTitle = submissionData.lwiwu56nx || submissionData.title || submissionData.name_1 || submissionData.ho1p00z0q || "Innovation Entry";
                                 }
                                 
                                 return (

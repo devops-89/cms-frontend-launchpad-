@@ -1,8 +1,10 @@
 import * as Yup from "yup";
+import { matchIsValidTel } from "mui-tel-input";
 
 export const Login_Validation = Yup.object({
   email: Yup.string()
-    .email("Please Enter Valid Email")
+    .trim()
+    .matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Please Enter Valid Email")
     .required("Please Enter Email"),
   password: Yup.string().required("Please Enter Password"),
 });
@@ -11,11 +13,12 @@ export const AddUser_Validation = Yup.object({
   firstName: Yup.string().required("Please Enter First Name"),
   lastName: Yup.string().required("Please Enter Last Name"),
   email: Yup.string()
-    .email("Please Enter Valid Email")
+    .trim()
+    .matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Please Enter Valid Email")
     .required("Please Enter Email"),
   phoneNumber: Yup.string()
-    .matches(/^[0-9+\s]+$/, "Invalid Phone Number")
-    .required("Please Enter Phone Number"),
+    .required("Please Enter Phone Number")
+    .test("is-valid-phone", "Invalid Phone Number", (value) => value ? matchIsValidTel(value) : false),
   dateOfBirth: Yup.date().required("Please Select Your Date Of Birth"),
   grade: Yup.string().required("Please Select Grade"),
   password: Yup.string()

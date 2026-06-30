@@ -14,7 +14,7 @@ import React, { useState } from "react";
 import { useSnackbar } from "@/context/SnackbarContext";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import { MuiTelInput } from "mui-tel-input";
+import { matchIsValidTel, MuiTelInput } from "mui-tel-input";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { countries, GRADE_OPTIONS } from "@/utils/constant";
 import { useFormik } from "formik";
@@ -73,6 +73,24 @@ const UserForm = () => {
     },
   });
 
+  const handlePhoneNumber = (value: string) => {
+    const prevValue = formik.values.phoneNumber || "";
+    const isCurrentlyValid = matchIsValidTel(prevValue);
+    const isNewValid = matchIsValidTel(value);
+
+    const prevDigits = prevValue.replace(/\D/g, "");
+    const newDigits = value.replace(/\D/g, "");
+
+    if (isCurrentlyValid && !isNewValid && newDigits.length > prevDigits.length) {
+      if (newDigits.startsWith(prevDigits)) {
+        return;
+      }
+    }
+
+    formik.setFieldValue("phoneNumber", value);
+    formik.setFieldTouched("phoneNumber", true, false);
+  };
+
   return (
     <Box sx={{ px: 3 }}>
       <Breadcrumb
@@ -101,12 +119,12 @@ const UserForm = () => {
               id="firstName"
               name="firstName"
               value={formik.values.firstName}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
               onBlur={formik.handleBlur}
               error={
-                formik.touched.firstName && Boolean(formik.errors.firstName)
+                (formik.touched.firstName || Boolean(formik.values.firstName)) && Boolean(formik.errors.firstName)
               }
-              helperText={formik.touched.firstName && formik.errors.firstName}
+              helperText={(formik.touched.firstName || Boolean(formik.values.firstName)) && formik.errors.firstName as string}
             />
           </Grid>
           <Grid size={6}>
@@ -116,10 +134,10 @@ const UserForm = () => {
               id="lastName"
               name="lastName"
               value={formik.values.lastName}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
               onBlur={formik.handleBlur}
-              error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-              helperText={formik.touched.lastName && formik.errors.lastName}
+              error={(formik.touched.lastName || Boolean(formik.values.lastName)) && Boolean(formik.errors.lastName)}
+              helperText={(formik.touched.lastName || Boolean(formik.values.lastName)) && formik.errors.lastName as string}
             />
           </Grid>
           <Grid size={6}>
@@ -129,10 +147,10 @@ const UserForm = () => {
               id="email"
               name="email"
               value={formik.values.email}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
               onBlur={formik.handleBlur}
-              error={formik.touched.email && Boolean(formik.errors.email)}
-              helperText={formik.touched.email && formik.errors.email}
+              error={(formik.touched.email || Boolean(formik.values.email)) && Boolean(formik.errors.email)}
+              helperText={(formik.touched.email || Boolean(formik.values.email)) && formik.errors.email as string}
             />
           </Grid>
           <Grid size={6}>
@@ -143,14 +161,12 @@ const UserForm = () => {
               id="phoneNumber"
               name="phoneNumber"
               value={formik.values.phoneNumber}
-              onChange={(value) => formik.setFieldValue("phoneNumber", value)}
+              onChange={handlePhoneNumber}
               onBlur={formik.handleBlur}
               error={
-                formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)
+                (formik.touched.phoneNumber || Boolean(formik.values.phoneNumber)) && Boolean(formik.errors.phoneNumber)
               }
-              helperText={
-                formik.touched.phoneNumber && formik.errors.phoneNumber
-              }
+              helperText={(formik.touched.phoneNumber || Boolean(formik.values.phoneNumber)) && formik.errors.phoneNumber as string}
             />
           </Grid>
           <Grid size={6}>

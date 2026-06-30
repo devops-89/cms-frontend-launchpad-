@@ -28,12 +28,16 @@ interface FormBuilderCardProps {
   template: any;
   onEdit: (template: any) => void;
   onDelete: (id: string) => void;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
   template,
   onEdit,
   onDelete,
+  canEdit = true,
+  canDelete = true,
 }) => {
   const theme = useTheme();
 
@@ -79,24 +83,28 @@ const FormBuilderCard: React.FC<FormBuilderCardProps> = ({
               <Layers sx={{ fontSize: "1.4rem" }} />
             </Box>
             <Stack direction="row" spacing={0.5}>
-              <Tooltip title="Edit">
-                <IconButton
-                  size="small"
-                  onClick={() => onEdit(template)}
-                  sx={{ color: "text.secondary" }}
-                >
-                  <Edit fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton
-                  size="small"
-                  onClick={() => onDelete(template.id)}
-                  sx={{ color: "error.main" }}
-                >
-                  <Delete fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              {canEdit && (
+                <Tooltip title="Edit">
+                  <IconButton
+                    size="small"
+                    onClick={() => onEdit(template)}
+                    sx={{ color: "text.secondary" }}
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {canDelete && (
+                <Tooltip title="Delete">
+                  <IconButton
+                    size="small"
+                    onClick={() => onDelete(template.id)}
+                    sx={{ color: "error.main" }}
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Stack>
           </Box>
 

@@ -113,8 +113,8 @@ const PublicTable: React.FC = () => {
   }, [debouncedSearchTerm, statusTab]);
 
   const { data, isPending, error } = useQuery({
-    queryKey: ["user-list", page, rowsPerPage, debouncedSearchTerm],
-    queryFn: () => UserController.getPublicUsers(page + 1, rowsPerPage, debouncedSearchTerm),
+    queryKey: ["user-list", page, rowsPerPage, debouncedSearchTerm, statusTab],
+    queryFn: () => UserController.getPublicUsers(page + 1, rowsPerPage, debouncedSearchTerm, statusTab),
     enabled: true,
   });
 
@@ -123,14 +123,8 @@ const PublicTable: React.FC = () => {
 
   // Filter users on the frontend
   const filteredUsers = React.useMemo(() => {
-    const users = user_data?.users || [];
-    if (statusTab === "All" || statusTab === "all") return users;
-    return users.filter((u: any) => {
-      let st = u.status || "Pending";
-      if (st?.toLowerCase() === "approved") st = "Active";
-      return st?.toLowerCase() === statusTab.toLowerCase();
-    });
-  }, [user_data, statusTab]);
+    return user_data?.users || [];
+  }, [user_data]);
 
   const ALL_COLUMNS = [
     {
@@ -277,7 +271,7 @@ const PublicTable: React.FC = () => {
             px: 2,
           }}
         >
-          {USER_STATUS_TABS.map((val) => (
+          {USER_STATUS_TABS.filter(val => val.label !== UserStatus.BANNED).map((val) => (
             <Tab
               key={val.label}
               value={val.label}
@@ -309,7 +303,7 @@ const PublicTable: React.FC = () => {
           sx={{ mt: 3, px: 2 }}
         >
           <TextField 
-            placeholder="Search" 
+            placeholder="Search by name or email..." 
             fullWidth 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -344,8 +338,6 @@ const PublicTable: React.FC = () => {
                   <TableRow 
                     key={val.id}
                     hover
-                    onClick={() => router.push(`/user-management/users/${val.id}`)}
-                    sx={{ cursor: "pointer" }}
                   >
                     {activeColumns
                       .filter((col) => visibleHeaders.includes(col.header))

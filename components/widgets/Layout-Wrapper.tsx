@@ -7,6 +7,8 @@ import JudgeSidebar from "./JudgeSidebar";
 import LayoutProvider from "./Layout-Provider";
 import Modal from "./Modal";
 import Sidebar from "./Sidebar";
+import FullScreenLoader from "./FullScreenLoader";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -14,6 +16,7 @@ interface LayoutWrapperProps {
 
 const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
   const pathname = usePathname();
+  const { isLoading, isInitializing } = usePermissions();
   
   // Define paths where Sidebar and Header should be hidden
   const hideLayoutPaths = ["/",
@@ -32,6 +35,7 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
   if (isLoginPage) {
     return (
       <>
+        <FullScreenLoader open={isLoading || isInitializing} message="Initializing..." />
         <Modal />
         <LayoutProvider isFullWidth>{children}</LayoutProvider>
       </>
@@ -40,6 +44,7 @@ const LayoutWrapper = ({ children }: LayoutWrapperProps) => {
 
   return (
     <>
+      <FullScreenLoader open={isLoading || isInitializing} message="Initializing..." />
       {isJudgePanel ? <JudgeSidebar /> : <Sidebar />}
       <Header />
       <Modal />

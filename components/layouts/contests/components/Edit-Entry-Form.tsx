@@ -44,7 +44,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useFormik } from "formik";
-import { MuiTelInput } from "mui-tel-input";
+import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import * as Yup from "yup";
@@ -164,17 +164,30 @@ const EditEntryForm = () => {
         case FIELDS_TYPE.TEXTFIELD:
         case FIELDS_TYPE.TEXTAREA:
         case FIELDS_TYPE.PASSWORD:
-        case FIELDS_TYPE.TEL_INPUT:
         case FIELDS_TYPE.SELECT:
         case FIELDS_TYPE.RADIO:
         case FIELDS_TYPE.AUTOCOMPLETE:
-        case FIELDS_TYPE.COUNTRY_SELECTOR: validator = Yup.string();
+        case FIELDS_TYPE.COUNTRY_SELECTOR: 
+          validator = Yup.string();
+          if (field.type === FIELDS_TYPE.TEXTFIELD) {
+             const lbl = field.label?.toLowerCase() || "";
+             if (lbl.includes("email")) {
+                validator = validator.trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Please Enter Valid Email");
+             } else if ((lbl.includes("name") || lbl.includes("city") || lbl.includes("state") || lbl.includes("country")) && !lbl.includes("school") && !lbl.includes("company") && !lbl.includes("file") && !lbl.includes("username")) {
+                validator = validator.matches(/^[^\d]*$/, `${field.label} cannot contain numbers`);
+             }
+          }
+          break;
+        case FIELDS_TYPE.TEL_INPUT:
+          validator = Yup.string().test("is-valid-phone", "Invalid Phone Number", (value) => value ? matchIsValidTel(value) : false);
           break;
         case FIELDS_TYPE.NUMBER_FIELD:
         case FIELDS_TYPE.SLIDER:
-        case FIELDS_TYPE.RATING: validator = Yup.number();
+        case FIELDS_TYPE.RATING: 
+          validator = Yup.number();
           break;
-        case FIELDS_TYPE.DATE_PICKER: validator = Yup.string();
+        case FIELDS_TYPE.DATE_PICKER: 
+          validator = Yup.string();
           break;
         case FIELDS_TYPE.FILE_UPLOAD: {
           let fileValidator = Yup.mixed();
@@ -212,11 +225,12 @@ const EditEntryForm = () => {
           break;
         }
         case FIELDS_TYPE.CHECKBOX:
-        case FIELDS_TYPE.SWITCH: validator = Yup.boolean();
+        case FIELDS_TYPE.SWITCH: 
+          validator = Yup.boolean();
           break;
         default: return;
       }
-      if (field.required) {
+      if (field.required && validator) {
         if (isSecondMemberSection && addMemberField) {
           validator = validator.when(addMemberField.id, {
             is: "Yes",
@@ -233,7 +247,9 @@ const EditEntryForm = () => {
               : validator.required(`${field.label} is required`);
         }
       }
-      schemaFields[field.id] = validator;
+      if (validator) {
+        schemaFields[field.id] = validator;
+      }
     });
 
     const submissionData = entryData?.submission?.data?.data || entryData?.submission?.data || {};
@@ -346,7 +362,7 @@ const EditEntryForm = () => {
         }
         await entryControllers.updateEntrySubmission(id, entryId, formData);
         showSnackbar("Entry updated successfully!", "success");
-        router.push(`/contest-management/contests/${id}`);
+        router.push(`/contest-management/contests/${id}?tab=2`);
       } catch (err: any) {
         showSnackbar( err?.response?.data?.message || "Failed to update entry", "error" );
       }
@@ -491,10 +507,10 @@ const EditEntryForm = () => {
                         fullWidth
                         name={val.id}
                         value={formik.values[val.id] || ""}
-                        onChange={formik.handleChange}
+                        onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
                         onBlur={formik.handleBlur}
-                        error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
-                        helperText={ (formik.touched[val.id] && (formik.errors[val.id] as string)) || val.helperText }
+                        error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
+                        helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
                       />
                       {val.type === FIELDS_TYPE.TEXTAREA && val.config?.maxWords && (
                         <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
@@ -511,12 +527,12 @@ const EditEntryForm = () => {
                           fullWidth
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={(value) => formik.setFieldValue(val.id, value) }
+                          onChange={(value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
                           onBlur={() => formik.setFieldTouched(val.id, true)}
-                          error={ formik.touched[val.id] && Boolean(formik.errors[val.id]) }
+                          error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
                           defaultCountry={val.config?.defaultCountry}
                         />
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
                         )}
                       </Box>
@@ -526,33 +542,51 @@ const EditEntryForm = () => {
                         label={val.label}
                         sx={{ width: "100%" }}
                         value={ formik.values[val.id] ? dayjs(formik.values[val.id]) : null}
-                        onChange={(newValue) => formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null) }
+                        onChange={(newValue) => { formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null); formik.setFieldTouched(val.id, true, false); } }
+                        slotProps={{
+                          textField: {
+                            error: (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]),
+                            helperText: ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText,
+                            required: val.false,
+                          },
+                        }}
                       />
                     )}
                     {val.type === FIELDS_TYPE.SELECT && (
-                      <FormControl fullWidth>
+                      <FormControl fullWidth error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }>
                         <InputLabel>{val.label}</InputLabel>
                         <Select
                           label={val.label}
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={formik.handleChange}
+                          onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
+                          onBlur={formik.handleBlur}
                         >
                           {(val.options as string[])?.map((opt: string) => (
                             <MenuItem key={opt} value={opt}> {opt} </MenuItem>
                           ))}
                         </Select>
+                        {((formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id]) ||
+                        val.helperText ? (
+                          <FormHelperText error={Boolean(formik.errors[val.id])}> {((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText} </FormHelperText>
+                        ) : null}
                       </FormControl>
                     )}
                     {val.type === FIELDS_TYPE.AUTOCOMPLETE && (
                       <Autocomplete
                         options={(val.options as string[]) || []}
                         value={formik.values[val.id] || null}
-                        onChange={(_, newValue) =>
-                          formik.setFieldValue(val.id, newValue)
-                        }
+                        onChange={(_, newValue) => {
+                          formik.setFieldValue(val.id, newValue);
+                          formik.setFieldTouched(val.id, true, false);
+                        }}
+                        onBlur={() => formik.setFieldTouched(val.id, true)}
                         renderInput={(params) => (
-                          <TextField {...params} label={val.label} />
+                          <TextField {...params} label={val.label}
+                            error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
+                            helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
+                            required={val.false}
+                          />
                         )}
                       />
                     )}
@@ -562,9 +596,14 @@ const EditEntryForm = () => {
                         autoHighlight
                         getOptionLabel={(option) => option.label}
                         value={ countries.find( (c) => c.label === formik.values[val.id] ) || null }
-                        onChange={(_, newValue) => formik.setFieldValue(val.id, newValue?.label || "")}
+                        onChange={(_, newValue) => { formik.setFieldValue(val.id, newValue?.label || ""); formik.setFieldTouched(val.id, true, false); } }
+                        onBlur={() => formik.setFieldTouched(val.id, true)}
                         renderInput={(params) => (
-                          <TextField {...params} label={val.label} />
+                          <TextField {...params} label={val.label}
+                            error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
+                            helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
+                            required={val.false}
+                          />
                         )}
                       />
                     )}
@@ -593,7 +632,7 @@ const EditEntryForm = () => {
                           }
                           label={val.label}
                         />
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error sx={{ ml: 0 }}>
                             {formik.errors[val.id] as string}
                           </FormHelperText>
@@ -601,14 +640,15 @@ const EditEntryForm = () => {
                       </Box>
                     )}
                     {val.type === FIELDS_TYPE.RADIO && (
-                      <FormControl>
+                      <FormControl error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }>
                         <Typography sx={{mb: 1}}>
                           {val.label}
                         </Typography>
                         <RadioGroup
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={formik.handleChange}
+                          onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
+                          onBlur={formik.handleBlur}
                         >
                           {(val.options as string[])?.map((opt: string) => (
                             <FormControlLabel
@@ -619,6 +659,9 @@ const EditEntryForm = () => {
                             />
                           ))}
                         </RadioGroup>
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
+                          <FormHelperText>{formik.errors[val.id] as string}</FormHelperText>
+                        )}
                       </FormControl>
                     )}
                     {(val.type === FIELDS_TYPE.SLIDER ||
@@ -629,16 +672,21 @@ const EditEntryForm = () => {
                         </Typography>
                         {val.type === FIELDS_TYPE.SLIDER ? (
                           <Slider
+                            name={val.id}
                             value={formik.values[val.id] || 0}
-                            onChange={(_, value) =>
-                              formik.setFieldValue(val.id, value)
-                            }
+                            onChange={(_, value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); }}
+                            onBlur={() => formik.setFieldTouched(val.id, true)}
                           />
                         ) : (
                           <Rating
+                            name={val.id}
                             value={Number(formik.values[val.id]) || 0}
-                            onChange={(_, value) => formik.setFieldValue(val.id, value) }
+                            onChange={(_, value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
+                            onBlur={() => formik.setFieldTouched(val.id, true)}
                           />
+                        )}
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
+                          <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
                         )}
                       </Box>
                     )}
@@ -679,7 +727,7 @@ const EditEntryForm = () => {
                             />
                           </Button>
                         )}
-                        {formik.touched[val.id] && formik.errors[val.id] && (
+                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
                           <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
                             {formik.errors[val.id] as string}
                           </FormHelperText>

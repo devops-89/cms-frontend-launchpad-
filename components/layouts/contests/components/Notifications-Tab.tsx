@@ -7,6 +7,7 @@ import { Add, Edit, Delete, Visibility, Person, Gavel } from "@mui/icons-materia
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useRouter, useParams } from "next/navigation";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { usePermissions } from "@/context/PermissionContext";
 
 const NotificationsTab = () => {
   const { colors } = useAppTheme();
@@ -15,6 +16,13 @@ const NotificationsTab = () => {
   const contestId = params?.id;
   const { showSnackbar } = useSnackbar();
   
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission("Contests", "canCreate");
+  const canEdit = hasPermission("Contests", "canEdit");
+  const canDelete = hasPermission("Contests", "canDelete");
+  const canView = hasPermission("Contests", "canView");
+  const showActions = canEdit || canDelete || canView;
+
   const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
   const { templates, deleteTemplate, isLoading } = useNotificationTemplates();
   
@@ -88,14 +96,16 @@ const NotificationsTab = () => {
           </ToggleButton>
         </ToggleButtonGroup>
 
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleCreateNew}
-          sx={{ bgcolor: colors.PRIMARY, textTransform: "none", borderRadius: 2, fontWeight: 600 }}
-        >
-          Create New Template
-        </Button>
+        {canCreate && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleCreateNew}
+            sx={{ bgcolor: colors.PRIMARY, textTransform: "none", borderRadius: 2, fontWeight: 600 }}
+          >
+            Create New Template
+          </Button>
+        )}
       </Box>
 
       {isLoading ? (
@@ -104,7 +114,7 @@ const NotificationsTab = () => {
         <Paper elevation={0} sx={{ p: 6, textAlign: "center", border: `1px dashed ${colors.BORDER}`, borderRadius: 3, bgcolor: "rgba(0,0,0,0.01)" }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontFamily: montserrat.style.fontFamily }}>No Templates Found</Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>You have not created any templates for {audience}s yet.</Typography>
-          <Button variant="outlined" startIcon={<Add />} onClick={handleCreateNew}>Create First Template</Button>
+          {canCreate && <Button variant="outlined" startIcon={<Add />} onClick={handleCreateNew}>Create First Template</Button>}
         </Paper>
       ) : (
         <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${colors.BORDER}`, borderRadius: 3 }}>
@@ -113,7 +123,7 @@ const NotificationsTab = () => {
               <TableRow>
                 <TableCell sx={{ fontWeight: 600 }}>Event Type</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Subject</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>
+                {showActions && <TableCell align="right" sx={{ fontWeight: 600 }}>Actions</TableCell>}
               </TableRow>
             </TableHead>
             <TableBody>
@@ -125,17 +135,25 @@ const NotificationsTab = () => {
                   <TableCell sx={{ maxWidth: 300, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {row.subject}
                   </TableCell>
-                  <TableCell align="right">
-                    <Tooltip title="Preview">
-                      <IconButton onClick={() => handlePreview(row.id)} size="small" color="info"><Visibility fontSize="small" /></IconButton>
-                    </Tooltip>
-                    <Tooltip title="Edit">
-                      <IconButton onClick={() => handleEdit(row.id)} size="small" color="primary" sx={{ mx: 0.5 }}><Edit fontSize="small" /></IconButton>
-                    </Tooltip>
-                    <Tooltip title="Delete">
-                      <IconButton onClick={() => handleDeleteClick(row.id)} size="small" color="error"><Delete fontSize="small" /></IconButton>
-                    </Tooltip>
-                  </TableCell>
+                  {showActions && (
+                    <TableCell align="right">
+                      {canView && (
+                        <Tooltip title="Preview">
+                          <IconButton onClick={() => handlePreview(row.id)} size="small" color="info"><Visibility fontSize="small" /></IconButton>
+                        </Tooltip>
+                      )}
+                      {canEdit && (
+                        <Tooltip title="Edit">
+                          <IconButton onClick={() => handleEdit(row.id)} size="small" color="primary" sx={{ mx: 0.5 }}><Edit fontSize="small" /></IconButton>
+                        </Tooltip>
+                      )}
+                      {canDelete && (
+                        <Tooltip title="Delete">
+                          <IconButton onClick={() => handleDeleteClick(row.id)} size="small" color="error"><Delete fontSize="small" /></IconButton>
+                        </Tooltip>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

@@ -11,6 +11,7 @@ import {
   Stack,
 } from "@mui/material";
 import { Delete as DeleteIcon } from "@mui/icons-material";
+import { usePermissions } from "@/context/PermissionContext";
 
 interface EntryTableRowProps {
   entry: any;
@@ -18,6 +19,9 @@ interface EntryTableRowProps {
 }
 
 const EntryTableRow: React.FC<EntryTableRowProps> = ({ entry, colors }) => {
+  const { hasPermission } = usePermissions();
+  const canDeleteEntry = hasPermission("Contest Management", "canDelete");
+
   return (
     <TableRow
       sx={{
@@ -101,20 +105,24 @@ const EntryTableRow: React.FC<EntryTableRowProps> = ({ entry, colors }) => {
           >
             Manage
           </Button>
-          <IconButton
-            size="small"
-            sx={{
-              color: colors.TEXT_SECONDARY,
-              border: `1px solid ${colors.BORDER}`,
-              borderRadius: 1,
-              "&:hover": {
-                color: colors.ERROR,
-                borderColor: colors.ERROR,
-              },
-            }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
+          {canDeleteEntry && (
+            <IconButton
+              size="small"
+              sx={{
+                border: `1px solid ${colors.BORDER}`,
+                color: colors.TEXT_SECONDARY,
+                borderRadius: 1.5,
+                p: 0.75,
+                transition: "all 0.2s ease",
+                "&:hover": {
+                  color: colors.ERROR,
+                  borderColor: colors.ERROR,
+                },
+              }}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          )}
         </Stack>
       </TableCell>
     </TableRow>
