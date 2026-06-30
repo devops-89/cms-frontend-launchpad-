@@ -842,9 +842,6 @@ export const USER_STATUS_TABS = [
     label: UserStatus.ACTIVE,
   },
   {
-    label: UserStatus.PENDING,
-  },
-  {
     label: UserStatus.BANNED,
   },
 ];

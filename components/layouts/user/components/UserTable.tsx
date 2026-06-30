@@ -186,7 +186,7 @@ const StatusDropdown = ({ user }: { user: any }) => {
                 },
               }}
             >
-              {[UserStatus.ACTIVE, UserStatus.INACTIVE, UserStatus.BANNED].map((status) => (
+              {[UserStatus.ACTIVE, UserStatus.PENDING, UserStatus.INACTIVE, UserStatus.BANNED].map((status) => (
                 <MenuItem key={status} value={status} sx={{ fontSize: "0.85rem" }}>
                   {status}
                 </MenuItem>
