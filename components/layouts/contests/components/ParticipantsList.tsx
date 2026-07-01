@@ -1,5 +1,7 @@
 "use client";
 import { contestControllers } from "@/api/contestControllers";
+import { usePermissions } from "@/context/PermissionContext";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useContestDetails } from "@/store/useContestDetails";
 import { ContestParticipant, ContestTemplateField } from "@/types/user";
@@ -8,10 +10,10 @@ import {
   Delete,
   Edit,
   MoreVert as MoreIcon,
-  Close as CloseIcon,
   Visibility as VisibilityIcon
 } from "@mui/icons-material";
 import {
+  Avatar,
   Box,
   Button,
   Checkbox,
@@ -20,27 +22,20 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   IconButton,
   Menu,
   MenuItem,
   Paper,
-  Switch,
   Table,
   TableBody,
   TableCell,
   TableHead,
   TablePagination,
   TableRow,
-  Typography,
-  Avatar,
-  Grid,
-  Chip
+  Typography
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSnackbar } from "@/context/SnackbarContext";
 import moment from "moment";
-import { usePermissions } from "@/context/PermissionContext";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useMemo, useState } from "react";
 
@@ -175,9 +170,21 @@ const ParticipantsList = () => {
     return cols;
   }, [dynamicColumns, canViewParticipant, canEditParticipant, canDeleteParticipant]);
 
+  const seenColumns = React.useRef(new Set<string>());
+
   useEffect(() => {
-    if (allColumns.length > 0 && visibleColumns.length === 0) {
-      setVisibleColumns(allColumns.map((col) => col.id));
+    const newCols = allColumns.filter((col) => !seenColumns.current.has(col.id));
+    if (newCols.length > 0) {
+      newCols.forEach((col) => seenColumns.current.add(col.id));
+      setVisibleColumns((prev) => {
+        const next = [...prev];
+        newCols.forEach((col) => {
+          if (!next.includes(col.id)) {
+            next.push(col.id);
+          }
+        });
+        return next;
+      });
     }
   }, [allColumns]);
 

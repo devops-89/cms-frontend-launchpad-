@@ -4,14 +4,14 @@ import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useAppTheme } from "@/context/ThemeContext";
 import { ArrowBack as ArrowBackIcon, Info as InfoIcon } from "@mui/icons-material";
 import {
-  Avatar,
-  Box,
-  Button,
-  Chip,
-  CircularProgress,
-  Grid,
-  Paper,
-  Typography
+    Avatar,
+    Box,
+    Button,
+    Chip,
+    CircularProgress,
+    Grid,
+    Paper,
+    Typography
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import moment from "moment";

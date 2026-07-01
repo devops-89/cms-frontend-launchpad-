@@ -1,19 +1,26 @@
 "use client";
 import { UserController } from "@/api/userControllers";
-import { useAppTheme } from "@/context/ThemeContext";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { usePermissions } from "@/context/PermissionContext";
+import { useAppTheme } from "@/context/ThemeContext";
 import { USER_DATA } from "@/types/user";
 import { USER_STATUS_TABS } from "@/utils/constant";
 import { UserRole, UserStatus } from "@/utils/enum";
 import { MoreVert } from "@mui/icons-material";
 import {
   Box,
+  Button,
   Card,
   Checkbox,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   FormControl,
-  InputLabel,
   IconButton,
+  InputLabel,
   ListItemText,
   Menu,
   MenuItem,
@@ -25,24 +32,16 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Tabs,
   TextField,
-  TablePagination,
   Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSnackbar } from "@/context/SnackbarContext";
-import { usePermissions } from "@/context/PermissionContext";
 import moment from "moment";
-import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 const getStatusStyles = (status: string) => {
   switch (status) {
@@ -186,11 +185,21 @@ const StatusDropdown = ({ user }: { user: any }) => {
                 },
               }}
             >
-              {[UserStatus.ACTIVE, UserStatus.PENDING, UserStatus.INACTIVE, UserStatus.BANNED].map((status) => (
-                <MenuItem key={status} value={status} sx={{ fontSize: "0.85rem" }}>
-                  {status}
-                </MenuItem>
-              ))}
+              {(() => {
+                let options = [currentStatus];
+                if (currentStatus === UserStatus.ACTIVE) {
+                  options = [UserStatus.ACTIVE, UserStatus.BANNED];
+                } else if (currentStatus === UserStatus.PENDING) {
+                  options = [UserStatus.PENDING, UserStatus.BANNED];
+                } else if (currentStatus === UserStatus.BANNED) {
+                  options = [UserStatus.BANNED, UserStatus.ACTIVE];
+                }
+                return options.map((status) => (
+                  <MenuItem key={status} value={status} sx={{ fontSize: "0.85rem" }}>
+                    {status}
+                  </MenuItem>
+                ));
+              })()}
             </Select>
           </FormControl>
         ) : (
@@ -279,10 +288,7 @@ const UserTable: React.FC = () => {
       let apiStatus = statusTab;
       if (apiStatus === "Active") apiStatus = "approved";
       if (apiStatus === "Banned") apiStatus = "banned";
-      
-      if (apiStatus === "Pending") {
-        return UserController.getPendingUsers(page + 1, rowsPerPage, debouncedSearchTerm);
-      }
+      if (apiStatus === "Pending") apiStatus = "Pending";
       
       return UserController.getAllUser(UserRole.PARTICIPANT, page + 1, rowsPerPage, debouncedSearchTerm, apiStatus);
     },
@@ -477,6 +483,33 @@ const UserTable: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          <Button 
+            variant="contained" 
+            sx={{
+              backgroundColor: colors.PRIMARY,
+              color: "#fff",
+              whiteSpace: "nowrap",
+              textTransform: "none",
+              borderRadius: "8px",
+            }}
+            onClick={async () => {
+              try {
+                const res = await UserController.exportUsers();
+                const csvData = res.data;
+                const blob = new Blob([csvData], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'users_export.csv';
+                a.click();
+                window.URL.revokeObjectURL(url);
+              } catch (error) {
+                console.error("Failed to export users:", error);
+              }
+            }}
+          >
+            Export CSV
+          </Button>
           <IconButton onClick={handleClick}>
             <MoreVert />
           </IconButton>

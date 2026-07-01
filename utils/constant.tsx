@@ -1,17 +1,17 @@
 import { CountryType } from "@/types/user";
 import {
-  Add as AddIcon,
-  BuildRounded,
-  Dashboard,
-  EmojiEvents,
-  Gavel,
-  ErrorOutline as ModerationIcon,
-  People,
-  PersonSharp,
-  AttachMoney as RevenueIcon,
-  RemoveRedEye as ViewsIcon,
-  Poll as VotesIcon,
-  Public
+    Add as AddIcon,
+    BuildRounded,
+    Dashboard,
+    EmojiEvents,
+    Gavel,
+    ErrorOutline as ModerationIcon,
+    People,
+    PersonSharp,
+    Public,
+    AttachMoney as RevenueIcon,
+    RemoveRedEye as ViewsIcon,
+    Poll as VotesIcon
 } from "@mui/icons-material";
 import { UserStatus, VOTING_PERIOD_TYPE } from "./enum";
 
@@ -843,6 +843,9 @@ export const USER_STATUS_TABS = [
   },
   {
     label: UserStatus.BANNED,
+  },
+  {
+    label: UserStatus.PENDING,
   },
 ];
 

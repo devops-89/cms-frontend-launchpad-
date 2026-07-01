@@ -13,7 +13,7 @@ export const UserController = {
       }
       let result = await userSecuredApi.get(url);
       return result;
-    } catch (error){
+    } catch (error) {
       throw error;
     }
   },
@@ -28,7 +28,7 @@ export const UserController = {
       }
       let result = await userSecuredApi.get(url);
       return result;
-    } catch (error){
+    } catch (error) {
       throw error;
     }
   },
@@ -40,47 +40,47 @@ export const UserController = {
       }
       let result = await userSecuredApi.get(url);
       return result;
-    } catch (error){
+    } catch (error) {
       throw error;
     }
   },
-updateUserStatus: async (
-  id: string,
-  status: string,
-  contestId?: string
+  updateUserStatus: async (
+    id: string,
+    status: string,
+    contestId?: string
   ) => {
-  try {
-    let result = await userSecuredApi.patch(
-      "update-status",
-      {
-        id,
-        status,
-        ...(contestId && { contestId })
-      },
-    );
+    try {
+      let result = await userSecuredApi.patch(
+        "update-status",
+        {
+          id,
+          status,
+          ...(contestId && { contestId })
+        },
+      );
 
-    return result;
-  } catch (error) {
-    throw error;
-  }
-},
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   getUserById: async (id: string) => {
-  try {
-    let result = await userSecuredApi.get(`/${id}`);
-    return result;
-  } catch (error) {
-    throw error;
-  }
+    try {
+      let result = await userSecuredApi.get(`/${id}`);
+      return result;
+    } catch (error) {
+      throw error;
+    }
   },
 
   deleteUserById: async (id: string) => {
-  try {
-    let result = await userSecuredApi.delete(`/${id}`);
-    return result;
-  } catch (error) {
-    throw error;
-  }
+    try {
+      let result = await userSecuredApi.delete(`/${id}`);
+      return result;
+    } catch (error) {
+      throw error;
+    }
   },
   getAllJudges: async (search?: string, status?: string) => {
     try {
@@ -136,4 +136,12 @@ updateUserStatus: async (
       throw error;
     }
   },
+  exportUsers: async () => {
+    try {
+      const result = await userSecuredApi.get('/export?role=participant');
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  }
 };
