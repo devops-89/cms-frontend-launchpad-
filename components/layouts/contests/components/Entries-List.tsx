@@ -120,6 +120,7 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
     const lower = status.toLowerCase();
     if (lower === "approved") return "Moderate";
     if (lower === "evaluated") return "Evaluated";
+    if (lower === "pending") return "Needs Moderation";
     return status;
   };
 
@@ -181,7 +182,7 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
       >
         {!isEvaluatedBackend && (
           <MenuItem onClick={() => handleStatusSelect("pending")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
-            Pending
+            Needs Moderation
           </MenuItem>
         )}
         {!isEvaluatedBackend && (
@@ -353,7 +354,7 @@ const EntriesList = () => {
           scrollButtons="auto"
         >
           <Tab label="All" value="All" sx={{ fontWeight: 600, textTransform: 'none' }} />
-          <Tab label="Pending" value="Pending" sx={{ fontWeight: 600, textTransform: 'none' }} />
+          <Tab label="Needs Moderation" value="Pending" sx={{ fontWeight: 600, textTransform: 'none' }} />
           <Tab label="Moderate" value="Approved" sx={{ fontWeight: 600, textTransform: 'none' }} />
           <Tab label="Evaluated" value="Evaluated" sx={{ fontWeight: 600, textTransform: 'none' }} />
           <Tab label="Semifinal" value="Semifinal" sx={{ fontWeight: 600, textTransform: 'none' }} />

@@ -1,5 +1,7 @@
 "use client";
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { entryControllers } from "@/api/entryControllers";
 import { Box, Grid, Typography, Card, CardContent } from "@mui/material";
 import { roboto } from "@/utils/fonts";
 import { STATS } from "@/utils/constant";
@@ -13,6 +15,14 @@ import {
 } from "@mui/icons-material";
 
 const OverviewTab = ({ contest }: { contest: any }) => {
+  const { data: pendingEntriesData } = useQuery({
+    queryKey: ["pending-entries-count", contest?.id || contest?._id],
+    queryFn: () => entryControllers.getAllEntries(contest?.id || contest?._id, 1, 1, "Pending"),
+    enabled: !!(contest?.id || contest?._id)
+  });
+
+  const pendingCount = pendingEntriesData?.data?.totalDocs ?? pendingEntriesData?.data?.total ?? pendingEntriesData?.data?.meta?.total ?? 0;
+
   const stats = [
     {
       label: "Entries",
@@ -23,7 +33,7 @@ const OverviewTab = ({ contest }: { contest: any }) => {
     },
     {
       label: "Needs moderation",
-      value: contest?.needs_moderation,
+      value: pendingCount || contest?.needs_moderation || 0,
       subtitle: "VIEW ENTRIES",
       icon: <ErrorOutline sx={{ fontSize: 32 }} />,
       color: "#fef3c7",
