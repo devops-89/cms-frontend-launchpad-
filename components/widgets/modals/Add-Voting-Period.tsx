@@ -54,36 +54,8 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
       ? votingPeriod.criteria
       : [{ description: "", weighting: "" }]
   );
-  const [selectedJudges, setSelectedJudges] = useState<any[]>([]);
-
   const { showSnackbar } = useSnackbar();
   const queryClient = useQueryClient();
-
-  const { data: assignedJudgesData } = useQuery({
-    queryKey: ["assigned-judges", contestId],
-    queryFn: () => contestControllers.getAssignedJudges(contestId),
-    enabled: votingType?.value === "JUDGE" && !!contestId,
-  });
-
-  const availableJudges = React.useMemo(() => {
-    const assignedData = assignedJudgesData?.data;
-    if (!assignedData) return [];
-    
-    // Support both single object and array responses
-    const judgesList = Array.isArray(assignedData) ? assignedData : [assignedData];
-    
-    return judgesList.map((j: any) => ({
-      ...j,
-      id: j.judgeProfile?.user?.id,
-    }));
-  }, [assignedJudgesData]);
-
-  useEffect(() => {
-    if (votingPeriod && votingPeriod.voting_type === "JUDGE" && votingPeriod.judge_ids && availableJudges.length > 0) {
-      const selected = availableJudges.filter((j: any) => votingPeriod.judge_ids.includes(j.id));
-      setSelectedJudges(selected);
-    }
-  }, [votingPeriod, availableJudges]);
 
   const handleCloseModal = () => {
     hideModal();
@@ -125,7 +97,7 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
     e.preventDefault();
     if (votingType && startDate && endDate) {
       if (votingType.value === "JUDGE") {
-        if (!maxScore || criteria.length === 0 || selectedJudges.length === 0) {
+        if (!maxScore || criteria.length === 0) {
           showSnackbar("Please fill in all judge evaluation fields", "warning");
           return;
         }
@@ -146,7 +118,6 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
           description: c.description,
           weighting: Number(c.weighting),
         }));
-        payload.judge_ids = selectedJudges.map((j) => j.id);
       }
 
       if (votingPeriod) {
@@ -233,25 +204,7 @@ const AddVotingPeriod = ({ votingPeriod }: { votingPeriod?: any }) => {
                 required
               />
 
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-                Assigned Judges
-              </Typography>
-              <Autocomplete
-                multiple
-                options={availableJudges}
-                value={selectedJudges}
-                onChange={(e, val) => setSelectedJudges(val)}
-                getOptionLabel={(option) => {
-                  const userObj = option.judgeProfile?.user || option.user || option;
-                  const name = userObj.firstName && userObj.lastName ? `${userObj.firstName} ${userObj.lastName}` : userObj.fullName || userObj.name || userObj.email;
-                  return name ? name : `Judge`;
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} placeholder="Select Judges" size="small" sx={{ mb: 3, bgcolor: "#fff" }} required={selectedJudges.length === 0} />
-                )}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                disableCloseOnSelect
-              />
+
 
               <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
                 Criteria List

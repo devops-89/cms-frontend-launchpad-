@@ -15,18 +15,31 @@ import {
   Download,
   InsertDriveFile,
   HowToVote,
+  ArrowForward,
   PlayCircleOutline,
   Videocam,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Person,
+  Group,
+  Close,
+  ExpandMore
 } from "@mui/icons-material";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Avatar,
   Box,
   Button,
   Card,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Grid,
+  IconButton,
   Paper,
   Rating,
   Typography,
@@ -39,53 +52,15 @@ import { entryControllers } from "@/api/entryControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useAppTheme } from "@/context/ThemeContext";
 
-const VideoPlayerRenderer = ({ urlStr }: { urlStr: string }) => {
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
+import EntryHeroSection from "@/components/layouts/entry-details/EntryHeroSection";
+import InnovationVideoPlayer, { VideoPlayerRenderer } from "@/components/layouts/entry-details/InnovationVideoPlayer";
+import TeamMembersSection from "@/components/layouts/entry-details/TeamMembersSection";
+import EntryDetailsSection from "@/components/layouts/entry-details/EntryDetailsSection";
 
-  const handlePlay = () => {
-    setIsPlaying(true);
-    if (videoRef.current) {
-      videoRef.current.play();
-    }
-  };
 
-  return (
-    <Box 
-      sx={{ 
-        position: 'relative', width: "100%", maxWidth: 600, height: 340, borderRadius: 3, overflow: 'hidden', 
-        flexShrink: 0, border: '1px solid rgba(0,0,0,0.1)', bgcolor: "#000",
-        display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 10px 40px rgba(0,0,0,0.1)"
-      }}
-    >
-      <video 
-        ref={videoRef}
-        src={urlStr} 
-        controls={isPlaying} 
-        style={{ width: "100%", height: "100%", objectFit: "contain" }} 
-        preload="metadata" 
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-      />
-      {!isPlaying && (
-        <Box 
-          onClick={handlePlay}
-          sx={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            bgcolor: 'rgba(0,0,0,0.3)', cursor: 'pointer',
-            "&:hover .play-icon": { transform: "scale(1.1)", color: "#fff" }
-          }}
-        >
-          <PlayCircleOutline className="play-icon" sx={{ fontSize: 64, color: "rgba(255,255,255,0.8)", transition: "all 0.2s ease" }} />
-        </Box>
-      )}
-    </Box>
-  );
-};
 
 const EntryDetailsPage = () => {
+  const [selectedMemberGroup, setSelectedMemberGroup] = React.useState<any>(null);
   const { id } = useParams();
   const searchParams = useSearchParams();
   const contestId = searchParams.get("contestId");
@@ -485,351 +460,71 @@ const EntryDetailsPage = () => {
         </Button>
       </Box>
 
-      {/* Main Entry Hero Card */}
-      <Card
-        elevation={0}
-        sx={{
-          p: { xs: 3, md: 4 },
-          borderRadius: 4,
-          border: `1px solid ${colors.BORDER}`,
-          background: `linear-gradient(135deg, ${colors.SURFACE} 0%, rgba(99, 102, 241, 0.02) 100%)`,
-          boxShadow: "0 10px 30px -10px rgba(0,0,0,0.03)",
-          mb: 5,
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <Box
-          sx={{
-            position: "absolute",
-            top: -50,
-            right: -50,
-            width: 150,
-            height: 150,
-            borderRadius: "50%",
-            background: `radial-gradient(circle, rgba(139, 92, 246, 0.05) 0%, transparent 70%)`,
-            pointerEvents: "none",
-          }}
-        />
+      <EntryHeroSection entry={entry} colors={colors} />
 
-        <Grid container spacing={4} alignItems="center">
-          <Grid
-            size={{ xs: 12, sm: 4, md: 3, lg: 2 }}
-            sx={{ display: "flex", justifyContent: "center" }}
-          >
-            <Avatar
-              variant="rounded"
-              src={(() => {
-                const submissionData = entry?.submission?.data || {};
-                const entryFields = entry?.contest?.entryLevelTemplate?.schema?.fields || entry?.contest?.entry_level_template?.schema?.fields || [];
-                const thumbnailField = entryFields?.find((f: any) => f.label?.toLowerCase().includes("thumbnail"));
-                let thumbnailUrl = "";
-                if (thumbnailField) {
-                  thumbnailUrl = submissionData[`${thumbnailField.id}_downloadUrl`] || submissionData[`${thumbnailField.label}_downloadUrl`] || submissionData[thumbnailField.id] || submissionData[thumbnailField.label] || "";
-                }
-                if (!thumbnailUrl) {
-                  const downloadUrlKey = Object.keys(submissionData).find((key) => key.endsWith("_downloadUrl"));
-                  thumbnailUrl = downloadUrlKey ? submissionData[downloadUrlKey] : "";
-                }
-                if (!thumbnailUrl) {
-                  const imageUrlKey = Object.keys(submissionData).find((key) => {
-                    if (key === "status" || key.endsWith("_downloadUrl")) return false;
-                    const val = submissionData[key];
-                    return typeof val === "string" && /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(val);
-                  });
-                  if (imageUrlKey) thumbnailUrl = submissionData[imageUrlKey];
-                }
-                return thumbnailUrl;
-              })()}
-              sx={{
-                width: 120,
-                height: 120,
-                borderRadius: 3,
-                background: `linear-gradient(135deg, ${colors.PRIMARY} 0%, ${colors.SECONDARY} 100%)`,
-                boxShadow: "0 8px 24px rgba(99, 102, 241, 0.2)",
-              }}
-            >
-              <EmojiEvents sx={{ fontSize: 60, color: "#fff" }} />
-            </Avatar>
-          </Grid>
+      {(() => {
+        let youtubeUrl = "";
+        for (const group of groupedFields) {
+          for (const field of group.fields) {
+            if (field.label?.toLowerCase().includes("youtube") || field.label?.toLowerCase().includes("video link")) {
+              if (field.value && typeof field.value === 'string' && field.value.includes('http')) {
+                youtubeUrl = field.value;
+              }
+            }
+          }
+        }
+        
+        let videoId = null;
+        if (youtubeUrl) {
+          const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+          const match = youtubeUrl.match(regExp);
+          videoId = (match && match[2].length === 11) ? match[2] : null;
+        }
 
-          <Grid size={{ xs: 12, sm: 8, md: 9, lg: 10 }}>
-            <Box
-              sx={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: 3,
-                mb: 2,
-              }}
-            >
-              <Typography
-                variant="h4"
-                sx={{
-                  fontWeight: 800,
-                  color: colors.TEXT_PRIMARY,
-                  fontSize: { xs: "1.75rem", md: "2.25rem" },
-                }}
-              >
-                {(() => {
-                  const sData = entry?.submission?.data || {};
-                  const entryFields = entry?.contest?.entryLevelTemplate?.schema?.fields || entry?.contest?.entry_level_template?.schema?.fields || [];
-                  const entryTitleField = entryFields?.find((f: any) => {
-                    const l = f.label?.toLowerCase() || "";
-                    return l.includes("title") || l.includes("project");
-                  });
+        const otherGroups = groupedFields.filter((g: any) => g.title !== "General Information" && !g.title?.toLowerCase().includes("member"));
+        const memberGroups = groupedFields.filter((g: any) => g.title?.toLowerCase().includes("member"));
+        const participantEmail = Object.values(entry?.participant?.submission?.data || {}).find(v => typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) as string | undefined;
 
-                  let entryTitle = "";
-                  if (entryTitleField && sData) {
-                    entryTitle = sData[entryTitleField.label] || sData[entryTitleField.id];
-                  }
-                  if (!entryTitle) {
-                    entryTitle = sData?.name_1 || sData?.ho1p00z0q || sData?.["Innovation Title"] || sData?.zvdskzwrw;
-                  }
-                  if (!entryTitle) {
-                    const values = Object.entries(sData)
-                      .filter(([k, v]: [string, any]) => !["status", "isdraft"].includes(k.toLowerCase()) && typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v))
-                      .map(([k, v]) => v);
-                    if (values.length > 0) entryTitle = values[0] as string;
-                  }
-                  return entryTitle || "Untitled Entry";
-                })()}
-              </Typography>
+        return (
+          <>
+            <InnovationVideoPlayer videoId={videoId} colors={colors} />
+            <TeamMembersSection memberGroups={memberGroups} colors={colors} participantEmail={participantEmail} renderFieldValue={renderFieldValue} />
+            <EntryDetailsSection otherGroups={otherGroups} colors={colors} videoId={videoId} memberGroupsLength={memberGroups.length} getFieldIcon={getFieldIcon} renderFieldValue={renderFieldValue} />
+          </>
+        );
+      })()}
 
-              <Chip
-                icon={
-                  <EmojiEvents
-                    sx={{ fontSize: "16px !important", color: "#fff !important" }}
-                  />
-                }
-                label={`Score: ${entry.score}`}
-                sx={{
-                  background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                  color: "#fff",
-                  fontWeight: 700,
-                  boxShadow: "0 4px 12px rgba(245, 158, 11, 0.2)",
-                  border: "none",
-                  "& .MuiChip-label": { px: 1.5 },
-                }}
-              />
-              {["semifinal", "final", "winner"].includes(entry.status?.toLowerCase()) && (
-                <Chip
-                  icon={
-                    <HowToVote
-                      sx={{ fontSize: "16px !important", color: "#fff !important" }}
-                    />
-                  }
-                  label={`Total Public Vote: ${entry.voteCount || 0}`}
-                  sx={{
-                    background: "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
-                    color: "#fff",
-                    fontWeight: 700,
-                    boxShadow: "0 4px 12px rgba(59, 130, 246, 0.2)",
-                    border: "none",
-                    "& .MuiChip-label": { px: 1.5 },
-                  }}
-                />
-              )}
-            </Box>
-
-            <Typography
-              variant="body1"
-              sx={{ color: colors.TEXT_SECONDARY, mb: 3, fontWeight: 500 }}
-            >
-              Submitted by:{" "}
-              <Box
-                component="span"
-                sx={{ color: colors.TEXT_PRIMARY, fontWeight: 700 }}
-              >
-                {(() => {
-                  const rawAuthorData = entry?.participant?.submission?.data;
-                  const authorData = rawAuthorData?.data || rawAuthorData || (entry?.participant as any)?.data || (entry?.participant as any)?.participant_profile_data || {};
-                  const userFields = entry?.contest?.userLevelTemplate?.schema?.fields || entry?.contest?.user_level_template?.schema?.fields || [];
-                  
-                  const firstNameField = userFields.find((f: any) => {
-                    const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
-                    return l.includes("firstname") || l === "first";
-                  });
-                  const lastNameField = userFields.find((f: any) => {
-                    const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
-                    return l.includes("lastname") || l === "last";
-                  });
-                  const fullNameField = userFields.find((f: any) => {
-                    const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
-                    return l.includes("fullname") || l === "name" || (l.includes("name") && !l.includes("first") && !l.includes("last"));
-                  });
-
-                  let participantName = "";
-
-                  if (firstNameField || lastNameField) {
-                    const first = firstNameField ? (authorData[firstNameField.label] || authorData[firstNameField.id]) : "";
-                    const last = lastNameField ? (authorData[lastNameField.label] || authorData[lastNameField.id]) : "";
-                    participantName = `${first || ""} ${last || ""}`.trim();
-                  }
-                  
-                  if (!participantName && fullNameField) {
-                    participantName = authorData[fullNameField.label] || authorData[fullNameField.id];
-                  }
-
-                  if (!participantName && authorData && Object.keys(authorData).length > 0) {
-                    const fallback = userFields.find((f: any) => f.label?.toLowerCase().includes("name"));
-                    if (fallback && (authorData[fallback.label] || authorData[fallback.id])) {
-                      participantName = authorData[fallback.label] || authorData[fallback.id];
-                    } else {
-                      participantName = authorData.yg9snrxlh || authorData.an7ffo0mu || authorData.qlon5xekd;
-                    }
-                  }
-
-                  // FALLBACK: If participant is null or empty, check entry submission data itself!
-                  if (!participantName && entry?.submission?.data) {
-                    const sData = entry.submission.data;
-                    const allFields = [...userFields, ...template_fields];
-                    const fNameField = allFields.find((f: any) => {
-                      const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
-                      return l.includes("firstname") || l === "first";
-                    });
-                    const lNameField = allFields.find((f: any) => {
-                      const l = f.label?.toLowerCase().replace(/\s+/g, '') || "";
-                      return l.includes("lastname") || l === "last";
-                    });
-                    
-                    if (fNameField || lNameField) {
-                      const first = fNameField ? (sData[fNameField.label] || sData[fNameField.id]) : "";
-                      const last = lNameField ? (sData[lNameField.label] || sData[lNameField.id]) : "";
-                      participantName = `${first || ""} ${last || ""}`.trim();
-                    }
-                    
-                    if (!participantName) {
-                       participantName = sData.yg9snrxlh || sData.an7ffo0mu || sData.qlon5xekd || sData.os28hf1aa;
-                       if (participantName && sData.tlb9rveot) participantName += " " + sData.tlb9rveot;
-                    }
-                  }
-
-                  if (!participantName && authorData && Object.keys(authorData).length > 0) {
-                     const values = Object.values(authorData).filter((v: any) => typeof v === 'string' && v.trim() !== '' && isNaN(Number(v)) && !v.includes('http') && v.length < 60 && !/^[0-9+\-\s()]+$/.test(v));
-                     if (values.length > 0) participantName = values[0] as string;
-                  }
-                  
-                  return participantName || "Unknown Participant";
-                })()}
-              </Box>
-            </Typography>
-
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: colors.TEXT_SECONDARY,
-                    display: "block",
-                    textTransform: "uppercase",
-                    fontWeight: 700,
-                    letterSpacing: 0.5,
-                    mb: 0.5,
-                  }}
-                >
-                  Submission ID
+      <Dialog open={Boolean(selectedMemberGroup)} onClose={() => setSelectedMemberGroup(null)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4, p: 1 } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 2, pt: 3 }}>
+          <Typography component="div" variant="h5" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY }}>
+            {selectedMemberGroup?.title}
+          </Typography>
+          <IconButton onClick={() => setSelectedMemberGroup(null)} sx={{ color: colors.TEXT_SECONDARY }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers sx={{ borderColor: colors.BORDER, p: 0 }}>
+          <Box sx={{ display: "flex", flexDirection: "column" }}>
+            {selectedMemberGroup?.fields
+              ?.filter((field: any) => !field.label?.toLowerCase().includes("do you want to add another"))
+              .map((field: any, idx: number, arr: any[]) => (
+              <Box key={field.id} sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: { xs: "flex-start", sm: "center" }, py: 2.5, px: 3, borderBottom: idx === arr.length - 1 ? 'none' : `1px solid ${colors.BORDER}`, "&:hover": { bgcolor: "rgba(99, 102, 241, 0.04)" }, gap: { xs: 1, sm: 3 } }}>
+                <Typography variant="body2" sx={{ width: { xs: "100%", sm: "40%" }, color: colors.TEXT_SECONDARY, fontWeight: 700 }}>
+                  {field.label}
                 </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}
-                >
-                  {entry.id}
-                </Typography>
-              </Grid>
-
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                <Typography
-                  variant="caption"
-                  sx={{
-                    color: colors.TEXT_SECONDARY,
-                    display: "block",
-                    textTransform: "uppercase",
-                    fontWeight: 700,
-                    letterSpacing: 0.5,
-                    mb: 0.5,
-                  }}
-                >
-                  Submitted At
-                </Typography>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}
-                >
-                  {new Date(entry.created_at).toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-
-        {entry.status?.toLowerCase() === "rejected" && entry.rejectReason && (
-          <Box sx={{ mt: 4, p: 2, borderRadius: 2, bgcolor: "rgba(220, 38, 38, 0.05)", border: "1px solid rgba(220, 38, 38, 0.2)" }}>
-            <Typography variant="subtitle2" sx={{ color: "#dc2626", fontWeight: 700, mb: 0.5, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Info fontSize="small" /> Reason for Rejection
-            </Typography>
-            <Typography variant="body2" sx={{ color: colors.TEXT_PRIMARY, pl: 3 }}>{entry.rejectReason}</Typography>
-          </Box>
-        )}
-      </Card>
-
-      {/* Submission Details grouped by Step Breaks */}
-      {groupedFields.map((group, gIdx) => (
-        <Box key={gIdx} sx={{ mb: 5 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4, mt: gIdx !== 0 ? 2 : 0 }}>
-            <Box
-              sx={{
-                width: 4,
-                height: 24,
-                borderRadius: 1,
-                bgcolor: colors.PRIMARY,
-                mt: 3
-              }}
-            />
-            <Typography
-              variant="h5"
-              sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY, mt: 3 }}
-            >
-              {group.title}
-            </Typography>
-          </Box>
-
-          <Box sx={{ display: "flex", flexDirection: "column", bgcolor: colors.SURFACE, borderRadius: 4, border: `1px solid ${colors.BORDER}`, p: 1, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-            {group.fields.map((field: any, idx: number) => (
-              <Box
-                key={field.id}
-                sx={{
-                  display: "flex",
-                  flexDirection: { xs: "column", sm: "row" },
-                  alignItems: { xs: "flex-start", sm: "center" },
-                  py: 3,
-                  borderBottom: idx === group.fields.length - 1 ? 'none' : `1px solid ${colors.BORDER}`,
-                  "&:hover": { bgcolor: "rgba(99, 102, 241, 0.04)" },
-                  px: { xs: 3, sm: 4 },
-                  gap: { xs: 1.5, sm: 0 },
-                  transition: "background-color 0.3s ease"
-                }}
-              >
-                <Box sx={{ width: { xs: "100%", sm: "35%", md: "30%" }, display: "flex", alignItems: "center", gap: 2.5, flexShrink: 0 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 1.2, borderRadius: 2, bgcolor: "rgba(99, 102, 241, 0.08)", color: colors.PRIMARY, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)" }}>
-                    {getFieldIcon(field.type, field.label)}
-                  </Box>
-                  <Typography variant="body1" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 700, letterSpacing: 0.5 }}>
-                    {field.label}
-                  </Typography>
-                </Box>
-                <Box sx={{ width: { xs: "100%", sm: "65%", md: "70%" }, pl: { xs: 0, sm: 3 }, pt: { xs: 1, sm: 0 }, borderLeft: { xs: 'none', sm: `2px solid rgba(0,0,0,0.04)` } }}>
+                <Box sx={{ width: { xs: "100%", sm: "60%" } }}>
                   {renderFieldValue(field)}
                 </Box>
               </Box>
             ))}
           </Box>
-        </Box>
-      ))}
-
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button variant="contained" onClick={() => setSelectedMemberGroup(null)} sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600, bgcolor: colors.PRIMARY, '&:hover': { bgcolor: colors.SECONDARY } }}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

@@ -69,6 +69,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
     duplicateField,
     moveField,
     handleSave,
+    hasAttemptedSave,
   } = useFormTemplate(initialData);
 
   return (
@@ -274,6 +275,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                                 [id]: text,
                               })
                             }
+                            hasAttemptedSave={hasAttemptedSave}
                           />
                         ))}
                         <div ref={scrollEndRef} />
@@ -335,7 +337,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                       ? "Saving Template..."
                       : initialData 
                         ? "Update Template" 
-                        : "Launch Experience Template"}
+                        : "Create Template"}
                   </Button>
                 </Paper>
               </Grid>
@@ -385,7 +387,7 @@ const FormBuilder: React.FC<FormBuilderProps> = ({ initialData, onBack }) => {
                   disabled={loading}
                   sx={{ borderRadius: "12px", px: 4 }}
                 >
-                  Launch Template
+                  Create Template
                 </Button>
               </Box>
             </Grid>

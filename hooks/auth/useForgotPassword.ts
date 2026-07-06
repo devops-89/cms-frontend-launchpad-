@@ -18,7 +18,11 @@ export const useForgotPassword = () => {
       
       router.push(`/verify-otp?flow=forgot&email=${encodeURIComponent(values.email)}`);
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || 'Failed to send OTP.');
+      let errorMsg = err?.response?.data?.message || err?.message || 'Failed to send OTP.';
+      if (errorMsg.toLowerCase().includes("couldn't find an account") || errorMsg.toLowerCase().includes("could not find an account")) {
+        errorMsg = "Not a registered user. Please register first.";
+      }
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }

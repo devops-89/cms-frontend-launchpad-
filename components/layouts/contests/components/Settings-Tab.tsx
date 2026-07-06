@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -8,17 +8,69 @@ import {
   Divider,
   Stack,
   Button,
-  Grid,
+  CircularProgress,
 } from "@mui/material";
 import { roboto } from "@/utils/fonts";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import dayjs, { Dayjs } from "dayjs";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { contestControllers } from "@/api/contestControllers";
+import { entryControllers } from "@/api/entryControllers";
+import { useSnackbar } from "@/context/SnackbarContext";
 
-const SettingsTab = () => {
-  const [votingStartDate, setVotingStartDate] = useState<Dayjs | null>(null);
-  const [votingEndDate, setVotingEndDate] = useState<Dayjs | null>(null);
+const SettingsTab = ({ contest }: { contest?: any }) => {
+  const queryClient = useQueryClient();
+  const { showSnackbar } = useSnackbar();
+  
+  const [allowNewRegistrations, setAllowNewRegistrations] = useState(true);
+  const [publicVisibility, setPublicVisibility] = useState(true);
+  const [autoModerateEntries, setAutoModerateEntries] = useState(false);
+
+  useEffect(() => {
+    if (contest) {
+      setAllowNewRegistrations(contest.allow_new_registrations ?? true);
+      setPublicVisibility(contest.public_visibility ?? true);
+      setAutoModerateEntries(contest.auto_moderate_entries ?? false);
+    }
+  }, [contest]);
+
+  const updateSettingsMutation = useMutation({
+    mutationFn: async () => {
+      if (!contest?.id) throw new Error("Contest ID not found");
+      return contestControllers.updateContest(contest.id, {
+        allow_new_registrations: allowNewRegistrations,
+        public_visibility: publicVisibility,
+        auto_moderate_entries: autoModerateEntries,
+      } as any);
+    },
+    onSuccess: async () => {
+      showSnackbar("Contest settings updated successfully", "success");
+      queryClient.invalidateQueries({ queryKey: ["contest", contest?.id] });
+      
+      // If auto-moderate is enabled, also trigger the cron
+      if (autoModerateEntries) {
+        try {
+          await entryControllers.runAutoApproveCron();
+          showSnackbar("Auto-approve cron executed successfully", "success");
+        } catch (error) {
+          console.error("Failed to execute auto-approve cron", error);
+        }
+      }
+    },
+    onError: (error: any) => {
+      showSnackbar(error?.response?.data?.message || "Failed to update settings", "error");
+    },
+  });
+
+  const handleSave = () => {
+    if (
+      allowNewRegistrations === (contest?.allow_new_registrations ?? true) &&
+      publicVisibility === (contest?.public_visibility ?? true) &&
+      autoModerateEntries === (contest?.auto_moderate_entries ?? false)
+    ) {
+      showSnackbar("No changes to save. Please modify a setting first.", "info");
+      return;
+    }
+    updateSettingsMutation.mutate();
+  };
 
   return (
     <Box sx={{ p: 2 }}>
@@ -31,7 +83,12 @@ const SettingsTab = () => {
 
       <Stack spacing={3}>
         <FormControlLabel
-          control={<Switch defaultChecked />}
+          control={
+            <Switch
+              checked={allowNewRegistrations}
+              onChange={(e) => setAllowNewRegistrations(e.target.checked)}
+            />
+          }
           label={
             <Box>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>
@@ -45,7 +102,12 @@ const SettingsTab = () => {
         />
         <Divider />
         <FormControlLabel
-          control={<Switch defaultChecked />}
+          control={
+            <Switch
+              checked={publicVisibility}
+              onChange={(e) => setPublicVisibility(e.target.checked)}
+            />
+          }
           label={
             <Box>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>
@@ -59,7 +121,12 @@ const SettingsTab = () => {
         />
         <Divider />
         <FormControlLabel
-          control={<Switch />}
+          control={
+            <Switch
+              checked={autoModerateEntries}
+              onChange={(e) => setAutoModerateEntries(e.target.checked)}
+            />
+          }
           label={
             <Box>
               <Typography variant="body1" sx={{ fontWeight: 500 }}>
@@ -72,36 +139,16 @@ const SettingsTab = () => {
           }
         />
         <Divider />
-        {/* <Box>
-          <Typography variant="body1" sx={{ fontWeight: 500, mb: 1 }}>Voting Period</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>Set the start and end dates for the voting phase.</Typography>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Grid container spacing={3}>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <DatePicker
-                  label="Voting Start Date"
-                  value={votingStartDate}
-                  onChange={(newValue) => setVotingStartDate(newValue)}
-                  sx={{ width: "100%" }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6 }}>
-                <DatePicker
-                  label="Voting End Date"
-                  value={votingEndDate}
-                  onChange={(newValue) => setVotingEndDate(newValue)}
-                  sx={{ width: "100%" }}
-                  minDate={votingStartDate || undefined}
-                />
-              </Grid>
-            </Grid>
-          </LocalizationProvider>
-        </Box> */}
       </Stack>
 
       <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="contained" color="primary">
-          Save Changes
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSave}
+          disabled={updateSettingsMutation.isPending}
+        >
+          {updateSettingsMutation.isPending ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
         </Button>
       </Box>
     </Box>

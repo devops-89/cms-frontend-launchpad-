@@ -35,7 +35,7 @@ export default function JudgeDashboardPage() {
 
   const totalAssigned = entries.length;
   const evaluatedCount = entries.filter(e => e.status?.toLowerCase() === "evaluated" || e.entry?.status?.toLowerCase() === "evaluated" || (e.score !== undefined && e.score !== null && e.score > 0) || (e.entry?.score !== undefined && e.entry?.score !== null && e.entry?.score > 0)).length;
-  const pendingCount = totalAssigned - evaluatedCount;
+  const moderateCount = totalAssigned - evaluatedCount;
 
   const stats = [
     {
@@ -55,12 +55,12 @@ export default function JudgeDashboardPage() {
       trendType: "up" as const,
     },
     {
-      label: "Pending",
-      value: pendingCount.toString(),
+      label: "Moderate",
+      value: moderateCount.toString(),
       color: colors.ACCENT,
       icon: <PendingIcon />,
-      trend: `${pendingCount > 0 ? pendingCount : "0"}`,
-      trendType: pendingCount > 0 ? "down" as const : "up" as const,
+      trend: `${moderateCount > 0 ? moderateCount : "0"}`,
+      trendType: moderateCount > 0 ? "down" as const : "up" as const,
     },
   ];
 

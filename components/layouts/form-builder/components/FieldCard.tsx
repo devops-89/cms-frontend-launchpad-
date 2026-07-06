@@ -55,6 +55,7 @@ interface FieldCardProps {
   totalFields: number;
   allFields?: FormField[];
   formValues?: any;
+  hasAttemptedSave?: boolean;
 }
 
 const FieldCard: React.FC<FieldCardProps> = ({
@@ -72,9 +73,15 @@ const FieldCard: React.FC<FieldCardProps> = ({
   onMove,
   index,
   totalFields,
+  hasAttemptedSave,
 }) => {
   const theme = useTheme();
   const { templates } = useGetAllTemplates();
+  const [touchedConfig, setTouchedConfig] = React.useState<Record<string, boolean>>({});
+
+  const handleBlur = (key: string) => {
+    setTouchedConfig((p) => ({ ...p, [key]: true }));
+  };
 
   if (field.type === "step_break") {
     // ✅ CHECK USER SELECTION
@@ -924,7 +931,8 @@ if (field.id === "member_2_step" && !showMember2) {
                         {...params}
                         size="small"
                         label="Allowed Extensions *"
-                        error={!field.config?.allowedExtensions || field.config.allowedExtensions.length === 0}
+                        error={(hasAttemptedSave || touchedConfig.allowedExtensions) && (!field.config?.allowedExtensions || field.config.allowedExtensions.length === 0)}
+                        onBlur={() => handleBlur("allowedExtensions")}
                         placeholder="e.g., .jpg, .pdf"
                         sx={{
                           "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
@@ -958,8 +966,12 @@ if (field.id === "member_2_step" && !showMember2) {
                     label="Max File Size (MB) *"
                     type="number"
                     value={field.config?.maxSize || ""}
-                    onChange={(e) => onUpdateConfig(field.id, "maxSize", e.target.value)}
-                    error={!field.config?.maxSize}
+                    onChange={(e) => {
+                      onUpdateConfig(field.id, "maxSize", e.target.value);
+                      handleBlur("maxSize");
+                    }}
+                    onBlur={() => handleBlur("maxSize")}
+                    error={(hasAttemptedSave || touchedConfig.maxSize) && !field.config?.maxSize}
                     sx={{
                       "& .MuiOutlinedInput-root": { borderRadius: "8px", bgcolor: "white" },
                       "& .MuiInputLabel-root": { fontSize: "0.75rem" },

@@ -146,10 +146,10 @@ const EditTemplateForm = () => {
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControl fullWidth>
-              <InputLabel>Audience</InputLabel>
+              <InputLabel>User</InputLabel>
               <Select
                 value={audience}
-                label="Audience"
+                label="User"
                 disabled
               >
                 <MenuItem value="Participant">Participant</MenuItem>

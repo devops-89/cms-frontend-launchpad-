@@ -2,54 +2,12 @@ import {
   AccountCircle, CalendarToday, CheckCircle, EmojiEvents, Info, Mail, Phone, Star, Tune, Download, InsertDriveFile, PlayCircleOutline, Videocam, Image as ImageIcon
 } from "@mui/icons-material";
 import React from "react";
-import { Box, Chip, Grid, Paper, Rating, Typography, Button } from '@mui/material';
+import { Box, Chip, Rating, Typography, Button } from '@mui/material';
 import Image from "next/image";
 
-const VideoPlayerRenderer = ({ urlStr }: { urlStr: string }) => {
-  const [isPlaying, setIsPlaying] = React.useState(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-
-  const handlePlay = () => {
-    setIsPlaying(true);
-    if (videoRef.current) {
-      videoRef.current.play();
-    }
-  };
-
-  return (
-    <Box 
-      sx={{ 
-        position: 'relative', width: "100%", maxWidth: 600, height: 340, borderRadius: 3, overflow: 'hidden', 
-        flexShrink: 0, border: '1px solid rgba(0,0,0,0.1)', bgcolor: "#000",
-        display: "flex", justifyContent: "center", alignItems: "center", boxShadow: "0 10px 40px rgba(0,0,0,0.1)"
-      }}
-    >
-      <video 
-        ref={videoRef}
-        src={urlStr} 
-        controls={isPlaying} 
-        style={{ width: "100%", height: "100%", objectFit: "contain" }} 
-        preload="metadata" 
-        onPause={() => setIsPlaying(false)}
-        onEnded={() => setIsPlaying(false)}
-      />
-      {!isPlaying && (
-        <Box 
-          onClick={handlePlay}
-          sx={{
-            position: 'absolute',
-            top: 0, left: 0, right: 0, bottom: 0,
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            bgcolor: 'rgba(0,0,0,0.3)', cursor: 'pointer', zIndex: 10,
-            "&:hover .play-icon": { transform: "scale(1.1)", color: "#fff" }
-          }}
-        >
-          <PlayCircleOutline className="play-icon" sx={{ fontSize: 80, color: "rgba(255,255,255,0.9)", transition: "all 0.2s ease" }} />
-        </Box>
-      )}
-    </Box>
-  );
-};
+import InnovationVideoPlayer, { VideoPlayerRenderer } from "@/components/layouts/entry-details/InnovationVideoPlayer";
+import TeamMembersSection from "@/components/layouts/entry-details/TeamMembersSection";
+import EntryDetailsSection from "@/components/layouts/entry-details/EntryDetailsSection";
 
 export const SubmissionDetails = ({ groupedFields, colors }: { groupedFields: any[], colors: any }) => {
   const getFieldIcon = (type: string, label: string) => {
@@ -188,48 +146,44 @@ export const SubmissionDetails = ({ groupedFields, colors }: { groupedFields: an
     );
   };
 
+  let youtubeUrl = "";
+  for (const group of groupedFields) {
+    for (const field of group.fields) {
+      if (field.label?.toLowerCase().includes("youtube") || field.label?.toLowerCase().includes("video link")) {
+        if (field.value && typeof field.value === 'string' && field.value.includes('http')) {
+          youtubeUrl = field.value;
+        }
+      }
+    }
+  }
+  
+  let videoId = null;
+  if (youtubeUrl) {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = youtubeUrl.match(regExp);
+    videoId = (match && match[2].length === 11) ? match[2] : null;
+  }
+
+  const otherGroups = groupedFields.filter(g => g.title !== "General Information" && !g.title?.toLowerCase().includes("member"));
+  const memberGroups = groupedFields.filter(g => g.title?.toLowerCase().includes("member"));
+  
+  // Try to find the participant email from the groupedFields if present
+  let participantEmail = "";
+  for (const group of groupedFields) {
+    for (const field of group.fields) {
+      if (field.label?.toLowerCase().includes("email") && typeof field.value === 'string' && field.value.includes('@')) {
+        participantEmail = field.value;
+        break;
+      }
+    }
+    if (participantEmail) break;
+  }
+
   return (
     <>
-      {groupedFields.map((group, gIdx) => (
-        <Box key={gIdx} sx={{ mb: 10 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4, mt: gIdx !== 0 ? 2 : 0 }}>
-            <Box sx={{ width: 4, height: 24, borderRadius: 1, bgcolor: colors.PRIMARY, mt: 3 }} />
-            <Typography variant="h5" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY, mt: 3 }}>
-              {group.title}
-            </Typography>
-          </Box>
-          <Box sx={{ display: "flex", flexDirection: "column", bgcolor: colors.SURFACE, borderRadius: 4, border: `1px solid ${colors.BORDER}`, p: 1, boxShadow: "0 10px 40px -10px rgba(0,0,0,0.06)", overflow: "hidden" }}>
-            {group.fields.filter((field: any) => field.type !== "textblock" && field.type !== "checkbox").map((field: any, idx: number, arr: any[]) => (
-              <Box
-                key={field.id}
-                sx={{
-                  display: "flex",
-                  flexDirection: { xs: "column", sm: "row" },
-                  alignItems: { xs: "flex-start", sm: "center" },
-                  py: 3,
-                  borderBottom: idx === arr.length - 1 ? 'none' : `1px solid ${colors.BORDER}`,
-                  "&:hover": { bgcolor: "rgba(99, 102, 241, 0.04)" },
-                  px: { xs: 3, sm: 4 },
-                  gap: { xs: 1.5, sm: 0 },
-                  transition: "background-color 0.3s ease"
-                }}
-              >
-                <Box sx={{ width: { xs: "100%", sm: "35%", md: "30%" }, display: "flex", alignItems: "center", gap: 2.5, flexShrink: 0 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 1.2, borderRadius: 2, bgcolor: "rgba(99, 102, 241, 0.08)", color: colors.PRIMARY, boxShadow: "inset 0 2px 4px rgba(0,0,0,0.02)" }}>
-                    {getFieldIcon(field.type, field.label)}
-                  </Box>
-                  <Typography variant="body1" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 700, letterSpacing: 0.5 }}>
-                    {field.label}
-                  </Typography>
-                </Box>
-                <Box sx={{ width: { xs: "100%", sm: "65%", md: "70%" }, pl: { xs: 0, sm: 3 }, pt: { xs: 1, sm: 0 }, borderLeft: { xs: 'none', sm: `2px solid rgba(0,0,0,0.04)` } }}>
-                  {renderFieldValue(field)}
-                </Box>
-              </Box>
-            ))}
-          </Box>
-        </Box>
-      ))}
+      <InnovationVideoPlayer videoId={videoId} colors={colors} />
+      <TeamMembersSection memberGroups={memberGroups} colors={colors} participantEmail={participantEmail} renderFieldValue={renderFieldValue} />
+      <EntryDetailsSection otherGroups={otherGroups} colors={colors} videoId={videoId} memberGroupsLength={memberGroups.length} getFieldIcon={getFieldIcon} renderFieldValue={renderFieldValue} />
     </>
   );
 };

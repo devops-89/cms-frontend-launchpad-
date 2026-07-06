@@ -20,6 +20,7 @@ import * as Yup from "yup";
 import { useAppTheme } from "@/context/ThemeContext";
 import { useForgotPassword } from "@/hooks/auth/useForgotPassword";
 import { useSnackbar } from "@/context/SnackbarContext";
+import { getFormikError } from "@/utils/formikHelper";
 
 const ForgotPassword = () => {
   const { colors } = useAppTheme();
@@ -164,27 +165,11 @@ const ForgotPassword = () => {
               name="email"
               variant="outlined"
               sx={textFieldStyles}
-              value={
-                formik.values.email
-              }
-              onChange={
-                formik.handleChange
-              }
-              onBlur={
-                formik.handleBlur
-              }
-              error={
-                formik.touched
-                  .email &&
-                Boolean(
-                  formik.errors
-                    .email,
-                )
-              }
-              helperText={
-                formik.touched.email &&
-                formik.errors.email
-              }
+              value={formik.values.email}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
+              onBlur={formik.handleBlur}
+              error={Boolean(getFormikError(formik, "email"))}
+              helperText={getFormikError(formik, "email") as string}
             />
 
             <Button

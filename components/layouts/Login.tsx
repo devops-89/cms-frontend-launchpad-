@@ -21,6 +21,7 @@ import { useFormik } from "formik";
 import { useRouter } from "next/navigation";
 import React from "react";
 import FullScreenLoader from "@/components/widgets/FullScreenLoader";
+import { getFormikError } from "@/utils/formikHelper";
 
 const Login = () => {
   const { colors, mode } = useAppTheme();
@@ -115,10 +116,10 @@ const Login = () => {
                 variant="outlined"
                 sx={textFieldStyles}
                 value={formik.values.email}
-                onChange={formik.handleChange}
+                onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
                 onBlur={formik.handleBlur}
-                error={formik.touched.email && Boolean(formik.errors.email)}
-                helperText={formik.touched.email && formik.errors.email}
+                error={Boolean(getFormikError(formik, "email"))}
+                helperText={getFormikError(formik, "email") as string}
                 autoComplete="new-password"
                 slotProps={{ inputLabel: { shrink: true } }}
                 placeholder="Enter your email"
@@ -150,10 +151,10 @@ const Login = () => {
                   inputLabel: { shrink: true },
                 }}
                 value={formik.values.password}
-                onChange={formik.handleChange}
+                onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("password", true, false); }}
                 onBlur={formik.handleBlur}
-                error={formik.touched.password && Boolean(formik.errors.password)}
-                helperText={formik.touched.password && formik.errors.password}
+                error={Boolean(getFormikError(formik, "password"))}
+                helperText={getFormikError(formik, "password") as string}
                 placeholder="Enter your password"
               />
 

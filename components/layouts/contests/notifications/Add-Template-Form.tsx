@@ -112,10 +112,10 @@ const AddTemplateForm = () => {
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, sm: 6 }}>
             <FormControl fullWidth>
-              <InputLabel>Audience</InputLabel>
+              <InputLabel>User</InputLabel>
               <Select
                 value={audience}
-                label="Audience"
+                label="User"
                 onChange={(e) => {
                   setAudience(e.target.value as "Participant" | "Judge");
                   setEventType("");

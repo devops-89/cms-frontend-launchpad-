@@ -144,7 +144,7 @@ export default function DashboardPage() {
         const dateB = b.created_at || b.createdAt || "";
         return new Date(dateB).getTime() - new Date(dateA).getTime();
       })
-      .slice(0, 5);
+      .slice(0, 4);
   }, [contestsList]);
 
   const stats = [

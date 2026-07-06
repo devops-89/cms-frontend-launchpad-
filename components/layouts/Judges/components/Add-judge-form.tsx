@@ -14,11 +14,14 @@ import {
 import { Visibility, VisibilityOff , ArrowBack} from "@mui/icons-material";
 import { useFormik } from "formik";
 import { matchIsValidTel, MuiTelInput } from "mui-tel-input";
+import { parsePhoneNumberFromString, getExampleNumber } from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
 import React from "react";
 import * as Yup from "yup";
 import { AuthControllers } from "@/api/authControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { useRouter } from "next/navigation";
+import { getFormikError } from "@/utils/formikHelper";
 
 const filter = createFilterOptions<string>();
 
@@ -122,8 +125,8 @@ const AddJudgeForm = () => {
             value={formik.values.firstName}
             onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
             onBlur={formik.handleBlur}
-            error={formik.touched.firstName && Boolean(formik.errors.firstName)}
-            helperText={formik.touched.firstName && formik.errors.firstName as string}
+            error={Boolean(getFormikError(formik, "firstName"))}
+            helperText={getFormikError(formik, "firstName") as string}
           />
         </Grid>
         <Grid size={6}>
@@ -134,8 +137,8 @@ const AddJudgeForm = () => {
             value={formik.values.lastName}
             onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
             onBlur={formik.handleBlur}
-            error={formik.touched.lastName && Boolean(formik.errors.lastName)}
-            helperText={formik.touched.lastName && formik.errors.lastName as string}
+            error={Boolean(getFormikError(formik, "lastName"))}
+            helperText={getFormikError(formik, "lastName") as string}
           />
         </Grid>
         <Grid size={6}>
@@ -148,8 +151,8 @@ const AddJudgeForm = () => {
             value={formik.values.email}
             onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
             onBlur={formik.handleBlur}
-            error={formik.touched.email && Boolean(formik.errors.email)}
-            helperText={formik.touched.email && formik.errors.email as string}
+            error={Boolean(getFormikError(formik, "email"))}
+            helperText={getFormikError(formik, "email") as string}
           />
         </Grid>
         <Grid size={6}>
@@ -162,8 +165,8 @@ const AddJudgeForm = () => {
             value={formik.values.password}
             onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("password", true, false); }}
             onBlur={formik.handleBlur}
-            error={formik.touched.password && Boolean(formik.errors.password)}
-            helperText={formik.touched.password && formik.errors.password as string}
+            error={Boolean(getFormikError(formik, "password"))}
+            helperText={getFormikError(formik, "password") as string}
             slotProps={{
               input: {
                 endAdornment: (
@@ -182,16 +185,32 @@ const AddJudgeForm = () => {
           />
         </Grid>
         <Grid size={6}>
-          <MuiTelInput
+          {(() => {
+  const phoneVal = formik.values.phoneNumber || "";
+  const parsed = parsePhoneNumberFromString(phoneVal);
+  const countryCode = parsed?.country || "US" || "IN";
+  const example = getExampleNumber(countryCode as any, examples);
+  const maxLength = example ? example.formatInternational().length : 15;
+
+  return (
+    <MuiTelInput
+      onKeyDown={(e) => {
+        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab"];
+        if (phoneVal.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+      }}
             defaultCountry="US"
             fullWidth
             label="Phone Number*"
             onChange={handlePhoneNumber}
             onBlur={() => formik.setFieldTouched("phoneNumber", true)}
             value={formik.values.phoneNumber}
-            error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
-            helperText={formik.touched.phoneNumber && formik.errors.phoneNumber as string}
+            error={Boolean(getFormikError(formik, "phoneNumber"))}
+            helperText={getFormikError(formik, "phoneNumber") as string}
           />
+  );
+})()}
         </Grid>
         <Grid size={6}>
           <Autocomplete
@@ -207,8 +226,8 @@ const AddJudgeForm = () => {
                 {...params}
                 label="Expertise*"
                 fullWidth
-                error={formik.touched.expertise && Boolean(formik.errors.expertise)}
-                helperText={formik.touched.expertise && formik.errors.expertise as string}
+                error={Boolean(getFormikError(formik, "expertise"))}
+                helperText={getFormikError(formik, "expertise") as string}
               />
             )}
           />

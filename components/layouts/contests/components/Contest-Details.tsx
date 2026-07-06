@@ -189,7 +189,7 @@ const ContestDetails = () => {
           {tabValue === 0 && <OverviewTab contest={contestData} />}
           {tabValue === 1 && <ParticipantsList />}
           {tabValue === 2 && <EntriesList />}
-          {tabValue === 3 && <SettingsTab/>}
+          {tabValue === 3 && <SettingsTab contest={contestData} />}
           {tabValue === 4 && <VotesTab contestId={contestId} />}
           {tabValue === 5 && <NotificationsTab />}
           {/* {tabValue === 7 && <TransactionsTab />} */}

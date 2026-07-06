@@ -17,6 +17,15 @@ export const entryControllers = {
     }
   },
 
+  runAutoApproveCron: async () => {
+    try {
+      const response = await contestSecuredApi.post("entries/auto-approve-cron");
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   getAllEntries: async (
     contestId: string,
     page: number = 1,

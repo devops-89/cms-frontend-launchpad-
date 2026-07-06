@@ -15,6 +15,8 @@ import { useSnackbar } from "@/context/SnackbarContext";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import { matchIsValidTel, MuiTelInput } from "mui-tel-input";
+import { parsePhoneNumberFromString, getExampleNumber } from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { countries, GRADE_OPTIONS } from "@/utils/constant";
 import { useFormik } from "formik";
@@ -23,6 +25,7 @@ import moment, { Moment } from "moment";
 import { useRegisterParticipant } from "@/hooks/auth/useRegisterParticipant";
 import { RegisterParticipantPayload } from "@/types/user";
 import { UserRole } from "@/utils/enum";
+import { getFormikError } from "@/utils/formikHelper";
 
 const UserForm = () => {
   const { showSnackbar } = useSnackbar();
@@ -121,10 +124,8 @@ const UserForm = () => {
               value={formik.values.firstName}
               onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
               onBlur={formik.handleBlur}
-              error={
-                (formik.touched.firstName || Boolean(formik.values.firstName)) && Boolean(formik.errors.firstName)
-              }
-              helperText={(formik.touched.firstName || Boolean(formik.values.firstName)) && formik.errors.firstName as string}
+              error={Boolean(getFormikError(formik, "firstName"))}
+              helperText={getFormikError(formik, "firstName") as string}
             />
           </Grid>
           <Grid size={6}>
@@ -136,8 +137,8 @@ const UserForm = () => {
               value={formik.values.lastName}
               onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
               onBlur={formik.handleBlur}
-              error={(formik.touched.lastName || Boolean(formik.values.lastName)) && Boolean(formik.errors.lastName)}
-              helperText={(formik.touched.lastName || Boolean(formik.values.lastName)) && formik.errors.lastName as string}
+              error={Boolean(getFormikError(formik, "lastName"))}
+              helperText={getFormikError(formik, "lastName") as string}
             />
           </Grid>
           <Grid size={6}>
@@ -149,12 +150,26 @@ const UserForm = () => {
               value={formik.values.email}
               onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
               onBlur={formik.handleBlur}
-              error={(formik.touched.email || Boolean(formik.values.email)) && Boolean(formik.errors.email)}
-              helperText={(formik.touched.email || Boolean(formik.values.email)) && formik.errors.email as string}
+              error={Boolean(getFormikError(formik, "email"))}
+              helperText={getFormikError(formik, "email") as string}
             />
           </Grid>
           <Grid size={6}>
-            <MuiTelInput
+            {(() => {
+  const phoneVal = formik.values.phoneNumber || "";
+  const parsed = parsePhoneNumberFromString(phoneVal);
+  const countryCode = parsed?.country || "IN" || "IN";
+  const example = getExampleNumber(countryCode as any, examples);
+  const maxLength = example ? example.formatInternational().length : 15;
+
+  return (
+    <MuiTelInput
+      onKeyDown={(e) => {
+        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab"];
+        if (phoneVal.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+      }}
               defaultCountry="IN"
               fullWidth
               label="Phone Number*"
@@ -163,11 +178,11 @@ const UserForm = () => {
               value={formik.values.phoneNumber}
               onChange={handlePhoneNumber}
               onBlur={formik.handleBlur}
-              error={
-                (formik.touched.phoneNumber || Boolean(formik.values.phoneNumber)) && Boolean(formik.errors.phoneNumber)
-              }
-              helperText={(formik.touched.phoneNumber || Boolean(formik.values.phoneNumber)) && formik.errors.phoneNumber as string}
+              error={Boolean(getFormikError(formik, "phoneNumber"))}
+              helperText={getFormikError(formik, "phoneNumber") as string}
             />
+  );
+})()}
           </Grid>
           <Grid size={6}>
             <DatePicker
@@ -177,12 +192,8 @@ const UserForm = () => {
                   fullWidth: true,
                   onBlur: formik.handleBlur,
                   name: "dateOfBirth",
-                  error:
-                    formik.touched.dateOfBirth &&
-                    Boolean(formik.errors.dateOfBirth),
-                  helperText:
-                    formik.touched.dateOfBirth &&
-                    (formik.errors.dateOfBirth as string),
+                  error: Boolean(getFormikError(formik, "dateOfBirth")),
+                  helperText: getFormikError(formik, "dateOfBirth") as string,
                 },
               }}
               disableFuture
@@ -212,8 +223,8 @@ const UserForm = () => {
                   id="grade"
                   name="grade"
                   onBlur={formik.handleBlur}
-                  error={formik.touched.grade && Boolean(formik.errors.grade)}
-                  helperText={formik.touched.grade && formik.errors.grade}
+                  error={Boolean(getFormikError(formik, "grade"))}
+                  helperText={getFormikError(formik, "grade") as string}
                 />
               )}
             />
@@ -226,10 +237,10 @@ const UserForm = () => {
               name="password"
               type={showPassword ? "text" : "password"}
               value={formik.values.password}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("password", true, false); }}
               onBlur={formik.handleBlur}
-              error={formik.touched.password && Boolean(formik.errors.password)}
-              helperText={formik.touched.password && formik.errors.password}
+              error={Boolean(getFormikError(formik, "password"))}
+              helperText={getFormikError(formik, "password") as string}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -256,15 +267,10 @@ const UserForm = () => {
               name="confirmPassword"
               type={showPassword ? "text" : "password"}
               value={formik.values.confirmPassword}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("confirmPassword", true, false); }}
               onBlur={formik.handleBlur}
-              error={
-                formik.touched.confirmPassword &&
-                Boolean(formik.errors.confirmPassword)
-              }
-              helperText={
-                formik.touched.confirmPassword && formik.errors.confirmPassword
-              }
+              error={Boolean(getFormikError(formik, "confirmPassword"))}
+              helperText={getFormikError(formik, "confirmPassword") as string}
               slotProps={{
                 input: {
                   endAdornment: (
@@ -290,12 +296,10 @@ const UserForm = () => {
               id="schoolName"
               name="schoolName"
               value={formik.values.schoolName}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("schoolName", true, false); }}
               onBlur={formik.handleBlur}
-              error={
-                formik.touched.schoolName && Boolean(formik.errors.schoolName)
-              }
-              helperText={formik.touched.schoolName && formik.errors.schoolName}
+              error={Boolean(getFormikError(formik, "schoolName"))}
+              helperText={getFormikError(formik, "schoolName") as string}
             />
           </Grid>
           <Grid size={6}>
@@ -341,10 +345,8 @@ const UserForm = () => {
                     },
                   }}
                   onBlur={formik.handleBlur}
-                  error={
-                    formik.touched.country && Boolean(formik.errors.country)
-                  }
-                  helperText={formik.touched.country && formik.errors.country}
+                  error={Boolean(getFormikError(formik, "country"))}
+                  helperText={getFormikError(formik, "country") as string}
                   fullWidth
                 />
               )}

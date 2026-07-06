@@ -46,6 +46,7 @@ import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
 import { useParams, useRouter } from "next/navigation";
 import React from "react";
 import * as Yup from "yup";
+import { getFormikError } from "@/utils/formikHelper";
 
 const AddUserForm = () => {
   const { showSnackbar } = useSnackbar();
@@ -390,12 +391,9 @@ const AddUserForm = () => {
                       formik.setFieldTouched(val.id, true, false);
                     }}
                     onBlur={formik.handleBlur}
-                    error={
-                      (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id])
-                    }
+                    error={Boolean(getFormikError(formik, val.id))}
                     helperText={
-                      ((formik.touched[val.id] || Boolean(formik.values[val.id])) &&
-                        (formik.errors[val.id] as string)) ||
+                      (getFormikError(formik, val.id) as string) ||
                       val.helperText
                     }
                   />
@@ -433,14 +431,13 @@ const AddUserForm = () => {
                         formik.setFieldTouched(val.id, true, false);
                       }}
                       onBlur={() => formik.setFieldTouched(val.id, true)}
-                      error={
-                        formik.touched[val.id] && Boolean(formik.errors[val.id])
-                      }
-                      defaultCountry={val.config?.defaultCountry}
+                      error={Boolean(getFormikError(formik, val.id))}
+                      defaultCountry={(val.config?.defaultCountry || 'IN') as any}
+                          onlyCountries={val.config?.onlyCountries || undefined}
                     />
-                    {formik.touched[val.id] && formik.errors[val.id] && (
+                    {getFormikError(formik, val.id) && (
                       <FormHelperText error>
-                        {formik.errors[val.id] as string}
+                        {getFormikError(formik, val.id) as string}
                       </FormHelperText>
                     )}
                   </Box>
@@ -461,12 +458,9 @@ const AddUserForm = () => {
                       }
                       slotProps={{
                         textField: {
-                          error:
-                            formik.touched[val.id] &&
-                            Boolean(formik.errors[val.id]),
+                          error: Boolean(getFormikError(formik, val.id)),
                           helperText:
-                            (formik.touched[val.id] &&
-                              (formik.errors[val.id] as string)) ||
+                            (getFormikError(formik, val.id) as string) ||
                             val.helperText,
                           required: val.required,
                         },
@@ -481,9 +475,7 @@ const AddUserForm = () => {
                   <FormControl
                     fullWidth
                     variant={val.variant}
-                    error={
-                      formik.touched[val.id] && Boolean(formik.errors[val.id])
-                    }
+                    error={Boolean(getFormikError(formik, val.id))}
                   >
                     <InputLabel>{val.label}</InputLabel>
                     <Select
@@ -499,11 +491,10 @@ const AddUserForm = () => {
                         </MenuItem>
                       ))}
                     </Select>
-                    {(formik.touched[val.id] && formik.errors[val.id]) ||
+                    {getFormikError(formik, val.id) ||
                     val.helperText ? (
                       <FormHelperText>
-                        {(formik.touched[val.id] &&
-                          (formik.errors[val.id] as string)) ||
+                        {(getFormikError(formik, val.id) as string) ||
                           val.helperText}
                       </FormHelperText>
                     ) : null}
@@ -519,13 +510,9 @@ const AddUserForm = () => {
                         label={val.label}
                         variant={val.variant}
                         placeholder={val.placeholder}
-                        error={
-                          formik.touched[val.id] &&
-                          Boolean(formik.errors[val.id])
-                        }
+                        error={Boolean(getFormikError(formik, val.id))}
                         helperText={
-                          (formik.touched[val.id] &&
-                            (formik.errors[val.id] as string)) ||
+                          (getFormikError(formik, val.id) as string) ||
                           val.helperText
                         }
                         required={val.required}
@@ -546,13 +533,9 @@ const AddUserForm = () => {
                         <TextField
                           {...params}
                           label={val.label || "Country Of Residence"}
-                          error={
-                            formik.touched[val.id] &&
-                            Boolean(formik.errors[val.id])
-                          }
+                          error={Boolean(getFormikError(formik, val.id))}
                           helperText={
-                            (formik.touched[val.id] &&
-                              (formik.errors[val.id] as string)) ||
+                            (getFormikError(formik, val.id) as string) ||
                             val.helperText
                           }
                           required={val.required}
@@ -602,13 +585,9 @@ const AddUserForm = () => {
                             },
                           }}
                           fullWidth
-                          error={
-                            formik.touched[val.id] &&
-                            Boolean(formik.errors[val.id])
-                          }
+                          error={Boolean(getFormikError(formik, val.id))}
                           helperText={
-                            (formik.touched[val.id] &&
-                              (formik.errors[val.id] as string)) ||
+                            (getFormikError(formik, val.id) as string) ||
                             val.helperText
                           }
                           required={val.required}
@@ -651,9 +630,9 @@ const AddUserForm = () => {
                       }
                       label={val.label}
                     />
-                    {formik.touched[val.id] && formik.errors[val.id] && (
+                    {getFormikError(formik, val.id) && (
                       <FormHelperText error>
-                        {formik.errors[val.id] as string}
+                        {getFormikError(formik, val.id) as string}
                       </FormHelperText>
                     )}
                   </Box>
@@ -662,9 +641,7 @@ const AddUserForm = () => {
                 {val.type === FIELDS_TYPE.RADIO && (
                   <FormControl
                     component="fieldset"
-                    error={
-                      formik.touched[val.id] && Boolean(formik.errors[val.id])
-                    }
+                    error={Boolean(getFormikError(formik, val.id))}
                   >
                     <Typography
                       variant="body2"
@@ -687,9 +664,9 @@ const AddUserForm = () => {
                         />
                       ))}
                     </RadioGroup>
-                    {formik.touched[val.id] && formik.errors[val.id] && (
+                    {getFormikError(formik, val.id) && (
                       <FormHelperText>
-                        {formik.errors[val.id] as string}
+                        {getFormikError(formik, val.id) as string}
                       </FormHelperText>
                     )}
                   </FormControl>
@@ -724,9 +701,9 @@ const AddUserForm = () => {
                         onBlur={() => formik.setFieldTouched(val.id, true)}
                       />
                     )}
-                    {formik.touched[val.id] && formik.errors[val.id] && (
+                    {getFormikError(formik, val.id) && (
                       <FormHelperText error>
-                        {formik.errors[val.id] as string}
+                        {getFormikError(formik, val.id) as string}
                       </FormHelperText>
                     )}
                   </Box>
@@ -769,9 +746,9 @@ const AddUserForm = () => {
                         />
                       </Button>
                     )}
-                    {formik.touched[val.id] && formik.errors[val.id] && (
+                    {getFormikError(formik, val.id) && (
                       <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
-                        {formik.errors[val.id] as string}
+                        {getFormikError(formik, val.id) as string}
                       </FormHelperText>
                     )}
                   </Box>

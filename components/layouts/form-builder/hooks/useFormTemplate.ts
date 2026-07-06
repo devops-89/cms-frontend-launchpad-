@@ -28,6 +28,7 @@ export const useFormTemplate = (initialData?: any) => {
   const [newOptionTexts, setNewOptionTexts] = useState<Record<string, string>>(
     {},
   );
+  const [hasAttemptedSave, setHasAttemptedSave] = useState(false);
 
   const scrollEndRef = useRef<HTMLDivElement>(null);
 
@@ -133,6 +134,8 @@ export const useFormTemplate = (initialData?: any) => {
   };
 
   const handleSave = async () => {
+    setHasAttemptedSave(true);
+    
     if (!formName.trim() || !formTitle.trim()) {
       setIsIdentityOpen(true);
       showSnackbar("Please complete the form identity section.", "warning");
@@ -246,5 +249,6 @@ export const useFormTemplate = (initialData?: any) => {
     duplicateField,
     moveField,
     handleSave,
+    hasAttemptedSave,
   };
 };

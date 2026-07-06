@@ -34,6 +34,8 @@ import { FormField } from "@/context/FormContext";
 import { countries } from "@/utils/constant";
 import { montserrat, roboto } from "@/utils/fonts";
 import { MuiTelInput } from "mui-tel-input";
+import { parsePhoneNumberFromString, getExampleNumber } from "libphonenumber-js";
+import examples from "libphonenumber-js/examples.mobile.json";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 
@@ -126,15 +128,29 @@ const LivePreview: React.FC<LivePreviewProps> = ({
       case "password":
         return <TextField {...commonProps} type="password" />;
       case "telInput":
-        return (
-          <MuiTelInput
+        return (() => {
+  const phoneVal = "";
+  const parsed = parsePhoneNumberFromString(phoneVal);
+  const countryCode = parsed?.country || (config.defaultCountry || "AE") as any || "IN";
+  const example = getExampleNumber(countryCode as any, examples);
+  const maxLength = example ? example.formatInternational().length : 15;
+
+  return (
+    <MuiTelInput
+      onKeyDown={(e) => {
+        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab"];
+        if (phoneVal.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+      }}
             {...commonProps}
             value=""
             defaultCountry={(config.defaultCountry || "AE") as any}
             onlyCountries={config.onlyCountries?.length > 0 ? config.onlyCountries : undefined}
             sx={commonProps.sx}
           />
-        );
+  );
+})();
       case "datePicker":
         return (
           <LocalizationProvider dateAdapter={AdapterMoment}>
@@ -252,18 +268,16 @@ const LivePreview: React.FC<LivePreviewProps> = ({
         );
       case "file_upload":
         return (
-          <Box sx={{ ...commonProps.sx, p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily }}>
-              {field.label} {field.required && "*"}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-              {config.allowedExtensions ? `Allowed: ${config.allowedExtensions}` : "All files allowed"} 
-              {config.maxSize ? ` (Max: ${config.maxSize}MB)` : ""}
-            </Typography>
-            <Button variant="outlined" component="label" size="small">
-              Upload File
-              <input type="file" hidden />
-            </Button>
+          <Box sx={{ ...commonProps.sx, p: 1.5, border: "1px dashed", borderColor: "divider", borderRadius: "10px", width: { xs: "100%", sm: "fit-content" }, pr: { sm: 3 } }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: roboto.style.fontFamily, textAlign: "left" }}>
+                {field.label}{field.required && " *"}
+              </Typography>
+              <Button variant="outlined" component="label" size="small" sx={{ whiteSpace: 'nowrap' }}>
+                Upload File
+                <input type="file" hidden />
+              </Button>
+            </Box>
           </Box>
         );
       case "multiselect":

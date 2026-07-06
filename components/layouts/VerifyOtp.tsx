@@ -1,28 +1,28 @@
 "use client";
 
-import React, { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
-    Alert,
-    Box,
-    Button,
-    Collapse,
-    Container,
-    IconButton,
-    InputAdornment,
-    Paper,
-    TextField,
-    Typography,
+  Box,
+  Button,
+  Container,
+  IconButton,
+  InputAdornment,
+  Paper,
+  TextField,
+  Typography
 } from "@mui/material";
+import React, { useState } from "react";
 
 import { useFormik } from "formik";
 import { useRouter, useSearchParams } from "next/navigation";
 import * as Yup from "yup";
 
 import { AuthControllers } from "@/api/authControllers";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { useAppTheme } from "@/context/ThemeContext";
 import { Suspense } from "react";
-import { useSnackbar } from "@/context/SnackbarContext";
+import { getFormikError } from "@/utils/formikHelper";
 
 const VerifyOtpForm = () => {
   const { colors } = useAppTheme();
@@ -126,6 +126,10 @@ const VerifyOtpForm = () => {
             password: values.password,
           });
 
+          if (response?.data?.success === false || response?.data?.status === false || response?.data?.error) {
+             throw new Error(response.data.message || "Invalid OTP or OTP expired");
+          }
+
           showSnackbar(
             response?.data?.message || "Password reset successfully!",
             "success"
@@ -139,6 +143,10 @@ const VerifyOtpForm = () => {
 
         const response = await AuthControllers.verifyOtp({ otp: finalOtp });
 
+        if (response?.data?.success === false || response?.data?.status === false || response?.data?.error) {
+           throw new Error(response.data.message || "Invalid OTP or OTP expired");
+        }
+
         showSnackbar(
           response?.data?.message || "OTP verified successfully",
           "success"
@@ -148,10 +156,12 @@ const VerifyOtpForm = () => {
           router.push("/");
         }, 1000);
       } catch (error: any) {
-        showSnackbar(
-          error?.response?.data?.message || "Invalid OTP",
-          "error"
-        );
+        let errorMessage = error?.response?.data?.message || error?.message || "Invalid OTP";
+        // We want to show the exact API error like "OTP has expired", so we shouldn't indiscriminately override it.
+        if (errorMessage.toLowerCase() === "invalid otp" || errorMessage === "Invalid OTP") {
+          errorMessage = "Invalid OTP.";
+        }
+        showSnackbar(errorMessage, "error");
       } finally {
         setLoading(false);
       }
@@ -190,6 +200,21 @@ const VerifyOtpForm = () => {
       <Container maxWidth="sm">
         <form onSubmit={formik.handleSubmit}>
           <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 4, background: "rgba(255,255,255,0.8)", backdropFilter: "blur(12px)", border: `1px solid ${colors.BORDER}`, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)" }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              <Button
+                variant="text"
+                onClick={() => router.back()}
+                startIcon={<ArrowBackIcon />}
+                sx={{
+                  color: colors.TEXT_SECONDARY,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  "&:hover": { bgcolor: "transparent", color: colors.PRIMARY },
+                }}
+              >
+                Back
+              </Button>
+            </Box>
             <Box sx={{ mb: 4, textAlign: "center" }}>
               <Typography variant="h4" sx={{ fontWeight: 800, color: colors.TEXT_PRIMARY }}>
                 {flow === "forgot" ? "Reset Password" : "Verify OTP"}
@@ -232,10 +257,10 @@ const VerifyOtpForm = () => {
             {flow === "forgot" && (
               <Box sx={{ mt: 4 }}>
                 <TextField
-                  fullWidth margin="normal" label="New Password" name="password" type={showPassword ? "text" : "password"} sx={textFieldStyles}
-                  value={formik.values.password} onChange={formik.handleChange} onBlur={formik.handleBlur}
-                  error={formik.touched.password && Boolean(formik.errors.password)}
-                  helperText={formik.touched.password && formik.errors.password as string}
+                  fullWidth margin="normal" label="New Password" autoComplete="new-password" name="password" type={showPassword ? "text" : "password"} sx={textFieldStyles}
+                  value={formik.values.password} onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("password", true, false); }} onBlur={formik.handleBlur}
+                  error={Boolean(getFormikError(formik, "password"))}
+                  helperText={getFormikError(formik, "password") as string}
                   slotProps={{
                     input: {
                       endAdornment: (
@@ -249,10 +274,10 @@ const VerifyOtpForm = () => {
                   }}
                 />
                 <TextField
-                  fullWidth margin="normal" label="Confirm Password" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} sx={textFieldStyles}
-                  value={formik.values.confirmPassword} onChange={formik.handleChange} onBlur={formik.handleBlur}
-                  error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
-                  helperText={formik.touched.confirmPassword && formik.errors.confirmPassword as string}
+                  fullWidth margin="normal" label="Confirm Password" autoComplete="new-password" name="confirmPassword" type={showConfirmPassword ? "text" : "password"} sx={textFieldStyles}
+                  value={formik.values.confirmPassword} onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("confirmPassword", true, false); }} onBlur={formik.handleBlur}
+                  error={Boolean(getFormikError(formik, "confirmPassword"))}
+                  helperText={getFormikError(formik, "confirmPassword") as string}
                   slotProps={{
                     input: {
                       endAdornment: (

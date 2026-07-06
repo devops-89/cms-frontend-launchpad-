@@ -30,6 +30,7 @@ import { AddContestPayload } from "@/types/user";
 import moment from "moment";
 import { SEVERITY } from "@/utils/enum";
 import { useQuery } from "@tanstack/react-query";
+import { getFormikError } from "@/utils/formikHelper";
 
 const AddContestForm = () => {
   const { templates, isLoading: isLoadingTemplates } = useGetAllTemplates();
@@ -148,10 +149,10 @@ const AddContestForm = () => {
               variant="outlined"
               name="name"
               value={formik.values.name}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("name", true, false); }}
               onBlur={formik.handleBlur}
-              error={formik.touched.name && Boolean(formik.errors.name)}
-              helperText={formik.touched.name && formik.errors.name}
+              error={Boolean(getFormikError(formik, "name"))}
+              helperText={getFormikError(formik, "name") as string}
             />
           </Grid>
 
@@ -165,14 +166,10 @@ const AddContestForm = () => {
               placeholder="Provide a detailed description of the contest, rules, and objectives..."
               name="description"
               value={formik.values.description}
-              onChange={formik.handleChange}
+              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("description", true, false); }}
               onBlur={formik.handleBlur}
-              error={
-                formik.touched.description && Boolean(formik.errors.description)
-              }
-              helperText={
-                formik.touched.description && formik.errors.description
-              }
+              error={Boolean(getFormikError(formik, "description"))}
+              helperText={getFormikError(formik, "description") as string}
             />
           </Grid>
 
@@ -193,11 +190,8 @@ const AddContestForm = () => {
                     fullWidth: true,
                     variant: "outlined",
                     sx: { "& .MuiOutlinedInput-root": { borderRadius: 3 } },
-                    error:
-                      formik.touched.start_date &&
-                      Boolean(formik.errors.start_date),
-                    helperText:
-                      formik.touched.start_date && formik.errors.start_date,
+                    error: Boolean(getFormikError(formik, "start_date")),
+                    helperText: getFormikError(formik, "start_date") as string,
                   },
                 }}
                 format="YYYY/MM/DD"
@@ -221,11 +215,8 @@ const AddContestForm = () => {
                     fullWidth: true,
                     variant: "outlined",
                     sx: { "& .MuiOutlinedInput-root": { borderRadius: 3 } },
-                    error:
-                      formik.touched.end_date &&
-                      Boolean(formik.errors.end_date),
-                    helperText:
-                      formik.touched.end_date && formik.errors.end_date,
+                    error: Boolean(getFormikError(formik, "end_date")),
+                    helperText: getFormikError(formik, "end_date") as string,
                   },
                 }}
                 format="YYYY/MM/DD"
@@ -257,14 +248,8 @@ const AddContestForm = () => {
                       ? "Select countries..."
                       : ""
                   }
-                  error={
-                    formik.touched.available_countries &&
-                    Boolean(formik.errors.available_countries)
-                  }
-                  helperText={
-                    formik.touched.available_countries &&
-                    formik.errors.available_countries
-                  }
+                  error={Boolean(getFormikError(formik, "available_countries"))}
+                  helperText={getFormikError(formik, "available_countries") as string}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       padding: "10px 14px",
@@ -335,14 +320,8 @@ const AddContestForm = () => {
                 <TextField
                   {...params}
                   label="User Registration Template*"
-                  error={
-                    formik.touched.user_level_template_id &&
-                    Boolean(formik.errors.user_level_template_id)
-                  }
-                  helperText={
-                    formik.touched.user_level_template_id &&
-                    formik.errors.user_level_template_id
-                  }
+                  error={Boolean(getFormikError(formik, "user_level_template_id"))}
+                  helperText={getFormikError(formik, "user_level_template_id") as string}
                 />
               )}
               renderOption={(props, option) => (
@@ -379,14 +358,8 @@ const AddContestForm = () => {
                 <TextField
                   {...params}
                   label="Entry Submission Template*"
-                  error={
-                    formik.touched.entry_level_template_id &&
-                    Boolean(formik.errors.entry_level_template_id)
-                  }
-                  helperText={
-                    formik.touched.entry_level_template_id &&
-                    formik.errors.entry_level_template_id
-                  }
+                  error={Boolean(getFormikError(formik, "entry_level_template_id"))}
+                  helperText={getFormikError(formik, "entry_level_template_id") as string}
                 />
               )}
               renderOption={(props, option) => (

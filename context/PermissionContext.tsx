@@ -32,9 +32,10 @@ export const PermissionProvider = ({ children }: { children: ReactNode }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const pathname = usePathname();
 
+  const isJudgePanel = pathname?.startsWith('/judge-panel') || false;
+
   useEffect(() => {
     // Only load user from localStorage on client side
-    const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
     const userStr = isJudgePanel ? localStorage.getItem("judge_user") : localStorage.getItem("user");
     if (userStr) {
       try {
@@ -80,7 +81,7 @@ export const PermissionProvider = ({ children }: { children: ReactNode }) => {
   const { data: allPermissionsData, isPending } = useQuery({
     queryKey: ["all-permissions"],
     queryFn: permissionControllers.getAllPermissions,
-    enabled: !!user, // Only fetch if we have a user
+    enabled: !!user && !isJudgePanel, // Only fetch if we have a user and not on judge panel
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
@@ -115,7 +116,7 @@ export const PermissionProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = effectiveRole?.toUpperCase() === "ADMIN";
 
   return (
-    <PermissionContext.Provider value={{ permissions, hasPermission, isLoading: isPending && !!user, isInitializing, isAdmin, forceRefresh }}>
+    <PermissionContext.Provider value={{ permissions, hasPermission, isLoading: !isJudgePanel && isPending && !!user, isInitializing, isAdmin, forceRefresh }}>
       {children}
     </PermissionContext.Provider>
   );

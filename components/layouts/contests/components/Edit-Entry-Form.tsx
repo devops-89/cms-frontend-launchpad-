@@ -48,6 +48,7 @@ import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import * as Yup from "yup";
+import { getFormikError } from "@/utils/formikHelper";
 
 const extractS3Key = (url: string) => {
   if (!url || typeof url !== 'string') return url;
@@ -509,8 +510,8 @@ const EditEntryForm = () => {
                         value={formik.values[val.id] || ""}
                         onChange={(e) => { formik.handleChange(e); formik.setFieldTouched(val.id, true, false); }}
                         onBlur={formik.handleBlur}
-                        error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
-                        helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
+                        error={Boolean(getFormikError(formik, val.id))}
+                        helperText={(getFormikError(formik, val.id) as string) || val.helperText }
                       />
                       {val.type === FIELDS_TYPE.TEXTAREA && val.config?.maxWords && (
                         <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5, display: "block" }}>
@@ -529,11 +530,12 @@ const EditEntryForm = () => {
                           value={formik.values[val.id] || ""}
                           onChange={(value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
                           onBlur={() => formik.setFieldTouched(val.id, true)}
-                          error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
-                          defaultCountry={val.config?.defaultCountry}
+                          error={Boolean(getFormikError(formik, val.id))}
+                          defaultCountry={(val.config?.defaultCountry || 'IN') as any}
+                          onlyCountries={val.config?.onlyCountries || undefined}
                         />
-                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
-                          <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
+                        {getFormikError(formik, val.id) && (
+                          <FormHelperText error> {getFormikError(formik, val.id) as string} </FormHelperText>
                         )}
                       </Box>
                     )}
@@ -545,15 +547,15 @@ const EditEntryForm = () => {
                         onChange={(newValue) => { formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null); formik.setFieldTouched(val.id, true, false); } }
                         slotProps={{
                           textField: {
-                            error: (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]),
-                            helperText: ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText,
+                            error: Boolean(getFormikError(formik, val.id)),
+                            helperText: (getFormikError(formik, val.id) as string) || val.helperText,
                             required: val.false,
                           },
                         }}
                       />
                     )}
                     {val.type === FIELDS_TYPE.SELECT && (
-                      <FormControl fullWidth error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }>
+                      <FormControl fullWidth error={Boolean(getFormikError(formik, val.id))}>
                         <InputLabel>{val.label}</InputLabel>
                         <Select
                           label={val.label}
@@ -566,9 +568,9 @@ const EditEntryForm = () => {
                             <MenuItem key={opt} value={opt}> {opt} </MenuItem>
                           ))}
                         </Select>
-                        {((formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id]) ||
+                        {getFormikError(formik, val.id) ||
                         val.helperText ? (
-                          <FormHelperText error={Boolean(formik.errors[val.id])}> {((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText} </FormHelperText>
+                          <FormHelperText error={Boolean(getFormikError(formik, val.id))}> {(getFormikError(formik, val.id) as string) || val.helperText} </FormHelperText>
                         ) : null}
                       </FormControl>
                     )}
@@ -583,8 +585,8 @@ const EditEntryForm = () => {
                         onBlur={() => formik.setFieldTouched(val.id, true)}
                         renderInput={(params) => (
                           <TextField {...params} label={val.label}
-                            error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
-                            helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
+                            error={Boolean(getFormikError(formik, val.id))}
+                            helperText={(getFormikError(formik, val.id) as string) || val.helperText }
                             required={val.false}
                           />
                         )}
@@ -600,8 +602,8 @@ const EditEntryForm = () => {
                         onBlur={() => formik.setFieldTouched(val.id, true)}
                         renderInput={(params) => (
                           <TextField {...params} label={val.label}
-                            error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }
-                            helperText={ ((formik.touched[val.id] || Boolean(formik.values[val.id])) && (formik.errors[val.id] as string)) || val.helperText }
+                            error={Boolean(getFormikError(formik, val.id))}
+                            helperText={(getFormikError(formik, val.id) as string) || val.helperText }
                             required={val.false}
                           />
                         )}
@@ -632,15 +634,15 @@ const EditEntryForm = () => {
                           }
                           label={val.label}
                         />
-                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
+                        {getFormikError(formik, val.id) && (
                           <FormHelperText error sx={{ ml: 0 }}>
-                            {formik.errors[val.id] as string}
+                            {getFormikError(formik, val.id) as string}
                           </FormHelperText>
                         )}
                       </Box>
                     )}
                     {val.type === FIELDS_TYPE.RADIO && (
-                      <FormControl error={ (formik.touched[val.id] || Boolean(formik.values[val.id])) && Boolean(formik.errors[val.id]) }>
+                      <FormControl error={Boolean(getFormikError(formik, val.id))}>
                         <Typography sx={{mb: 1}}>
                           {val.label}
                         </Typography>
@@ -659,8 +661,8 @@ const EditEntryForm = () => {
                             />
                           ))}
                         </RadioGroup>
-                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
-                          <FormHelperText>{formik.errors[val.id] as string}</FormHelperText>
+                        {getFormikError(formik, val.id) && (
+                          <FormHelperText>{getFormikError(formik, val.id) as string}</FormHelperText>
                         )}
                       </FormControl>
                     )}
@@ -685,8 +687,8 @@ const EditEntryForm = () => {
                             onBlur={() => formik.setFieldTouched(val.id, true)}
                           />
                         )}
-                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
-                          <FormHelperText error> {formik.errors[val.id] as string} </FormHelperText>
+                        {getFormikError(formik, val.id) && (
+                          <FormHelperText error> {getFormikError(formik, val.id) as string} </FormHelperText>
                         )}
                       </Box>
                     )}
@@ -727,9 +729,9 @@ const EditEntryForm = () => {
                             />
                           </Button>
                         )}
-                        {(formik.touched[val.id] || Boolean(formik.values[val.id])) && formik.errors[val.id] && (
+                        {getFormikError(formik, val.id) && (
                           <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
-                            {formik.errors[val.id] as string}
+                            {getFormikError(formik, val.id) as string}
                           </FormHelperText>
                         )}
                       </Box>
