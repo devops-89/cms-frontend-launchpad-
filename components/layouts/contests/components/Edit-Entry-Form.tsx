@@ -165,7 +165,6 @@ const EditEntryForm = () => {
       switch (field.type) {
         case FIELDS_TYPE.TEXTFIELD:
         case FIELDS_TYPE.TEXTAREA:
-        case FIELDS_TYPE.PASSWORD:
         case FIELDS_TYPE.SELECT:
         case FIELDS_TYPE.RADIO:
         case FIELDS_TYPE.AUTOCOMPLETE:
@@ -178,6 +177,15 @@ const EditEntryForm = () => {
              } else if ((lbl.includes("name") || lbl.includes("city") || lbl.includes("state") || lbl.includes("country")) && !lbl.includes("school") && !lbl.includes("company") && !lbl.includes("file") && !lbl.includes("username")) {
                 validator = validator.matches(/^[^\d]*$/, `${field.label} cannot contain numbers`);
              }
+          }
+          break;
+        case FIELDS_TYPE.PASSWORD:
+          validator = Yup.string();
+          if (field.label?.toLowerCase().includes("confirm")) {
+            const originalPasswordField = template_fields.find((f: any) => f.type === FIELDS_TYPE.PASSWORD && !f.label?.toLowerCase().includes("confirm"));
+            if (originalPasswordField) {
+              validator = validator.oneOf([Yup.ref(originalPasswordField.id)], `${field.label} must match ${originalPasswordField.label}`);
+            }
           }
           break;
         case FIELDS_TYPE.TEL_INPUT:

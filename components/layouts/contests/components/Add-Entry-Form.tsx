@@ -112,6 +112,15 @@ const AddEntryForm = () => {
              }
           }
           break;
+        case FIELDS_TYPE.PASSWORD:
+          validator = Yup.string();
+          if (field.label?.toLowerCase().includes("confirm")) {
+            const originalPasswordField = template_fields.find((f: any) => f.type === FIELDS_TYPE.PASSWORD && !f.label?.toLowerCase().includes("confirm"));
+            if (originalPasswordField) {
+              validator = validator.oneOf([Yup.ref(originalPasswordField.id)], `${field.label} must match ${originalPasswordField.label}`);
+            }
+          }
+          break;
         case FIELDS_TYPE.TEL_INPUT:
           validator = Yup.string().test("is-valid-phone", "Invalid Phone Number", (value) => value ? matchIsValidTel(value) : false);
           break;

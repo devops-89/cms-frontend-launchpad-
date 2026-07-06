@@ -165,6 +165,14 @@ const EditUserForm = () => {
           validator = Yup.string().test("is-valid-phone", "Invalid phone number", (value) => value ? matchIsValidTel(value) : false);
         } else if (field.type === FIELDS_TYPE.TEXTFIELD && field.id === "email") {
           validator = Yup.string().trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Invalid email address");
+        } else if (field.type === FIELDS_TYPE.PASSWORD) {
+          validator = Yup.string();
+          if (field.label?.toLowerCase().includes("confirm")) {
+            const originalPasswordField = template_fields.find((f: any) => f.type === FIELDS_TYPE.PASSWORD && !f.label?.toLowerCase().includes("confirm"));
+            if (originalPasswordField) {
+              validator = validator.oneOf([Yup.ref(originalPasswordField.id)], `${field.label} must match ${originalPasswordField.label}`);
+            }
+          }
         } else {
           validator = Yup.string();
         }
