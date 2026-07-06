@@ -200,15 +200,15 @@ const AddJudgeForm = () => {
           e.preventDefault();
         }
       }}
-            defaultCountry="US"
-            fullWidth
-            label="Phone Number*"
-            onChange={handlePhoneNumber}
-            onBlur={() => formik.setFieldTouched("phoneNumber", true)}
-            value={formik.values.phoneNumber}
-            error={Boolean(getFormikError(formik, "phoneNumber"))}
-            helperText={getFormikError(formik, "phoneNumber") as string}
-          />
+      defaultCountry="AE"
+      fullWidth
+      label="Phone Number*"
+      onChange={handlePhoneNumber}
+      onBlur={() => formik.setFieldTouched("phoneNumber", true)}
+      value={formik.values.phoneNumber}
+      error={Boolean(getFormikError(formik, "phoneNumber"))}
+      helperText={getFormikError(formik, "phoneNumber") as string}
+    />
   );
 })()}
         </Grid>

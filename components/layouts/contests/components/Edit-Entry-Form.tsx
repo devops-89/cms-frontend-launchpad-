@@ -570,6 +570,7 @@ const EditEntryForm = () => {
                         label={val.label}
                         sx={{ width: "100%" }}
                         value={ formik.values[val.id] ? dayjs(formik.values[val.id]) : null}
+                        minDate={val.label?.toLowerCase().includes("patent filing date") ? dayjs("2010-01-01") : undefined}
                         onChange={(newValue) => { formik.setFieldValue(val.id, newValue && newValue.isValid() ? newValue.toISOString() : null); formik.setFieldTouched(val.id, true, false); } }
                         slotProps={{
                           textField: {

@@ -18,6 +18,7 @@ import {
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
+import moment from "moment";
 import { COUNTRIES } from "./formConstants";
 
 interface PatentSectionProps {
@@ -166,6 +167,7 @@ const PatentSection: React.FC<PatentSectionProps> = ({
                 <DatePicker
                   label="Patent Filing Date"
                   value={formData.patentDate}
+                  minDate={moment("2010-01-01")}
                   onChange={(val) =>
                     setFormData({ ...formData, patentDate: val })
                   }

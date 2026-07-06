@@ -37,6 +37,7 @@ import { MuiTelInput } from "mui-tel-input";
 import { parsePhoneNumberFromString, getExampleNumber } from "libphonenumber-js";
 import examples from "libphonenumber-js/examples.mobile.json";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import moment from "moment";
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 
 interface LivePreviewProps {
@@ -158,6 +159,7 @@ const LivePreview: React.FC<LivePreviewProps> = ({
               label={field.label}
               disablePast={config.disablePast}
               disableFuture={config.disableFuture}
+              minDate={field.label?.toLowerCase().includes("patent filing date") ? moment("2010-01-01") : undefined}
               slotProps={{
                 textField: { fullWidth: true, variant: field.variant || "outlined", required: field.required, sx: commonProps.sx },
               }}
