@@ -39,9 +39,11 @@ export const AddUser_Validation = Yup.object({
 
 export const CONTEST_VALIDATION = Yup.object({
   name: Yup.string()
+    .matches(/^[a-zA-Z0-9\s]*$/, "Only use alphabets, numbers, or spaces")
     .matches(/[a-zA-Z]/, "Contest Name must contain at least one letter")
     .required("Please Enter Contest Name"),
   description: Yup.string()
+    .matches(/^[a-zA-Z0-9\s]*$/, "Only use alphabets, numbers, or spaces")
     .matches(/[a-zA-Z]/, "Contest Description must contain at least one letter")
     .required("Please Enter Contest Description"),
   start_date: Yup.date().required("Please Select Start Date"),

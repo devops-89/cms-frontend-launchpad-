@@ -1,4 +1,5 @@
 "use client";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 import { contestControllers } from "@/api/contestControllers";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import { useSnackbar } from "@/context/SnackbarContext";
@@ -387,8 +388,22 @@ const AddUserForm = () => {
                     name={val.id}
                     value={formik.values[val.id] || ""}
                     onChange={(e) => {
-                      formik.handleChange(e);
-                      formik.setFieldTouched(val.id, true, false);
+                      let fieldType: "name" | "email" | "number" | "alphanumeric" | "address" | "default" = "default";
+                      const label = val.label?.toLowerCase() || "";
+                      const id = val.id.toLowerCase();
+                      
+                      if (id.includes("email") || label.includes("email")) {
+                        fieldType = "email";
+                      } else if (val.type === FIELDS_TYPE.NUMBER_FIELD || id.includes("pincode") || id.includes("zipcode")) {
+                        fieldType = "number";
+                      } else if (label.includes("address")) {
+                        fieldType = "address";
+                      } else if (label.includes("school")) {
+                        fieldType = "alphanumeric";
+                      } else if (id.includes("firstname") || id.includes("lastname") || label.includes("name") || label.includes("city")) {
+                        fieldType = "name";
+                      }
+                      handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, fieldType);
                     }}
                     onBlur={formik.handleBlur}
                     error={Boolean(getFormikError(formik, val.id))}

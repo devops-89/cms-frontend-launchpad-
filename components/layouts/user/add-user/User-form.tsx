@@ -1,4 +1,5 @@
 "use client";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
 import LayoutProvider from "@/components/widgets/Layout-Provider";
 import {
@@ -122,7 +123,7 @@ const UserForm = () => {
               id="firstName"
               name="firstName"
               value={formik.values.firstName}
-              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
+              onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "name")}
               onBlur={formik.handleBlur}
               error={Boolean(getFormikError(formik, "firstName"))}
               helperText={getFormikError(formik, "firstName") as string}
@@ -135,7 +136,7 @@ const UserForm = () => {
               id="lastName"
               name="lastName"
               value={formik.values.lastName}
-              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
+              onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "name")}
               onBlur={formik.handleBlur}
               error={Boolean(getFormikError(formik, "lastName"))}
               helperText={getFormikError(formik, "lastName") as string}
@@ -148,7 +149,7 @@ const UserForm = () => {
               id="email"
               name="email"
               value={formik.values.email}
-              onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
+              onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "email")}
               onBlur={formik.handleBlur}
               error={Boolean(getFormikError(formik, "email"))}
               helperText={getFormikError(formik, "email") as string}
