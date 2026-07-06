@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, IconButton, Typography, Dialog } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
-export const FilePreview = ({ fileVal, onClear, label }: { fileVal: any, onClear: () => void, label?: string }) => {
+export const FilePreview = ({ fileVal, onClear, label, previewUrl }: { fileVal: any, onClear: () => void, label?: string, previewUrl?: string }) => {
   const [url, setUrl] = useState<string>("");
   const [isImage, setIsImage] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
 
   useEffect(() => {
     let objectUrl = "";
     if (typeof fileVal === "string") {
-      objectUrl = fileVal;
+      objectUrl = previewUrl || fileVal;
       const urlWithoutQuery = objectUrl.split('?')[0];
       const ext = urlWithoutQuery.split(".").pop()?.toLowerCase() || "";
       if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) {
@@ -36,31 +37,105 @@ export const FilePreview = ({ fileVal, onClear, label }: { fileVal: any, onClear
   if (!fileVal) return null;
 
   return (
-    <Box sx={{ position: "relative", display: "inline-block", mt: 2 }}>
-      <IconButton
-        size="small"
-        onClick={onClear}
+    <>
+      <Box sx={{ position: "relative", display: "inline-block" }}>
+        <IconButton
+          size="small"
+          onClick={onClear}
+          sx={{
+            position: "absolute",
+            top: -10,
+            right: -10,
+            bgcolor: "background.paper",
+            boxShadow: 1,
+            "&:hover": { bgcolor: "background.paper" },
+            zIndex: 1,
+            padding: "2px"
+          }}
+        >
+          <CloseIcon sx={{ fontSize: 14 }} />
+        </IconButton>
+        {isImage ? (
+          <Box 
+            onClick={() => setOpenModal(true)}
+            sx={{ 
+              width: 50, 
+              height: 50, 
+              borderRadius: 1, 
+              overflow: 'hidden', 
+              bgcolor: 'rgba(0,0,0,0.04)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            <img src={url} alt={label || "Preview"} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </Box>
+        ) : isVideo ? (
+          <Box 
+            onClick={() => setOpenModal(true)}
+            sx={{ 
+              width: 50, 
+              height: 50, 
+              borderRadius: 1, 
+              overflow: 'hidden', 
+              bgcolor: '#000', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              cursor: 'pointer',
+              border: '1px solid #e2e8f0'
+            }}
+          >
+            <video src={url} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </Box>
+        ) : (
+          <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
+            Selected: {typeof fileVal === "string" ? fileVal.split("/").pop() : (fileVal as File)?.name}
+          </Typography>
+        )}
+      </Box>
+
+      {/* Modal for full screen preview */}
+      <Dialog 
+        open={openModal} 
+        onClose={() => setOpenModal(false)}
+        maxWidth="md"
+        fullWidth
         sx={{
-          position: "absolute",
-          top: -12,
-          right: -12,
-          bgcolor: "background.paper",
-          boxShadow: 1,
-          "&:hover": { bgcolor: "background.paper" },
-          zIndex: 1,
+          "& .MuiDialog-paper": {
+            bgcolor: 'transparent',
+            boxShadow: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflow: 'hidden'
+          }
         }}
       >
-        <CloseIcon fontSize="small" />
-      </IconButton>
-      {isImage ? (
-        <img src={url} alt={label || "Preview"} style={{ maxWidth: "200px", maxHeight: "150px", borderRadius: "8px", objectFit: "contain" }} />
-      ) : isVideo ? (
-        <video src={url} controls style={{ maxWidth: "200px", maxHeight: "150px", borderRadius: "8px" }} />
-      ) : (
-        <Typography variant="caption" sx={{ display: "block", mt: 1 }}>
-          Selected: {typeof fileVal === "string" ? fileVal.split("/").pop() : (fileVal as File)?.name}
-        </Typography>
-      )}
-    </Box>
+        <Box sx={{ position: 'relative', maxWidth: '100%', maxHeight: '90vh' }}>
+          <IconButton
+            onClick={() => setOpenModal(false)}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              bgcolor: 'rgba(255, 255, 255, 0.8)',
+              '&:hover': { bgcolor: 'white' },
+              zIndex: 2
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+          {isImage ? (
+            <img src={url} alt="Full Preview" style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} />
+          ) : isVideo ? (
+             <video src={url} controls autoPlay style={{ maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} />
+          ) : null}
+        </Box>
+      </Dialog>
+    </>
   );
 };

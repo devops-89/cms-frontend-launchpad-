@@ -709,42 +709,46 @@ const AddEntryForm = () => {
                       </Box>
                     )}
                     {val.type === FIELDS_TYPE.FILE_UPLOAD && (
-                      <Box sx={{ p: 2, border: "1px dashed", borderColor: "divider", borderRadius: "10px", textAlign: "center" }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {val.label} {val.required && "*"}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 1 }}>
-                          {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
-                          {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
-                        </Typography>
-                        {formik.values[val.id] ? (
-                          <Box sx={{ mt: 2, position: "relative", display: "inline-block", maxWidth: "100%" }}>
-                            {(() => {
-                        const fileVal = formik.values[val.id];
-                        return (
-                          <FilePreview 
-                            fileVal={fileVal} 
-                            label={val.label} 
-                            onClear={() => formik.setFieldValue(val.id, null)} 
-                          />
-                        );
-                      })()}
-                    </Box>
-                        ) : (
-                          <Button variant="outlined" component="label" size="small">
-                            Upload File
-                            <input 
-                              type="file" 
-                              hidden 
-                              accept={val.config?.allowedExtensions || undefined}
-                              onChange={(e) => {
-                                if (e.target.files && e.target.files.length > 0) {
-                                  formik.setFieldValue(val.id, e.target.files[0]);
-                                }
-                              }}
-                            />
-                          </Button>
-                        )}
+                      <Box sx={{ p: 1.5, border: "1px dashed", borderColor: "divider", borderRadius: "10px", position: "relative", width: "100%", boxSizing: "border-box" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+                          <Box>
+                            <Typography variant="body2" sx={{ fontWeight: 600, textAlign: "left" }}>
+                              {val.label} {val.required && "*"}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", textAlign: "left" }}>
+                              {val.config?.allowedExtensions ? `Allowed: ${val.config?.allowedExtensions}` : "All files allowed"} 
+                              {val.config?.maxSize ? ` (Max: ${val.config?.maxSize}MB)` : ""}
+                            </Typography>
+                          </Box>
+                          {!formik.values[val.id] ? (
+                            <Button variant="outlined" component="label" size="small" sx={{ whiteSpace: 'nowrap' }}>
+                              Upload File
+                              <input 
+                                type="file" 
+                                hidden 
+                                accept={val.config?.allowedExtensions || undefined}
+                                onChange={(e) => {
+                                  if (e.target.files && e.target.files.length > 0) {
+                                    formik.setFieldValue(val.id, e.target.files[0]);
+                                  }
+                                }}
+                              />
+                            </Button>
+                          ) : (
+                            <Box sx={{ display: "flex", alignItems: "center" }}>
+                              {(() => {
+                                const fileVal = formik.values[val.id];
+                                return (
+                                  <FilePreview 
+                                    fileVal={fileVal} 
+                                    label={val.label} 
+                                    onClear={() => formik.setFieldValue(val.id, null)} 
+                                  />
+                                );
+                              })()}
+                            </Box>
+                          )}
+                        </Box>
                         {getFormikError(formik, val.id) && (
                           <FormHelperText error sx={{ textAlign: "center", mt: 1 }}>
                             {getFormikError(formik, val.id) as string}
