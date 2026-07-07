@@ -512,16 +512,34 @@ const AddEntryForm = () => {
                     {val.type === FIELDS_TYPE.TEL_INPUT && (
                       <Box>
                         <MuiTelInput
+                          onKeyDown={(e) => {
+                            if (e.key === "+") {
+                              e.preventDefault();
+                              return;
+                            }
+                          }}
                           label={val.label}
                           variant={val.variant}
                           fullWidth
                           required={val.required}
+                          forceCallingCode={true}
                           name={val.id}
                           value={formik.values[val.id] || ""}
-                          onChange={(value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
+                          onChange={(value, info) => { 
+                            const cleanedValue = value.replace(/(?!^\+)\+/g, '');
+                            if (info.countryCode) {
+                               formik.setFieldValue(`${val.id}_country`, info.countryCode);
+                            }
+                            formik.setFieldValue(val.id, cleanedValue); 
+                            formik.setFieldTouched(val.id, true, false); 
+                          }}
                           onBlur={() => formik.setFieldTouched(val.id, true)}
                           error={Boolean(getFormikError(formik, val.id))}
-                          defaultCountry={(val.config?.defaultCountry || 'IN') as any}
+                          defaultCountry={(() => {
+                             let dc = formik.values[`${val.id}_country`];
+                             if (!dc) dc = val.config?.defaultCountry || 'IN';
+                             return dc as any;
+                          })()}
                           onlyCountries={val.config?.onlyCountries || undefined}
                         />
                         {getFormikError(formik, val.id) && (

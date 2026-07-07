@@ -37,6 +37,7 @@ const AddJudgeForm = () => {
       email: "",
       password: "",
       phoneNumber: "",
+      phoneNumber_country: "",
       expertise: [] as string[],
     },
     validationSchema: Yup.object({
@@ -195,15 +196,31 @@ const AddJudgeForm = () => {
   return (
     <MuiTelInput
       onKeyDown={(e) => {
+        if (e.key === "+") {
+          e.preventDefault();
+          return;
+        }
         const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab"];
         if (phoneVal.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
           e.preventDefault();
         }
       }}
-      defaultCountry="AE"
+      forceCallingCode={true}
+      defaultCountry={(() => {
+        let dc = formik.values.phoneNumber_country;
+        if (!dc) dc = "IN";
+        return dc as any;
+      })()}
       fullWidth
       label="Phone Number*"
-      onChange={handlePhoneNumber}
+      onChange={(value, info) => {
+         const cleanedValue = value.replace(/(?!^\+)\+/g, '');
+         if (info.countryCode) {
+            formik.setFieldValue(`phoneNumber_country`, info.countryCode);
+         }
+         formik.setFieldValue("phoneNumber", cleanedValue);
+         formik.setFieldTouched("phoneNumber", true, false);
+      }}
       onBlur={() => formik.setFieldTouched("phoneNumber", true)}
       value={formik.values.phoneNumber}
       error={Boolean(getFormikError(formik, "phoneNumber"))}
