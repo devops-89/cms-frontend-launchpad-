@@ -458,8 +458,8 @@ const AddEntryForm = () => {
                   <Grid key={val.id} size={{ xs: 12, md: isFullWidth ? 12 : 6 }}>
                     {val.type === FIELDS_TYPE.TEXTBLOCK && (
                       <Box sx={{ width: "100%", pb: 1 }}>
-                        <Typography sx={{ whiteSpace: "pre-wrap" }}>
-                          {val.label}
+                        <Typography sx={{mb: 1}}>
+                          {val.label}{(val.required) && " *"}
                         </Typography>
                       </Box>
                     )}
@@ -477,7 +477,7 @@ const AddEntryForm = () => {
                         variant={val.variant}
                         placeholder={val.placeholder}
                         fullWidth
-                        required={val.false}
+                        required={val.required}
                         name={val.id}
                         value={formik.values[val.id] || ""}
                         onChange={(e) => {
@@ -515,7 +515,7 @@ const AddEntryForm = () => {
                           label={val.label}
                           variant={val.variant}
                           fullWidth
-                          required={val.false}
+                          required={val.required}
                           name={val.id}
                           value={formik.values[val.id] || ""}
                           onChange={(value) => { formik.setFieldValue(val.id, value); formik.setFieldTouched(val.id, true, false); } }
@@ -541,11 +541,11 @@ const AddEntryForm = () => {
                             textField: {
                               error: Boolean(getFormikError(formik, val.id)),
                               helperText: (getFormikError(formik, val.id) as string) || val.helperText,
-                              required: val.false,
+                              required: val.required,
                             },
                           }}
-                          disablePast={val.config?.disablePast}
-                          disableFuture={val.config?.disableFuture}
+                          disablePast={val.config?.disablePast === true || val.config?.disablePast === 'true'}
+                          disableFuture={val.config?.disableFuture === true || val.config?.disableFuture === 'true'}
                         />
                       </Box>
                     )}
@@ -554,6 +554,7 @@ const AddEntryForm = () => {
                         fullWidth
                         variant={val.variant}
                         error={Boolean(getFormikError(formik, val.id))}
+                        required={val.required}
                       >
                         <InputLabel>{val.label}</InputLabel>
                         <Select
@@ -584,7 +585,7 @@ const AddEntryForm = () => {
                             placeholder={val.placeholder}
                             error={Boolean(getFormikError(formik, val.id))}
                             helperText={(getFormikError(formik, val.id) as string) || val.helperText }
-                            required={val.false}
+                            required={val.required}
                           />
                         )}
                         value={formik.values[val.id] || null}
@@ -601,7 +602,7 @@ const AddEntryForm = () => {
                               label={val.label || "Country Of Residence"}
                               error={Boolean(getFormikError(formik, val.id))}
                               helperText={(getFormikError(formik, val.id) as string) || val.helperText }
-                              required={val.false}
+                              required={val.required}
                             />
                           )}
                           options={val.options}
@@ -648,7 +649,7 @@ const AddEntryForm = () => {
                               fullWidth
                               error={Boolean(getFormikError(formik, val.id))}
                               helperText={(getFormikError(formik, val.id) as string) || val.helperText }
-                              required={val.false}
+                              required={val.required}
                             />
                           )}
                           value={
@@ -679,7 +680,7 @@ const AddEntryForm = () => {
                               />
                             )
                           }
-                          label={val.label}
+                          label={<>{val.label}{(val.required) && " *"}</>}
                         />
                         {getFormikError(formik, val.id) && (
                           <FormHelperText error> {getFormikError(formik, val.id) as string} </FormHelperText>
@@ -769,7 +770,7 @@ const AddEntryForm = () => {
                                 return (
                                   <FilePreview 
                                     fileVal={fileVal} 
-                                    label={val.label} 
+                                    label={`${val.label}${val.required ? " *" : ""}`} 
                                     onClear={() => formik.setFieldValue(val.id, null)} 
                                   />
                                 );
