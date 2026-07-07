@@ -210,40 +210,7 @@ const JudgesTableRow: React.FC<JudgesTableRowProps> = ({
           </TableCell>
         )}
 
-        {/* Expertise */}
-        {visibleHeaders.includes("Expertise") && (
-          <TableCell sx={{ whiteSpace: "nowrap" }}>
-            {judge.expertise &&
-            judge.expertise !== "N/A" &&
-            judge.expertise !== "—" ? (
-              <Box
-                sx={{
-                  display: "flex",
-                  gap: 0.5,
-                  flexWrap: "wrap",
-                  maxWidth: 250,
-                }}
-              >
-                {judge.expertise.split(", ").map((exp: string, idx: number) => (
-                  <Chip
-                    key={idx}
-                    label={exp}
-                    size="small"
-                    sx={{
-                      bgcolor: "rgba(0,0,0,0.04)",
-                      color: colors.TEXT_PRIMARY,
-                      fontSize: "0.75rem",
-                    }}
-                  />
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY }}>
-                —
-              </Typography>
-            )}
-          </TableCell>
-        )}
+
 
         {visibleHeaders.includes("Status") && (
           <TableCell sx={{ whiteSpace: "nowrap" }}>

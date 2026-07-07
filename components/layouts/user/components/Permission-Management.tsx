@@ -1,48 +1,46 @@
-import React, { useState, useEffect } from "react";
-import { useSnackbar } from "@/context/SnackbarContext";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { roleControllers } from "@/api/roleControllers";
 import { permissionControllers } from "@/api/permissionControllers";
+import { roleControllers } from "@/api/roleControllers";
+import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { useAppTheme } from "@/context/ThemeContext";
+import {
+  Edit as Edit2,
+  Visibility as Eye,
+  Info,
+  Lock,
+  Add as Plus,
+  Refresh as RefreshCcw,
+  Save,
+  Security as ShieldCheck,
+  Delete as Trash2
+} from "@mui/icons-material";
 import {
   Box,
-  Typography,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
   Paper,
+  Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Switch,
-  Breadcrumbs,
-  Link,
-  Button,
-  Chip,
-  alpha,
-  useTheme,
-  Stack,
-  IconButton,
-  Tooltip,
-  Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
+  Tooltip,
+  Typography,
+  alpha,
+  useTheme
 } from "@mui/material";
-import {
-  Security as ShieldCheck,
-  Save,
-  Refresh as RefreshCcw,
-  Info,
-  ChevronRight,
-  Lock,
-  Visibility as Eye,
-  Edit as Edit2,
-  Add as Plus,
-  Delete as Trash2,
-} from "@mui/icons-material";
-import { useAppTheme } from "@/context/ThemeContext";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useEffect, useState } from "react";
 
 interface ModulePermission {
   id?: number;
@@ -380,17 +378,15 @@ const PermissionManagement: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Breadcrumbs */}
-      <Breadcrumbs
-        separator={<ChevronRight sx={{ fontSize: 14, color: alpha(theme.palette.text.secondary, 0.4) }} />}
-        sx={{ mb: 3 }}
-      >
-        <Link underline="hover" color="inherit" href="/dashboard" sx={{ fontSize: "0.85rem", fontWeight: 500 }}>
-          Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ fontSize: "0.85rem", fontWeight: 700 }}>
-          Permission Management
-        </Typography>
-      </Breadcrumbs>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Breadcrumb
+          title="Permission Management"
+          data={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Permission Management", href: "#" },
+          ]}
+        />
+      </Box>
 
       {/* Header */}
       <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -404,9 +400,6 @@ const PermissionManagement: React.FC = () => {
             }}
           >
             System Permissions
-          </Typography>
-          <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 500 }}>
-            Configure and manage access levels for different system roles.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>
@@ -439,7 +432,7 @@ const PermissionManagement: React.FC = () => {
         {/* Role Selector Sidebar */}
         <Grid size={{ xs: 12, md: 3 }}>
           <Box sx={{ mb: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="overline" sx={{ fontWeight: 900, color: "text.disabled", letterSpacing: 1.5 }}>
+            <Typography variant="overline" sx={{ fontWeight: 900, color: "text.primary", letterSpacing: 1.5 }}>
               User Roles
             </Typography>
             <Tooltip title="Create New Role">

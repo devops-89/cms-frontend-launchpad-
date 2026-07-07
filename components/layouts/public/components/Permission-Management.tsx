@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useSnackbar } from "@/context/SnackbarContext";
+import Breadcrumb from "@/components/widgets/Breadcrumb";
 import {
   Box,
   Typography,
@@ -155,17 +156,15 @@ const PermissionManagement: React.FC = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Breadcrumbs */}
-      <Breadcrumbs
-        separator={<ChevronRight sx={{ fontSize: 14, color: alpha(theme.palette.text.secondary, 0.4) }} />}
-        sx={{ mb: 3 }}
-      >
-        <Link underline="hover" color="inherit" href="/dashboard" sx={{ fontSize: "0.85rem", fontWeight: 500 }}>
-          Dashboard
-        </Link>
-        <Typography color="text.primary" sx={{ fontSize: "0.85rem", fontWeight: 700 }}>
-          Permission Management
-        </Typography>
-      </Breadcrumbs>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Breadcrumb
+          title="Permission Management"
+          data={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Permission Management", href: "#" },
+          ]}
+        />
+      </Box>
 
       {/* Header */}
       <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>

@@ -218,7 +218,6 @@ export const STATUS_OPTIONS = [
 export const JUDGES_TABLE_HEADER = [
   "Name",
   "Phone number",
-  "Expertise",
   "Status",
   "Actions",
 ];

@@ -3,6 +3,7 @@
 import { useAppTheme } from "@/context/ThemeContext";
 import { useLogin } from "@/hooks/auth/useLogin";
 import { Login_Validation } from "@/utils/validation";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import {
   Alert,
@@ -116,7 +117,7 @@ const Login = () => {
                 variant="outlined"
                 sx={textFieldStyles}
                 value={formik.values.email}
-                onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
+                onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "email")}
                 onBlur={formik.handleBlur}
                 error={Boolean(getFormikError(formik, "email"))}
                 helperText={getFormikError(formik, "email") as string}

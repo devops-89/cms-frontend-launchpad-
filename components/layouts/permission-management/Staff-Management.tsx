@@ -1,50 +1,46 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { roleControllers } from "@/api/roleControllers";
+import { UserController } from "@/api/userControllers";
+import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { usePermissions } from "@/context/PermissionContext";
+import { useSnackbar } from "@/context/SnackbarContext";
+import { useAppTheme } from "@/context/ThemeContext";
+import { roboto } from "@/utils/fonts";
+import {
+  Delete as DeleteIcon,
+  Edit as EditIcon,
+  Person as PersonIcon,
+  Add as Plus
+} from "@mui/icons-material";
 import {
   Box,
-  Typography,
-  Paper,
+  Button,
+  Card,
+  Chip,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  IconButton,
+  Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TableRow,
-  Breadcrumbs,
-  Link,
-  Button,
-  alpha,
-  useTheme,
-  Stack,
-  IconButton,
-  Tooltip,
-  Chip,
-  Card,
-  TextField,
   TablePagination,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  CircularProgress
+  TableRow,
+  TextField,
+  Typography,
+  alpha,
+  useTheme
 } from "@mui/material";
-import {
-  ChevronRight,
-  Add as Plus,
-  Person as PersonIcon,
-  Delete as DeleteIcon,
-  Edit as EditIcon
-} from "@mui/icons-material";
-import { useSnackbar } from "@/context/SnackbarContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { roleControllers } from "@/api/roleControllers";
 import { useRouter } from "next/navigation";
-import { useAppTheme } from "@/context/ThemeContext";
-import { usePermissions } from "@/context/PermissionContext";
-import { roboto } from "@/utils/fonts";
-import { UserController } from "@/api/userControllers";
+import { useEffect, useState } from "react";
 
 const StaffManagement = () => {
   const theme = useTheme();
@@ -116,17 +112,15 @@ const StaffManagement = () => {
   return (
     <Box sx={{ p: { xs: 2, md: 4 }, minHeight: "100vh", bgcolor: "background.default" }}>
       {/* Breadcrumbs */}
-      <Breadcrumbs
-        separator={<ChevronRight sx={{ fontSize: 14, color: alpha(theme.palette.text.secondary, 0.4) }} />}
-        sx={{ mb: 3 }}
-      >
-        <Link underline="hover" color="inherit" href="/dashboard" sx={{ fontSize: "0.85rem", fontWeight: 500 }}>
-          Dashboard
-        </Link>
-        <Link underline="hover" color="inherit" href="/permission-management/employees" sx={{ fontSize: "0.85rem", fontWeight: 500 }}>
-          Admin Users
-        </Link>
-      </Breadcrumbs>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Breadcrumb
+          title="Admin Users"
+          data={[
+            { title: "Dashboard", href: "/dashboard" },
+            { title: "Admin Users", href: "#" },
+          ]}
+        />
+      </Box>
 
       {/* Header */}
       <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
@@ -140,9 +134,6 @@ const StaffManagement = () => {
             }}
           >
             Admin Users
-          </Typography>
-          <Typography variant="body2" sx={{ color: colors.TEXT_SECONDARY, fontWeight: 500 }}>
-            Manage admin users and assign them system roles.
           </Typography>
         </Box>
         <Stack direction="row" spacing={1.5}>

@@ -25,13 +25,13 @@ export const handleStrictInputChange = (
       const atIndex = val.lastIndexOf("@");
       if (atIndex !== -1) {
         const domainPart = val.substring(atIndex + 1);
-        const dotIndex = domainPart.lastIndexOf(".");
+        const dotIndex = domainPart.indexOf(".");
         
         if (dotIndex !== -1) {
           const tld = domainPart.substring(dotIndex).toLowerCase();
           const validTLDs = [
             ".com", ".org", ".in", ".net", ".edu", 
-            ".co", ".io", ".gov", ".mil", ".biz", ".info"
+            ".co", ".io", ".gov", ".mil", ".biz", ".info", ".co.in", ".co.uk"
           ];
           
           // Check if what the user is typing is a valid prefix of our allowed TLDs
