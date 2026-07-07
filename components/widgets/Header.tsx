@@ -1,12 +1,12 @@
 "use client";
+import { AuthControllers } from "@/api/authControllers";
 import { useAppTheme } from "@/context/ThemeContext";
 import { LogoutOutlined, Person } from "@mui/icons-material";
-import { Avatar, Box, Button, Paper, Tooltip, Typography } from "@mui/material";
+import { Avatar, Box, Button, Paper, Typography } from "@mui/material";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import LayoutProvider from "./Layout-Provider";
-import { AuthControllers } from "@/api/authControllers";
 const Header = () => {
   const { colors } = useAppTheme();
   const [scrolled, setScrolled] = useState(false);
@@ -116,7 +116,6 @@ const Header = () => {
           onMouseLeave={() => setMenuOpen(false)}
           sx={{ position: "relative", py: 1 }}
         >
-          <Tooltip title="My Profile">
             <Box
               sx={{
                 p: "2px",
@@ -141,7 +140,6 @@ const Header = () => {
                 <Person />
               </Avatar>
             </Box>
-          </Tooltip>
 
           {/* Hover Menu */}
           <Box
