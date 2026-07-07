@@ -6,6 +6,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { USER_DATA } from "@/types/user";
 import { USER_STATUS_TABS } from "@/utils/constant";
 import { UserRole, UserStatus } from "@/utils/enum";
+import { useSnackbar } from "@/context/SnackbarContext";
 import { MoreVert } from "@mui/icons-material";
 import {
   Box,
@@ -82,6 +83,7 @@ const StatusDropdown = ({ user }: { user: any }) => {
   const queryClient = useQueryClient();
   const { hasPermission } = usePermissions();
   const canEditUser = hasPermission("Users", "canEdit");
+  const { showSnackbar } = useSnackbar();
   
   const getStatus = () => {
     return resolveUserStatus(user);
@@ -109,6 +111,12 @@ const StatusDropdown = ({ user }: { user: any }) => {
 
   const handleStatusChange = (e: any) => {
     const newStatus = e.target.value;
+    
+    if (newStatus === "Banned" && currentStatus === "Pending") {
+      showSnackbar("Only active users can be banned.", "error");
+      return;
+    }
+
     // Always open popup if Banned is selected so they can choose a contest
     if (newStatus === "Banned" || newStatus !== currentStatus) {
       setPendingStatus(newStatus);

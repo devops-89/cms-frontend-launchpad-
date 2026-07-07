@@ -170,12 +170,12 @@ const EditEntryForm = () => {
         case FIELDS_TYPE.AUTOCOMPLETE:
         case FIELDS_TYPE.COUNTRY_SELECTOR: 
           validator = Yup.string();
-          if (field.type === FIELDS_TYPE.TEXTFIELD) {
+           if (field.type === FIELDS_TYPE.TEXTFIELD) {
              const lbl = field.label?.toLowerCase() || "";
              if (lbl.includes("email")) {
-                validator = validator.trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Please Enter Valid Email");
+                validator = validator.trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, { message: "Please Enter Valid Email", excludeEmptyString: true });
              } else if ((lbl.includes("name") || lbl.includes("city") || lbl.includes("state") || lbl.includes("country")) && !lbl.includes("school") && !lbl.includes("company") && !lbl.includes("file") && !lbl.includes("username")) {
-                validator = validator.matches(/^[^\d]*$/, `${field.label} cannot contain numbers`);
+                validator = validator.matches(/^[^\d]*$/, { message: `${field.label} cannot contain numbers`, excludeEmptyString: true });
              }
           }
           break;
@@ -247,6 +247,8 @@ const EditEntryForm = () => {
             then: (schema: any) =>
               field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
                 ? schema.oneOf([true], "This field is required")
+                : field.type === FIELDS_TYPE.FILE_UPLOAD
+                ? schema.test("required", `${field.label} is required`, (value: any) => value !== "" && value !== null && value !== undefined)
                 : schema.required(`${field.label} is required`),
             otherwise: (schema: any) => schema.notRequired(),
           });
@@ -254,6 +256,8 @@ const EditEntryForm = () => {
           validator = 
             field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
               ? validator.oneOf([true], "This field is required")
+              : field.type === FIELDS_TYPE.FILE_UPLOAD
+              ? validator.test("required", `${field.label} is required`, (value: any) => value !== "" && value !== null && value !== undefined)
               : validator.required(`${field.label} is required`);
         }
       }
@@ -477,7 +481,7 @@ const EditEntryForm = () => {
             return;
           }
           formik.handleSubmit(e);
-        }}>
+        }} noValidate>
           <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Grid container spacing={4}>
               {visibleFields?.map((val: any) => {

@@ -136,7 +136,7 @@ const AddUserForm = () => {
         } else if (field.type === FIELDS_TYPE.TEL_INPUT) {
           validator = Yup.string().test("is-valid-phone", "Invalid phone number", (value) => value ? matchIsValidTel(value) : false);
         } else if (field.type === FIELDS_TYPE.TEXTFIELD && field.id === "email") {
-          validator = Yup.string().trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, "Invalid email address");
+          validator = Yup.string().trim().matches(/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,6}$/i, { message: "Invalid email address", excludeEmptyString: true });
         } else if (field.type === FIELDS_TYPE.PASSWORD) {
           validator = Yup.string();
           if (field.label?.toLowerCase().includes("confirm")) {
@@ -150,7 +150,11 @@ const AddUserForm = () => {
         }
 
         if (field.required) {
-          validator = validator.required(`${field.label} is required`);
+          if (field.type === FIELDS_TYPE.FILE_UPLOAD) {
+            validator = validator.test("required", `${field.label} is required`, (value: any) => value !== "" && value !== null && value !== undefined);
+          } else {
+            validator = validator.required(`${field.label} is required`);
+          }
         }
         acc[field.id] = validator;
         return acc;

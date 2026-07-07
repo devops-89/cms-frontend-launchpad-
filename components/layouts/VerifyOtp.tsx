@@ -156,10 +156,9 @@ const VerifyOtpForm = () => {
           router.push("/");
         }, 1000);
       } catch (error: any) {
-        let errorMessage = error?.response?.data?.message || error?.message || "Invalid OTP";
-        // We want to show the exact API error like "OTP has expired", so we shouldn't indiscriminately override it.
-        if (errorMessage.toLowerCase() === "invalid otp" || errorMessage === "Invalid OTP") {
-          errorMessage = "Invalid OTP.";
+        let errorMessage = error?.response?.data?.message || error?.message || "OTP is invalid or expired";
+        if (errorMessage.toLowerCase().includes("invalid otp") || errorMessage === "Invalid OTP.") {
+          errorMessage = "OTP is invalid or expired";
         }
         showSnackbar(errorMessage, "error");
       } finally {
