@@ -116,7 +116,7 @@ const JudgeEntryDetailsPage = () => {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const userStr = localStorage.getItem("judge_user");
+      const userStr = sessionStorage.getItem("judge_user");
       const judgeId = userStr ? JSON.parse(userStr).id : "default";
 
       const scores = criteriaList.map((c: any) => ({

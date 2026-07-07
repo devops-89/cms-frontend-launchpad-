@@ -8,6 +8,7 @@ import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
 import { useRouter, useParams } from "next/navigation";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { usePermissions } from "@/context/PermissionContext";
+import { useContestDetails } from "@/store/useContestDetails";
 
 const NotificationsTab = () => {
   const { colors } = useAppTheme();
@@ -22,6 +23,8 @@ const NotificationsTab = () => {
   const canDelete = hasPermission("Contests", "canDelete");
   const canView = hasPermission("Contests", "canView");
   const showActions = canEdit || canDelete || canView;
+  const { contest } = useContestDetails();
+  const isOffline = contest?.status?.toLowerCase() === 'offline';
 
   const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
   const { templates, deleteTemplate, isLoading } = useNotificationTemplates();
@@ -99,6 +102,7 @@ const NotificationsTab = () => {
         {canCreate && (
           <Button
             variant="contained"
+            disabled={isOffline}
             startIcon={<Add />}
             onClick={handleCreateNew}
             sx={{ bgcolor: colors.PRIMARY, textTransform: "none", borderRadius: 2, fontWeight: 600 }}
@@ -114,7 +118,7 @@ const NotificationsTab = () => {
         <Paper elevation={0} sx={{ p: 6, textAlign: "center", border: `1px dashed ${colors.BORDER}`, borderRadius: 3, bgcolor: "rgba(0,0,0,0.01)" }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 1, fontFamily: montserrat.style.fontFamily }}>No Templates Found</Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mb: 3 }}>You have not created any templates for {audience}s yet.</Typography>
-          {canCreate && <Button variant="outlined" startIcon={<Add />} onClick={handleCreateNew}>Create First Template</Button>}
+          {canCreate && <Button variant="outlined" disabled={isOffline} startIcon={<Add />} onClick={handleCreateNew}>Create First Template</Button>}
         </Paper>
       ) : (
         <TableContainer component={Paper} elevation={0} sx={{ border: `1px solid ${colors.BORDER}`, borderRadius: 3 }}>
@@ -144,12 +148,12 @@ const NotificationsTab = () => {
                       )}
                       {canEdit && (
                         <Tooltip title="Edit">
-                          <IconButton onClick={() => handleEdit(row.id)} size="small" color="primary" sx={{ mx: 0.5 }}><Edit fontSize="small" /></IconButton>
+                          <IconButton disabled={isOffline} onClick={() => handleEdit(row.id)} size="small" color="primary" sx={{ mx: 0.5 }}><Edit fontSize="small" /></IconButton>
                         </Tooltip>
                       )}
                       {canDelete && (
                         <Tooltip title="Delete">
-                          <IconButton onClick={() => handleDeleteClick(row.id)} size="small" color="error"><Delete fontSize="small" /></IconButton>
+                          <IconButton disabled={isOffline} onClick={() => handleDeleteClick(row.id)} size="small" color="error"><Delete fontSize="small" /></IconButton>
                         </Tooltip>
                       )}
                     </TableCell>

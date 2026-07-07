@@ -32,6 +32,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import { FIELDS_TYPE } from "@/utils/enum";
 import { MuiTelInput, matchIsValidTel } from "mui-tel-input";
+import { parsePhoneNumberFromString, getExampleNumber } from 'libphonenumber-js';
+import examples from 'libphonenumber-js/examples.mobile.json';
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -456,37 +458,97 @@ const EditUserForm = () => {
 
                 {val.type === FIELDS_TYPE.TEL_INPUT && (
                   <Box>
-                    <MuiTelInput
-                      onKeyDown={(e) => {
-                        if (e.key === "+") {
-                          e.preventDefault();
-                          return;
-                        }
-                      }}
-                      label={val.label}
-                      variant={val.variant}
-                      fullWidth
-                      required={val.required}
-                      forceCallingCode={true}
-                      name={val.id}
-                      value={formik.values[val.id] || ""}
-                      onChange={(value, info) => { 
-                        const cleanedValue = value.replace(/(?!^\+)\+/g, '');
-                        if (info.countryCode) {
-                           formik.setFieldValue(`${val.id}_country`, info.countryCode);
-                        }
-                        formik.setFieldValue(val.id, cleanedValue); 
-                        formik.setFieldTouched(val.id, true, false); 
-                      }}
-                      onBlur={() => formik.setFieldTouched(val.id, true)}
-                      error={Boolean(getFormikError(formik, val.id))}
-                      defaultCountry={(() => {
-                         let dc = formik.values[`${val.id}_country`];
-                         if (!dc) dc = val.config?.defaultCountry || 'IN';
-                         return dc as any;
+                      {(() => {
+                        const countryCode = formik.values[`${val.id}_country`] || val.config?.defaultCountry || "IN";
+                        const example = getExampleNumber(countryCode as any, examples);
+                        const currentMaxLength = example?.formatInternational()?.length || 15;
+                        return (
+                          <MuiTelInput
+                            onKeyDown={(e) => {
+                              if (e.key === "+") {
+                                e.preventDefault();
+                                return;
+                              }
+                              const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab", "Enter"];
+                              if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+                                return;
+                              }
+
+                              const input = e.target as HTMLInputElement;
+                              if (input && input.selectionStart !== input.selectionEnd) {
+                                return;
+                              }
+
+                              const phoneVal = (formik.values[val.id] as string) || "";
+                              const parsed = parsePhoneNumberFromString(phoneVal);
+                              
+                              if (parsed?.isValid()) {
+                                e.preventDefault();
+                                return;
+                              }
+
+                              const currentCountry = parsed?.country || val.config?.defaultCountry || "IN";
+                              const ex = getExampleNumber(currentCountry as any, examples);
+                              if (ex) {
+                                const maxDigits = ex.number.replace(/\D/g, "").length;
+                                const currentDigits = phoneVal.replace(/\D/g, "").length;
+                                if (currentDigits >= maxDigits) {
+                                  e.preventDefault();
+                                }
+                              } else if (phoneVal.replace(/\D/g, "").length >= 15) {
+                                e.preventDefault();
+                              }
+                            }}
+                            label={val.label}
+                            variant={val.variant as any}
+                            fullWidth
+                            required={val.required}
+                            forceCallingCode={true}
+                            name={val.id}
+                            value={formik.values[val.id] || ""}
+                            onChange={(value, info) => { 
+                              const cleanedValue = value.replace(/(?!^\+)\+/g, '');
+                              
+                              if (info.countryCode) {
+                                formik.setFieldValue(`${val.id}_country`, info.countryCode);
+                              }
+
+                              const validationCountry = info.countryCode || formik.values[`${val.id}_country`] || val.config?.defaultCountry || "IN";
+                              const ex = getExampleNumber(validationCountry as any, examples);
+                              
+                              const phoneVal = (formik.values[val.id] as string) || "";
+                              const oldParsed = parsePhoneNumberFromString(phoneVal);
+                              
+                              if (oldParsed?.isValid() && cleanedValue.length > phoneVal.length) {
+                                return; 
+                              }
+
+                              if (ex) {
+                                const maxDigits = ex.number.replace(/\D/g, "").length;
+                                const currentDigits = cleanedValue.replace(/\D/g, "").length;
+                                if (currentDigits > maxDigits) return;
+                              } else if (cleanedValue.replace(/\D/g, "").length > 15) {
+                                return;
+                              }
+                              
+                              formik.setFieldValue(val.id, cleanedValue); 
+                              formik.setFieldTouched(val.id, true, false); 
+                            }}
+                            onBlur={() => formik.setFieldTouched(val.id, true)}
+                            error={Boolean(getFormikError(formik, val.id))}
+                            defaultCountry={(() => {
+                               let dc = formik.values[`${val.id}_country`];
+                               if (!dc) dc = val.config?.defaultCountry || 'IN';
+                               const onlyCountries = val.config?.onlyCountries;
+                               if (onlyCountries?.length > 0 && !onlyCountries.includes(dc)) {
+                                 return onlyCountries[0] as any;
+                               }
+                               return dc as any;
+                            })()}
+                            onlyCountries={val.config?.onlyCountries?.length > 0 ? val.config.onlyCountries : undefined}
+                          />
+                        );
                       })()}
-                      onlyCountries={val.config?.onlyCountries || undefined}
-                    />
                     {getFormikError(formik, val.id) && (
                       <FormHelperText error>
                         {getFormikError(formik, val.id) as string}

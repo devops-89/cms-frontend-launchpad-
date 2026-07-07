@@ -24,13 +24,16 @@ import moment from "moment";
 import { CircularProgress, IconButton } from "@mui/material";
 import { Edit } from "@mui/icons-material";
 import { usePermissions } from "@/context/PermissionContext";
+import { useContestDetails } from "@/store/useContestDetails";
 
 const VotesTab = ({ contestId }: { contestId: string }) => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { showModal } = useModal();
   const { hasPermission } = usePermissions();
+  const { contest } = useContestDetails();
   const canEditContest = hasPermission("Contests", "canEdit");
+  const isOffline = contest?.status?.toLowerCase() === 'offline';
 
   const handleShowModal = () => {
     showModal(<AddVotingPeriod />);
@@ -82,8 +85,9 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
         </Typography>
         {canEditContest && (
           <Button
+            disabled={isOffline}
             sx={{
-              backgroundColor: COLORS.PRIMARY,
+              backgroundColor: isOffline ? "action.disabled" : COLORS.PRIMARY,
               color: "#ffffff",
               fontFamily: roboto.style.fontFamily,
               textTransform: "capitalize",
@@ -164,6 +168,7 @@ const VotesTab = ({ contestId }: { contestId: string }) => {
                         color="primary"
                         startIcon={<Edit fontSize="small" />}
                         onClick={() => handleEditClick(row)}
+                        disabled={isOffline}
                         sx={{ textTransform: "capitalize", fontFamily: roboto.style.fontFamily }}
                       >
                         Edit

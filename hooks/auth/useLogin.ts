@@ -31,15 +31,15 @@ export const useLogin = () => {
         queryClient.clear();
         showSnackbar("Login successful!", "success");
         if (user.role === "judge") {
-          localStorage.setItem("judge_user", JSON.stringify(user));
-          localStorage.setItem("judge_access_token", token);
-          localStorage.setItem("judge_refresh_token", refreshToken);
+          sessionStorage.setItem("judge_user", JSON.stringify(user));
+          sessionStorage.setItem("judge_access_token", token);
+          sessionStorage.setItem("judge_refresh_token", refreshToken);
           forceRefresh();
           router.push("/judge-panel/dashboard");
         } else {
-          localStorage.setItem("user", JSON.stringify(user));
-          localStorage.setItem("token", token);
-          localStorage.setItem("refresh_token", refreshToken);
+          sessionStorage.setItem("user", JSON.stringify(user));
+          sessionStorage.setItem("token", token);
+          sessionStorage.setItem("refresh_token", refreshToken);
           forceRefresh();
           router.push("/dashboard");
         }

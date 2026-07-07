@@ -76,21 +76,14 @@ const UserForm = () => {
     },
   });
 
-  const handlePhoneNumber = (value: string) => {
-    const prevValue = formik.values.phoneNumber || "";
-    const isCurrentlyValid = matchIsValidTel(prevValue);
-    const isNewValid = matchIsValidTel(value);
+  const handlePhoneNumber = (value: string, info?: any) => {
+    const cleanedValue = value.replace(/(?!^\+)\+/g, '');
+    const countryCode = info?.countryCode || "IN";
+    const example = getExampleNumber(countryCode as any, examples);
+    const maxLength = example ? example.formatInternational().length : 15;
+    if (cleanedValue.length > maxLength) return;
 
-    const prevDigits = prevValue.replace(/\D/g, "");
-    const newDigits = value.replace(/\D/g, "");
-
-    if (isCurrentlyValid && !isNewValid && newDigits.length > prevDigits.length) {
-      if (newDigits.startsWith(prevDigits)) {
-        return;
-      }
-    }
-
-    formik.setFieldValue("phoneNumber", value);
+    formik.setFieldValue("phoneNumber", cleanedValue);
     formik.setFieldTouched("phoneNumber", true, false);
   };
 
@@ -165,8 +158,37 @@ const UserForm = () => {
   return (
     <MuiTelInput
       onKeyDown={(e) => {
-        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab"];
-        if (phoneVal.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+        if (e.key === "+") {
+          e.preventDefault();
+          return;
+        }
+        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab", "Enter"];
+        if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+          return;
+        }
+
+        const input = e.target as HTMLInputElement;
+        if (input && input.selectionStart !== input.selectionEnd) {
+          return;
+        }
+
+        const phoneVal = (formik.values.phoneNumber as string) || "";
+        const parsed = parsePhoneNumberFromString(phoneVal);
+        
+        if (parsed?.isValid()) {
+          e.preventDefault();
+          return;
+        }
+
+        const currentCountry = parsed?.country || "IN";
+        const ex = getExampleNumber(currentCountry as any, examples);
+        if (ex) {
+          const maxDigits = ex.number.replace(/\D/g, "").length;
+          const currentDigits = phoneVal.replace(/\D/g, "").length;
+          if (currentDigits >= maxDigits) {
+            e.preventDefault();
+          }
+        } else if (phoneVal.replace(/\D/g, "").length >= 15) {
           e.preventDefault();
         }
       }}
@@ -176,7 +198,30 @@ const UserForm = () => {
               id="phoneNumber"
               name="phoneNumber"
               value={formik.values.phoneNumber}
-              onChange={handlePhoneNumber}
+              onChange={(value, info) => {
+                const cleanedValue = value.replace(/(?!^\+)\+/g, '');
+                
+                const validationCountry = info.countryCode || "IN";
+                const ex = getExampleNumber(validationCountry as any, examples);
+                
+                const phoneVal = (formik.values.phoneNumber as string) || "";
+                const oldParsed = parsePhoneNumberFromString(phoneVal);
+                
+                if (oldParsed?.isValid() && cleanedValue.length > phoneVal.length) {
+                  return; 
+                }
+
+                if (ex) {
+                  const maxDigits = ex.number.replace(/\D/g, "").length;
+                  const currentDigits = cleanedValue.replace(/\D/g, "").length;
+                  if (currentDigits > maxDigits) return;
+                } else if (cleanedValue.replace(/\D/g, "").length > 15) {
+                  return;
+                }
+                
+                formik.setFieldValue("phoneNumber", cleanedValue);
+                formik.setFieldTouched("phoneNumber", true, false);
+              }}
               onBlur={formik.handleBlur}
               error={Boolean(getFormikError(formik, "phoneNumber"))}
               helperText={getFormikError(formik, "phoneNumber") as string}

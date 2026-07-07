@@ -35,8 +35,8 @@ export const PermissionProvider = ({ children }: { children: ReactNode }) => {
   const isJudgePanel = pathname?.startsWith('/judge-panel') || false;
 
   useEffect(() => {
-    // Only load user from localStorage on client side
-    const userStr = isJudgePanel ? localStorage.getItem("judge_user") : localStorage.getItem("user");
+    // Only load user from sessionStorage on client side
+    const userStr = isJudgePanel ? sessionStorage.getItem("judge_user") : sessionStorage.getItem("user");
     if (userStr) {
       try {
         setUser(JSON.parse(userStr));
@@ -46,7 +46,7 @@ export const PermissionProvider = ({ children }: { children: ReactNode }) => {
     } else {
       setUser(null);
     }
-    const token = isJudgePanel ? localStorage.getItem("judge_access_token") : localStorage.getItem("token");
+    const token = isJudgePanel ? sessionStorage.getItem("judge_access_token") : sessionStorage.getItem("token");
     if (token) {
       try {
         const payloadStr = atob(token.split('.')[1]);

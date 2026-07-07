@@ -103,9 +103,11 @@ const StatusDropdown = ({ user }: { user: any }) => {
       UserController.updateUserStatus(user.id, newStatus.toLowerCase(), contestId),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["user-list"] });
+      showSnackbar("Status updated successfully", "success");
     },
     onError: () => {
       console.error("Failed to update status");
+      showSnackbar("Failed to update status", "error");
     },
   });
 

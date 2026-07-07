@@ -7,7 +7,7 @@ const authSecuredApi = axios.create({
 
 authSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = localStorage.getItem("token");
+    let token = sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -28,7 +28,7 @@ const userSecuredApi = axios.create({
 
 userSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = localStorage.getItem("token");
+    let token = sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -45,7 +45,7 @@ const formSecuredApi = axios.create({
 
 formSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = localStorage.getItem("token");
+    let token = sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -62,7 +62,7 @@ const contestSecuredApi = axios.create({
 
 contestSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = localStorage.getItem("token") || localStorage.getItem("judge_access_token");
+    let token = sessionStorage.getItem("token") || sessionStorage.getItem("judge_access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -79,7 +79,7 @@ const entrySecuredApi = axios.create({
 
 entrySecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = localStorage.getItem("token") || localStorage.getItem("judge_access_token");
+    let token = sessionStorage.getItem("token") || sessionStorage.getItem("judge_access_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -96,7 +96,7 @@ const judgeSecuredApi = axios.create({
 
 judgeSecuredApi.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    let token = localStorage.getItem("judge_access_token") || localStorage.getItem("token");
+    let token = sessionStorage.getItem("judge_access_token") || sessionStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -167,8 +167,8 @@ const setupResponseInterceptor = (instance: AxiosInstance) => {
         try {
           const isJudgePanel = window.location?.pathname?.startsWith('/judge-panel');
           const refreshToken = isJudgePanel
-            ? localStorage.getItem("judge_refresh_token")
-            : localStorage.getItem("refresh_token");
+            ? sessionStorage.getItem("judge_refresh_token")
+            : sessionStorage.getItem("refresh_token");
 
           if (!refreshToken) {
             throw new Error("No refresh token available");
@@ -180,11 +180,11 @@ const setupResponseInterceptor = (instance: AxiosInstance) => {
           const newRefreshToken = result.data.data.refreshToken;
 
           if (isJudgePanel) {
-            localStorage.setItem("judge_access_token", newAccessToken);
-            if (newRefreshToken) localStorage.setItem("judge_refresh_token", newRefreshToken);
+            sessionStorage.setItem("judge_access_token", newAccessToken);
+            if (newRefreshToken) sessionStorage.setItem("judge_refresh_token", newRefreshToken);
           } else {
-            localStorage.setItem("token", newAccessToken);
-            if (newRefreshToken) localStorage.setItem("refresh_token", newRefreshToken);
+            sessionStorage.setItem("token", newAccessToken);
+            if (newRefreshToken) sessionStorage.setItem("refresh_token", newRefreshToken);
           }
 
           instance.defaults.headers.common["Authorization"] = "Bearer " + newAccessToken;
@@ -197,13 +197,13 @@ const setupResponseInterceptor = (instance: AxiosInstance) => {
           processQueue(typedError, null);
           const isJudgePanel = window.location?.pathname?.startsWith('/judge-panel');
           if (isJudgePanel) {
-            localStorage.removeItem("judge_access_token");
-            localStorage.removeItem("judge_refresh_token");
-            localStorage.removeItem("judge_user");
+            sessionStorage.removeItem("judge_access_token");
+            sessionStorage.removeItem("judge_refresh_token");
+            sessionStorage.removeItem("judge_user");
           } else {
-            localStorage.removeItem("token");
-            localStorage.removeItem("refresh_token");
-            localStorage.removeItem("user");
+            sessionStorage.removeItem("token");
+            sessionStorage.removeItem("refresh_token");
+            sessionStorage.removeItem("user");
           }
           if (typeof window !== "undefined") {
             window.location.href = "/";

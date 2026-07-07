@@ -131,6 +131,7 @@ const ContestDetails = () => {
           {canEditContest && [1, 2].includes(tabValue) && (
             <Button
               variant="contained"
+              disabled={contestData?.status?.toLowerCase() === 'offline'}
               startIcon={<Add />}
               onClick={() => {
                 const baseRoute = `/contest-management/contests/${contestId}`;

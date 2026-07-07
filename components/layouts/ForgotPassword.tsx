@@ -24,6 +24,7 @@ import { getFormikError } from "@/utils/formikHelper";
 
 const ForgotPassword = () => {
   const { colors } = useAppTheme();
+  const router = useRouter();
 
   const { forgotPassword, isLoading: loading, error: errorMessage } = useForgotPassword();
   const { showSnackbar } = useSnackbar();
@@ -200,6 +201,24 @@ const ForgotPassword = () => {
               {loading
                 ? "Sending OTP..."
                 : "Send OTP"}
+            </Button>
+            
+            <Button
+              fullWidth
+              variant="text"
+              disabled={loading}
+              onClick={() => router.back()}
+              sx={{
+                mt: 1,
+                py: 1.5,
+                color: colors.TEXT_SECONDARY,
+                fontWeight: 600,
+                fontSize: "1rem",
+                textTransform: "none",
+                borderRadius: 2,
+              }}
+            >
+              Back to Login
             </Button>
           </Paper>
         </form>

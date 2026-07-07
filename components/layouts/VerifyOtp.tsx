@@ -53,7 +53,7 @@ const VerifyOtpForm = () => {
 
   const handleResendOtp = async () => {
     try {
-      const email = emailParam || localStorage.getItem("resetEmail");
+      const email = emailParam || sessionStorage.getItem("resetEmail");
       if (!email) {
         showSnackbar("Email not found. Please try again.", "error");
         return;
@@ -117,7 +117,7 @@ const VerifyOtpForm = () => {
           return;
         }
 
-        const email = emailParam || localStorage.getItem("resetEmail");
+        const email = emailParam || sessionStorage.getItem("resetEmail");
 
         if (flow === "forgot") {
           const response = await AuthControllers.resetPassword({

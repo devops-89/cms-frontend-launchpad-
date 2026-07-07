@@ -23,6 +23,7 @@ const SettingsTab = ({ contest }: { contest?: any }) => {
   const [allowNewRegistrations, setAllowNewRegistrations] = useState(true);
   const [publicVisibility, setPublicVisibility] = useState(true);
   const [autoModerateEntries, setAutoModerateEntries] = useState(false);
+  const isOffline = contest?.status?.toLowerCase() === 'offline';
 
   useEffect(() => {
     if (contest) {
@@ -85,6 +86,7 @@ const SettingsTab = ({ contest }: { contest?: any }) => {
         <FormControlLabel
           control={
             <Switch
+              disabled={isOffline}
               checked={allowNewRegistrations}
               onChange={(e) => setAllowNewRegistrations(e.target.checked)}
             />
@@ -104,6 +106,7 @@ const SettingsTab = ({ contest }: { contest?: any }) => {
         <FormControlLabel
           control={
             <Switch
+              disabled={isOffline}
               checked={publicVisibility}
               onChange={(e) => setPublicVisibility(e.target.checked)}
             />
@@ -123,6 +126,7 @@ const SettingsTab = ({ contest }: { contest?: any }) => {
         <FormControlLabel
           control={
             <Switch
+              disabled={isOffline}
               checked={autoModerateEntries}
               onChange={(e) => setAutoModerateEntries(e.target.checked)}
             />
@@ -146,7 +150,7 @@ const SettingsTab = ({ contest }: { contest?: any }) => {
           variant="contained"
           color="primary"
           onClick={handleSave}
-          disabled={updateSettingsMutation.isPending}
+          disabled={updateSettingsMutation.isPending || isOffline}
         >
           {updateSettingsMutation.isPending ? <CircularProgress size={24} color="inherit" /> : "Save Changes"}
         </Button>

@@ -134,19 +134,55 @@ const LivePreview: React.FC<LivePreviewProps> = ({
   const parsed = parsePhoneNumberFromString(phoneVal);
   const countryCode = parsed?.country || (config.defaultCountry || "AE") as any || "IN";
   const example = getExampleNumber(countryCode as any, examples);
-  const maxLength = example ? example.formatInternational().length : 15;
+  const maxLength = example?.formatInternational()?.length || 15;
 
   return (
     <MuiTelInput
       onKeyDown={(e) => {
-        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab"];
-        if (phoneVal.length >= maxLength && !allowedKeys.includes(e.key) && !e.ctrlKey && !e.metaKey) {
+        if (e.key === "+") {
+          e.preventDefault();
+          return;
+        }
+        const allowedKeys = ["Backspace", "Delete", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Tab", "Enter"];
+        if (allowedKeys.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey) {
+          return;
+        }
+
+        const input = e.target as HTMLInputElement;
+        if (input && input.selectionStart !== input.selectionEnd) {
+          return;
+        }
+
+        const phoneVal = ""; // LivePreview dummy value
+        const parsed = parsePhoneNumberFromString(phoneVal);
+        
+        if (parsed?.isValid()) {
+          e.preventDefault();
+          return;
+        }
+
+        const currentCountry = parsed?.country || (config.defaultCountry || "AE") as any || "IN";
+        const ex = getExampleNumber(currentCountry as any, examples);
+        if (ex) {
+          const maxDigits = ex.number.replace(/\D/g, "").length;
+          const currentDigits = phoneVal.replace(/\D/g, "").length;
+          if (currentDigits >= maxDigits) {
+            e.preventDefault();
+          }
+        } else if (phoneVal.replace(/\D/g, "").length >= 15) {
           e.preventDefault();
         }
       }}
             {...commonProps}
             value=""
-            defaultCountry={(config.defaultCountry || "AE") as any}
+            defaultCountry={(() => {
+              const dc = config.defaultCountry || "AE";
+              const onlyCountries = config.onlyCountries;
+              if (onlyCountries?.length > 0 && !onlyCountries.includes(dc)) {
+                return onlyCountries[0] as any;
+              }
+              return dc as any;
+            })()}
             onlyCountries={config.onlyCountries?.length > 0 ? config.onlyCountries : undefined}
             sx={commonProps.sx}
           />

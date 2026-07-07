@@ -447,6 +447,7 @@ const ParticipantsList = () => {
                         <IconButton
                           size="small"
                           sx={{ color: colors.TEXT_SECONDARY }}
+                          disabled={contest?.status?.toLowerCase() === 'offline'}
                           onClick={() => router.push(`/contest-management/contests/${contest?.id}/edit-user?participantId=${participant.id}`)}
                         >
                           <Edit fontSize="small" />
@@ -455,7 +456,8 @@ const ParticipantsList = () => {
                       {canDeleteParticipant && (
                         <IconButton 
                           size="small" 
-                          sx={{ color: colors.TEXT_SECONDARY }}
+                          sx={{ color: contest?.status?.toLowerCase() === 'offline' ? "action.disabled" : colors.TEXT_SECONDARY }}
+                          disabled={contest?.status?.toLowerCase() === 'offline'}
                           onClick={() => {
                             if ((participant as any).entries && (participant as any).entries.length > 0) {
                               showSnackbar("This participant has active entries. Please delete their entries first.", "error");

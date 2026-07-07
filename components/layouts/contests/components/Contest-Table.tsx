@@ -172,18 +172,20 @@ const ContestTable = () => {
               <TableRow key={item.id || index}>
                 <TableCell>
                   <Typography
-                    onClick={() =>
-                      router.push(`/contest-management/contests/${item.id}`)
-                    }
+                    onClick={() => {
+                      if (item.status?.toLowerCase() !== 'draft') {
+                        router.push(`/contest-management/contests/${item.id}`)
+                      }
+                    }}
                     sx={{
                       fontWeight: 500,
                       fontFamily: roboto.style.fontFamily,
                       fontSize: 13,
-                      cursor: "pointer",
+                      cursor: item.status?.toLowerCase() === 'draft' ? "default" : "pointer",
                       transition: "color 0.2s ease",
                       "&:hover": {
-                        color: "primary.main",
-                        textDecoration: "underline",
+                        color: item.status?.toLowerCase() === 'draft' ? "inherit" : "primary.main",
+                        textDecoration: item.status?.toLowerCase() === 'draft' ? "none" : "underline",
                       },
                     }}
                   >
@@ -247,7 +249,7 @@ const ContestTable = () => {
                 {(canViewContest || canEditContest || canDeleteContest) && (
                   <TableCell>
                     <Box sx={{ display: "flex", gap: 1 }}>
-                      {canViewContest && (
+                      {canViewContest && item.status?.toLowerCase() !== 'draft' && (
                         <IconButton
                           size="small"
                           color="info"

@@ -595,7 +595,8 @@ const EntriesList = () => {
                       {canEditEntry && (
                         <IconButton
                           size="small"
-                          sx={{ color: "#8b5cf6" }}
+                          sx={{ color: contest?.status?.toLowerCase() === 'offline' ? "action.disabled" : "#8b5cf6" }}
+                          disabled={contest?.status?.toLowerCase() === 'offline'}
                           onClick={() =>
                             router.push(
                               `/contest-management/contests/${entry?.contest_id}/entries/edit-entry?entryId=${entry.id}`
@@ -610,6 +611,7 @@ const EntriesList = () => {
                         <IconButton
                           size="small"
                           color="error"
+                          disabled={contest?.status?.toLowerCase() === 'offline'}
                           onClick={() => {
                             setEntryToDelete(entry);
                             setDeleteDialogOpen(true);

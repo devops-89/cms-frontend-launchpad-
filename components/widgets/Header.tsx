@@ -18,18 +18,18 @@ const Header = () => {
 
   useEffect(() => {
     const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
-    const token = isJudgePanel ? localStorage.getItem("judge_access_token") : localStorage.getItem("token");
+    const token = isJudgePanel ? sessionStorage.getItem("judge_access_token") : sessionStorage.getItem("token");
     if (!token) {
       router.push("/");
       return;
     }
 
-    const userStr = isJudgePanel ? localStorage.getItem("judge_user") : localStorage.getItem("user");
+    const userStr = isJudgePanel ? sessionStorage.getItem("judge_user") : sessionStorage.getItem("user");
     if (userStr) {
       try {
         setUser(JSON.parse(userStr));
       } catch (error) {
-        console.error("Failed to parse user from localStorage", error);
+        console.error("Failed to parse user from sessionStorage", error);
       }
     }
   }, []);
@@ -38,8 +38,8 @@ const Header = () => {
     try {
       const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
       const refreshToken = isJudgePanel 
-        ? localStorage.getItem("judge_refresh_token") || "" 
-        : localStorage.getItem("refresh_token") || "";
+        ? sessionStorage.getItem("judge_refresh_token") || "" 
+        : sessionStorage.getItem("refresh_token") || "";
         
       await AuthControllers.logout({ refreshToken });
     } catch (err) {
@@ -49,13 +49,13 @@ const Header = () => {
     queryClient.clear();
     const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
     if (isJudgePanel) {
-      localStorage.removeItem("judge_access_token");
-      localStorage.removeItem("judge_refresh_token");
-      localStorage.removeItem("judge_user");
+      sessionStorage.removeItem("judge_access_token");
+      sessionStorage.removeItem("judge_refresh_token");
+      sessionStorage.removeItem("judge_user");
     } else {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refresh_token");
-      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("refresh_token");
+      sessionStorage.removeItem("user");
     }
     router.push("/");
   };
