@@ -1,23 +1,19 @@
 "use client";
 import { UserController } from "@/api/userControllers";
-import { useAppTheme } from "@/context/ThemeContext";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
+import { useAppTheme } from "@/context/ThemeContext";
 import { USER_DATA } from "@/types/user";
 import { USER_STATUS_TABS } from "@/utils/constant";
-import { UserRole, UserStatus } from "@/utils/enum";
+import { UserStatus } from "@/utils/enum";
 import { MoreVert } from "@mui/icons-material";
 import {
   Box,
   Card,
   Checkbox,
-  CircularProgress,
-  FormControl,
-  InputLabel,
   IconButton,
   ListItemText,
   Menu,
   MenuItem,
-  Select,
   Stack,
   Tab,
   Table,
@@ -25,22 +21,16 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Tabs,
   TextField,
-  TablePagination,
-  Typography,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogContentText,
-  DialogActions,
-  Button,
+  Typography
 } from "@mui/material";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import moment from "moment";
-import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 
 const getStatusStyles = (status: string) => {
   switch (status) {
@@ -231,7 +221,7 @@ const PublicTable: React.FC = () => {
   return (
     <Box sx={{ p: 1 }}>
       <Breadcrumb
-        title="Users"
+        title="Public Users"
         data={[
           {
             title: "Dashboard",

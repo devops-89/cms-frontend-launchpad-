@@ -41,6 +41,7 @@ import {
 } from "@mui/material";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import React, { useEffect, useState } from "react";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 
 interface ModulePermission {
   id?: number;
@@ -609,7 +610,7 @@ const PermissionManagement: React.FC = () => {
             label="Role Name"
             placeholder="e.g. Content Manager"
             value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
+            onChange={(e) => handleStrictInputChange(e, (evt) => setNewRoleName(evt.target.value), undefined, "name")}
             onKeyPress={(e) => e.key === 'Enter' && handleAddRole()}
             sx={{
               "& .MuiOutlinedInput-root": { borderRadius: "12px" }

@@ -20,6 +20,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import * as Yup from "yup";
 import { getFormikError } from "@/utils/formikHelper";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -127,7 +128,7 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
             label="First Name*"
             fullWidth
             value={formik.values.firstName}
-            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
+            onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "name")}
             onBlur={formik.handleBlur}
             error={Boolean(getFormikError(formik, "firstName"))}
             helperText={getFormikError(formik, "firstName") as string}
@@ -139,7 +140,7 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
             label="Last Name*"
             fullWidth
             value={formik.values.lastName}
-            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
+            onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "name")}
             onBlur={formik.handleBlur}
             error={Boolean(getFormikError(formik, "lastName"))}
             helperText={getFormikError(formik, "lastName") as string}
@@ -152,7 +153,7 @@ const EditJudgeForm: React.FC<EditJudgeFormProps> = ({ judgeId, initialData }) =
             type="email"
             fullWidth
             value={formik.values.email}
-            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
+            onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "email")}
             onBlur={formik.handleBlur}
             error={Boolean(getFormikError(formik, "email"))}
             helperText={getFormikError(formik, "email") as string}

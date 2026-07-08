@@ -22,6 +22,7 @@ import { AuthControllers } from "@/api/authControllers";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { useRouter } from "next/navigation";
 import { getFormikError } from "@/utils/formikHelper";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 
 const filter = createFilterOptions<string>();
 
@@ -124,7 +125,7 @@ const AddJudgeForm = () => {
             label="First Name*"
             fullWidth
             value={formik.values.firstName}
-            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("firstName", true, false); }}
+            onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "name")}
             onBlur={formik.handleBlur}
             error={Boolean(getFormikError(formik, "firstName"))}
             helperText={getFormikError(formik, "firstName") as string}
@@ -136,7 +137,7 @@ const AddJudgeForm = () => {
             label="Last Name*"
             fullWidth
             value={formik.values.lastName}
-            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("lastName", true, false); }}
+            onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "name")}
             onBlur={formik.handleBlur}
             error={Boolean(getFormikError(formik, "lastName"))}
             helperText={getFormikError(formik, "lastName") as string}
@@ -150,7 +151,7 @@ const AddJudgeForm = () => {
             fullWidth
             autoComplete="new-password"
             value={formik.values.email}
-            onChange={(e) => { formik.handleChange(e); formik.setFieldTouched("email", true, false); }}
+            onChange={(e) => handleStrictInputChange(e, formik.handleChange, formik.setFieldTouched, "email")}
             onBlur={formik.handleBlur}
             error={Boolean(getFormikError(formik, "email"))}
             helperText={getFormikError(formik, "email") as string}

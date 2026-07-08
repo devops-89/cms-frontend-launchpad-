@@ -41,6 +41,7 @@ import {
   Delete as Trash2,
 } from "@mui/icons-material";
 import { Montserrat, Roboto } from "next/font/google";
+import { handleStrictInputChange } from "@/utils/inputValidations";
 
 const montserrat = Montserrat({ subsets: ["latin"], weight: ["700", "800", "900"] });
 const roboto = Roboto({ subsets: ["latin"], weight: ["400", "500", "700"] });
@@ -375,7 +376,7 @@ const PermissionManagement: React.FC = () => {
             label="Role Name"
             placeholder="e.g. Content Manager"
             value={newRoleName}
-            onChange={(e) => setNewRoleName(e.target.value)}
+            onChange={(e) => handleStrictInputChange(e, (evt) => setNewRoleName(evt.target.value), undefined, "name")}
             onKeyPress={(e) => e.key === 'Enter' && handleAddRole()}
             sx={{
               "& .MuiOutlinedInput-root": { borderRadius: "12px" }
