@@ -257,7 +257,7 @@ const ViewUserDetails = () => {
             
             <Grid container spacing={2}>
               {Object.entries(formData).map(([key, value]) => {
-                if (typeof value !== 'string' || value.length === 0 || key.endsWith("_downloadUrl")) return null;
+                if (typeof value !== 'string' || value.length === 0 || key.endsWith("_downloadUrl") || key.endsWith("_country")) return null;
                 if (value === "Yes" || value === "No" || value === "true" || value === "false") return null;
                 
                 // Filter out Name Fields since they are already in the profile card

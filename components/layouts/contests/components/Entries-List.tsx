@@ -5,7 +5,7 @@ import { useSnackbar } from "@/context/SnackbarContext";
 import { useContestDetails } from "@/store/useContestDetails";
 import { ContestEntry } from "@/types/user";
 import { roboto } from "@/utils/fonts";
-import { Delete, Edit, RemoveRedEye } from "@mui/icons-material";
+import { Delete, Edit, RemoveRedEye, KeyboardArrowDown } from "@mui/icons-material";
 import {
   Avatar,
   Box,
@@ -78,7 +78,7 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
     },
   });
 
-  const isInteractive = currentStatus.toLowerCase() !== "draft" && currentStatus.toLowerCase() !== "rejected";
+  const isInteractive = currentStatus.toLowerCase() !== "draft" && currentStatus.toLowerCase() !== "rejected" && currentStatus.toLowerCase() !== "winner";
 
   const handleChipClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (isInteractive && !mutation.isPending) {
@@ -145,8 +145,12 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
         label={getDisplayStatus(currentStatus)}
         size="small"
         onClick={isInteractive ? handleChipClick : undefined}
-        onDelete={mutation.isPending ? () => {} : undefined}
-        deleteIcon={mutation.isPending ? <CircularProgress size={12} sx={{ color: colors.text }} /> : undefined}
+        onDelete={mutation.isPending ? () => {} : (isInteractive ? handleChipClick : undefined)}
+        deleteIcon={
+          mutation.isPending 
+            ? <CircularProgress size={12} sx={{ color: colors.text }} /> 
+            : (isInteractive ? <KeyboardArrowDown sx={{ color: colors.text, fontSize: 16 }} /> : undefined)
+        }
         sx={{
           bgcolor: colors.bg,
           color: colors.text,
@@ -180,47 +184,41 @@ const EntryStatusDropdown = ({ entry, contestId }: { entry: any; contestId: stri
           }
         }}
       >
-        {!isEvaluatedBackend && (
-          <MenuItem onClick={() => handleStatusSelect("pending")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
-            Needs Moderation
-          </MenuItem>
-        )}
-        {!isEvaluatedBackend && (
+        {!isEvaluatedBackend && currentStatus.toLowerCase() === "pending" && (
           <MenuItem onClick={() => handleStatusSelect("approved")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
             Moderate
           </MenuItem>
         )}
-        {!isEvaluatedBackend && (
-          <MenuItem onClick={() => handleStatusSelect("rejected")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
-            Rejected
+        {!isEvaluatedBackend && currentStatus.toLowerCase() === "approved" && (
+          <MenuItem onClick={() => handleStatusSelect("pending")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
+            Needs Moderation
           </MenuItem>
         )}
         
-        {isEvaluatedBackend && (
+        {isEvaluatedBackend && (currentStatus.toLowerCase() === "approved" || currentStatus.toLowerCase() === "pending") && (
           <MenuItem onClick={() => handleStatusSelect("evaluated")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
             Evaluated
           </MenuItem>
         )}
-        {isEvaluatedBackend && (
+        {isEvaluatedBackend && currentStatus.toLowerCase() === "evaluated" && (
           <MenuItem onClick={() => handleStatusSelect("semifinal")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
             Semifinal
           </MenuItem>
         )}
-        {isEvaluatedBackend && (
+        {isEvaluatedBackend && currentStatus.toLowerCase() === "semifinal" && (
           <MenuItem onClick={() => handleStatusSelect("final")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
             Final
           </MenuItem>
         )}
-        {isEvaluatedBackend && (
+        {isEvaluatedBackend && currentStatus.toLowerCase() === "final" && (
           <MenuItem onClick={() => handleStatusSelect("winner")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
             Winner
           </MenuItem>
         )}
-        {isEvaluatedBackend && (
-          <MenuItem onClick={() => handleStatusSelect("rejected")} sx={{ fontSize: "0.85rem", textTransform: "capitalize" }}>
-            Rejected
-          </MenuItem>
-        )}
+        
+        <MenuItem onClick={() => handleStatusSelect("rejected")} sx={{ fontSize: "0.85rem", textTransform: "capitalize", color: 'error.main' }}>
+          Rejected
+        </MenuItem>
       </Menu>
 
       <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>

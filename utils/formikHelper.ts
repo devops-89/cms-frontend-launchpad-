@@ -6,12 +6,15 @@ export const getFormikError = (formik: FormikProps<any>, fieldName: string) => {
   const submitCount = formik.submitCount;
 
   if (error) {
+    // Ensure error is a string
+    const errorStr = typeof error === 'string' ? error : (Array.isArray(error) ? error[0] : String(error));
+    
     // If it's a "required" error, only show after submit is clicked
-    if (typeof error === 'string' && error.toLowerCase().includes("required")) {
-      return submitCount > 0 ? error : undefined;
+    if (typeof errorStr === 'string' && errorStr.toLowerCase().includes("required")) {
+      return submitCount > 0 ? errorStr : undefined;
     }
-    // For format errors (e.g., Only letters, invalid email, etc.), show on touch/interaction
-    return (isTouched || submitCount > 0) ? error : undefined;
+    // For format errors, show on touch/interaction
+    return (isTouched || submitCount > 0) ? errorStr : undefined;
   }
   return undefined;
 };

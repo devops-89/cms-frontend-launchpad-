@@ -159,7 +159,7 @@ const AddContestForm = () => {
 
           <Grid size={12}>
             <TextField
-              label="Contest Description"
+              label="Contest Description*"
               fullWidth
               multiline
               rows={4}

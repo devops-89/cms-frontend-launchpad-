@@ -1,8 +1,8 @@
 "use client";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
-import { Box, Button, Grid, TextField, Select, MenuItem, InputLabel, FormControl, Chip, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Grid, TextField, Select, MenuItem, InputLabel, FormControl, Chip, Tooltip, Typography, FormHelperText } from "@mui/material";
 import React, { useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import "react-quill-new/dist/quill.snow.css";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
@@ -35,7 +35,9 @@ const AddTemplateForm = () => {
   const { addTemplate } = useNotificationTemplates();
   const { showSnackbar } = useSnackbar();
 
-  const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
+  const searchParams = useSearchParams();
+  const initialAudience = (searchParams?.get("audience") as "Participant" | "Judge") || "Participant";
+  const [audience, setAudience] = useState<"Participant" | "Judge">(initialAudience);
   const [eventType, setEventType] = useState<string>("");
   const [subject, setSubject] = useState<string>("");
   const [body, setBody] = useState<string>("");
@@ -141,6 +143,7 @@ const AddTemplateForm = () => {
                   <MenuItem key={ev.value} value={ev.value}>{ev.label}</MenuItem>
                 ))}
               </Select>
+              {errors.eventType && <FormHelperText>Event Type is required</FormHelperText>}
             </FormControl>
           </Grid>
           <Grid size={12}>
@@ -148,6 +151,7 @@ const AddTemplateForm = () => {
               label="Email Subject"
               fullWidth
               error={errors.subject}
+              helperText={errors.subject ? "Email Subject is required" : ""}
               value={subject}
               onChange={(e) => {
                 setSubject(e.target.value);
@@ -165,17 +169,25 @@ const AddTemplateForm = () => {
               <ReactQuill
                 theme="snow"
                 value={body}
-                onChange={setBody}
+                onChange={(val) => {
+                  setBody(val);
+                  setErrors((prev) => ({ ...prev, body: false }));
+                }}
                 placeholder="Hi {{user_name}}, welcome to {{contest_name}}..."
               />
             </Box>
+            {errors.body && (
+              <Typography color="error" variant="caption" sx={{ mt: 0.5, display: "block" }}>
+                Email Body is required
+              </Typography>
+            )}
             {renderVariablesHelper()}
           </Grid>
           <Grid size={12}>
             <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
               <Button
                 variant="outlined"
-                onClick={() => router.push(`/contest-management/contests/${contestId}?tab=5`)}
+                onClick={() => router.back()}
                 sx={{ textTransform: "none", minWidth: "120px" }}
               >
                 Cancel

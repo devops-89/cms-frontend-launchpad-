@@ -5,7 +5,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { montserrat } from "@/utils/fonts";
 import { Add, Edit, Delete, Visibility, Person, Gavel } from "@mui/icons-material";
 import { useNotificationTemplates } from "@/hooks/useNotificationTemplates";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { useSnackbar } from "@/context/SnackbarContext";
 import { usePermissions } from "@/context/PermissionContext";
 import { useContestDetails } from "@/store/useContestDetails";
@@ -26,7 +26,9 @@ const NotificationsTab = () => {
   const { contest } = useContestDetails();
   const isOffline = contest?.status?.toLowerCase() === 'offline';
 
-  const [audience, setAudience] = useState<"Participant" | "Judge">("Participant");
+  const searchParams = useSearchParams();
+  const initialAudience = (searchParams.get("audience") as "Participant" | "Judge") || "Participant";
+  const [audience, setAudience] = useState<"Participant" | "Judge">(initialAudience);
   const { templates, deleteTemplate, isLoading } = useNotificationTemplates();
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -36,15 +38,16 @@ const NotificationsTab = () => {
   const handleAudienceChange = (event: React.MouseEvent<HTMLElement>, newAudience: "Participant" | "Judge") => {
     if (newAudience !== null) {
       setAudience(newAudience);
+      router.replace(`?tab=5&audience=${newAudience}`);
     }
   };
 
   const handleCreateNew = () => {
-    router.push(`/contest-management/contests/${contestId}/notifications/add-template`);
+    router.push(`/contest-management/contests/${contestId}/notifications/add-template?audience=${audience}`);
   };
 
   const handleEdit = (id: string) => {
-    router.push(`/contest-management/contests/${contestId}/notifications/${id}/edit`);
+    router.push(`/contest-management/contests/${contestId}/notifications/${id}/edit?audience=${audience}`);
   };
 
   const handlePreview = (id: string) => {

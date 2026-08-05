@@ -58,6 +58,7 @@ const AddEntryForm = () => {
   const id = (Array.isArray(params?.id) ? params.id[0] : params?.id) as string;
   const router = useRouter();
   const [selectedParticipant, setSelectedParticipant] = React.useState("");
+  const [lastSubmitCount, setLastSubmitCount] = React.useState(0);
   const { data, isPending } = useQuery({
     queryKey: ["Contest Details", id],
     queryFn: () => contestControllers.getContestDetails(id),
@@ -182,18 +183,14 @@ const AddEntryForm = () => {
             then: (schema: any) =>
               field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
                 ? schema.oneOf([true], "This field is required")
-                : field.type === FIELDS_TYPE.FILE_UPLOAD
-                ? schema.test("required", `${field.label} is required`, (value: any) => value !== "" && value !== null && value !== undefined)
-                : schema.required(`${field.label} is required`),
+                : schema.required(`${field.label || 'This field'} is required`),
             otherwise: (schema: any) => schema.notRequired(),
           });
         } else {
           validator = 
             field.type === FIELDS_TYPE.CHECKBOX || field.type === FIELDS_TYPE.SWITCH
               ? validator.oneOf([true], "This field is required")
-              : field.type === FIELDS_TYPE.FILE_UPLOAD
-              ? validator.test("required", `${field.label} is required`, (value: any) => value !== "" && value !== null && value !== undefined)
-              : validator.required(`${field.label} is required`);
+              : validator.required(`${field.label || 'This field'} is required`);
         }
       }
       if (validator) {
@@ -339,6 +336,20 @@ const AddEntryForm = () => {
 
   const visibleFields = getVisibleFields(formik.values);
 
+  React.useEffect(() => {
+    if (formik.submitCount > lastSubmitCount && !formik.isSubmitting && !formik.isValidating) {
+      setLastSubmitCount(formik.submitCount);
+      if (Object.keys(formik.errors).length > 0) {
+        showSnackbar("Please fill all the required fields.", "error");
+        const firstErrorKey = Object.keys(formik.errors)[0];
+        const errorElement = document.getElementById(`field-${firstErrorKey}`);
+        if (errorElement) {
+          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [formik.submitCount, formik.isSubmitting, formik.isValidating, formik.errors, lastSubmitCount, showSnackbar]);
+
   return (
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -461,7 +472,7 @@ const AddEntryForm = () => {
                 }
                 const isFullWidth = val.type === FIELDS_TYPE.TEXTBLOCK || val.type === FIELDS_TYPE.TEXTAREA || val.type === FIELDS_TYPE.SWITCH || val.type === FIELDS_TYPE.CHECKBOX || val.type === FIELDS_TYPE.RADIO;
                 return (
-                  <Grid key={val.id} size={{ xs: 12, md: isFullWidth ? 12 : 6 }}>
+                  <Grid key={val.id} size={{ xs: 12, md: isFullWidth ? 12 : 6 }} id={`field-${val.id}`}>
                     {val.type === FIELDS_TYPE.TEXTBLOCK && (
                       <Box sx={{ width: "100%", pb: 1 }}>
                         <Typography sx={{mb: 1}}>

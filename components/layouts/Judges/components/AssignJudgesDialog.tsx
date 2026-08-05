@@ -284,6 +284,17 @@ const AssignJudgesDialog: React.FC<AssignJudgesDialogProps> = ({
       showSnackbar("Please select entries", "warning");
       return;
     }
+
+    if (initialContestId) {
+      const currentEntryIds = selectedEntries.map((entry: any) => entry.id);
+      const initialIds = initialSelectedEntryIds || [];
+      if (currentEntryIds.length === initialIds.length && currentEntryIds.every(id => initialIds.includes(id))) {
+        showSnackbar("No changes detected.", "info");
+        onClose();
+        return;
+      }
+    }
+
     try {
       setLoading(true);
       for (const judge of judges) {

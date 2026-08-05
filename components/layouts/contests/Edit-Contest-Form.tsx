@@ -212,7 +212,7 @@ const EditContestForm = () => {
 
           <Grid size={12}>
             <TextField
-              label="Contest Description"
+              label="Contest Description*"
               fullWidth
               multiline
               rows={4}
@@ -431,7 +431,7 @@ const EditContestForm = () => {
           </Grid>
 
           <Grid size={12}>
-            <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Box sx={{ mt: 2, display: "flex", justifyContent: "flex-end", gap: 2 }}>
               <Button
                 variant="outlined"
                 onClick={() => router.back()}

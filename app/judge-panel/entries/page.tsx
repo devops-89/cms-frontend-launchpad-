@@ -11,7 +11,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { judgeControllers } from "@/api/judgeControllers";
 
-const ActionMenu = ({ entryId, contestId, status, colors, score }: { entryId: string, contestId: string, status: string, colors: any, score: any }) => {
+const ActionMenu = ({ entryId, contestId, status, colors, score, contest }: { entryId: string, contestId: string, status: string, colors: any, score: any, contest?: any }) => {
   const router = useRouter();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -43,7 +43,11 @@ const ActionMenu = ({ entryId, contestId, status, colors, score }: { entryId: st
         <MenuItem onClick={() => handleAction('view')}>View</MenuItem>
         {(score === null || score === undefined || score === 0) ? (
           status?.toLowerCase() === 'approved' && (
-            <MenuItem onClick={() => handleAction('evaluate')}>Evaluate</MenuItem>
+            contest?.votingPeriods?.some((vp: any) => vp.voting_type === "JUDGE" && vp.is_active) ? (
+              <MenuItem onClick={() => handleAction('evaluate')}>Evaluate</MenuItem>
+            ) : (
+              <MenuItem disabled>Evaluate (No Voting Period)</MenuItem>
+            )
           )
         ) : (
           <MenuItem onClick={() => handleAction('edit')}>Edit Evaluation</MenuItem>
@@ -271,7 +275,7 @@ export default function JudgeEntriesPage() {
                       })()}
                     </TableCell>
                     <TableCell>
-                      <ActionMenu entryId={entry.entry_id || entry.id} contestId={entry.contest_id || entry.contest?.id} status={entry.entry?.status || entry.status} colors={colors} score={entry.score !== undefined && entry.score !== null ? entry.score : entry.total_score} />
+                      <ActionMenu entryId={entry.entry_id || entry.id} contestId={entry.contest_id || entry.contest?.id} status={entry.entry?.status || entry.status} colors={colors} score={entry.score !== undefined && entry.score !== null ? entry.score : entry.total_score} contest={entry.contest} />
                     </TableCell>
                   </TableRow>
                 ))}

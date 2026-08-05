@@ -7,7 +7,7 @@ import {
   REGISTERPAYLOAD,
   RESETPASSWORDPAYLOAD
 } from "@/types/user";
-import { authPublicApi, authSecuredApi } from "./config";
+import { authPublicApi, authSecuredApi, userSecuredApi } from "./config";
 
 export const AuthControllers = {
   login: async (data: LOGINRESPONSE) => {
@@ -127,4 +127,28 @@ resendOtp: async (data: Record<string, unknown>) => {
     throw error;
   }
 },
+
+getMe: async (token?: string) => {
+  try {
+    const config = token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    let result = await userSecuredApi.get("me", config);
+    return result;
+  } catch (error) {
+    throw error;
+  }
+},
+
+updateMe: async (id: string, data: FormData | Record<string, any>, token?: string) => {
+  try {
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (data instanceof FormData) headers["Content-Type"] = "multipart/form-data";
+    else headers["Content-Type"] = "application/json";
+
+    let result = await userSecuredApi.put(`/${id}`, data, { headers });
+    return result;
+  } catch (error) {
+    throw error;
+  }
+}
 };

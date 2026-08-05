@@ -47,7 +47,9 @@ export const CONTEST_VALIDATION = Yup.object({
     .matches(/[a-zA-Z]/, "Contest Description must contain at least one letter")
     .required("Please Enter Contest Description"),
   start_date: Yup.date().required("Please Select Start Date"),
-  end_date: Yup.date().required("Please Select End Date"),
+  end_date: Yup.date()
+    .required("Please Select End Date")
+    .min(Yup.ref('start_date'), "End Date cannot be earlier than Start Date"),
   available_countries: Yup.array().min(1, "Please Select At Least One Country"),
   user_level_template_id: Yup.string().required("Please Select Form Template"),
   entry_level_template_id: Yup.string().required(

@@ -1,6 +1,6 @@
 "use client";
 import Breadcrumb from "@/components/widgets/Breadcrumb";
-import { Box, Button, Grid, TextField, Select, MenuItem, InputLabel, FormControl, Chip, Tooltip, Typography, CircularProgress } from "@mui/material";
+import { Box, Button, Grid, TextField, Select, MenuItem, InputLabel, FormControl, Chip, Tooltip, Typography, CircularProgress, FormHelperText } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import dynamic from "next/dynamic";
@@ -66,6 +66,8 @@ const EditTemplateForm = () => {
     }
   }, [template]);
 
+  const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
+
   if (isLoading) {
     return <Box p={4} textAlign="center"><CircularProgress /></Box>;
   }
@@ -73,8 +75,6 @@ const EditTemplateForm = () => {
   if (!template) {
     return <Box p={4} textAlign="center"><Typography>Template not found.</Typography></Box>;
   }
-
-  const [errors, setErrors] = useState<{ [key: string]: boolean }>({});
 
   const handleSave = async () => {
     const newErrors = {
@@ -172,6 +172,7 @@ const EditTemplateForm = () => {
                   <MenuItem key={ev.value} value={ev.value}>{ev.label}</MenuItem>
                 ))}
               </Select>
+              {errors.eventType && <FormHelperText>Event Type is required</FormHelperText>}
             </FormControl>
           </Grid>
           <Grid size={12}>
@@ -179,6 +180,7 @@ const EditTemplateForm = () => {
               label="Email Subject"
               fullWidth
               error={errors.subject}
+              helperText={errors.subject ? "Email Subject is required" : ""}
               value={subject}
               onChange={(e) => {
                 setSubject(e.target.value);
@@ -196,17 +198,25 @@ const EditTemplateForm = () => {
               <ReactQuill
                 theme="snow"
                 value={body}
-                onChange={setBody}
+                onChange={(val) => {
+                  setBody(val);
+                  setErrors((prev) => ({ ...prev, body: false }));
+                }}
                 placeholder="Hi {{user_name}}, welcome to {{contest_name}}..."
               />
             </Box>
+            {errors.body && (
+              <Typography color="error" variant="caption" sx={{ mt: 0.5, display: "block" }}>
+                Email Body is required
+              </Typography>
+            )}
             {renderVariablesHelper()}
           </Grid>
           <Grid size={12}>
             <Box sx={{ mt: 4, display: "flex", justifyContent: "flex-end", gap: 2 }}>
               <Button
                 variant="outlined"
-                onClick={() => router.push(`/contest-management/contests/${contestId}?tab=5`)}
+                onClick={() => router.back()}
                 sx={{ textTransform: "none", minWidth: "120px" }}
               >
                 Cancel

@@ -4,7 +4,7 @@ import { useAppTheme } from "@/context/ThemeContext";
 import { LogoutOutlined, Person } from "@mui/icons-material";
 import { Avatar, Box, Button, Paper, Typography } from "@mui/material";
 import { useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import LayoutProvider from "./Layout-Provider";
 const Header = () => {
@@ -12,6 +12,7 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
 
   const [user, setUser] = useState<any>(null);
@@ -24,14 +25,26 @@ const Header = () => {
       return;
     }
 
-    const userStr = isJudgePanel ? sessionStorage.getItem("judge_user") : sessionStorage.getItem("user");
-    if (userStr) {
-      try {
-        setUser(JSON.parse(userStr));
-      } catch (error) {
-        console.error("Failed to parse user from sessionStorage", error);
-      }
-    }
+    AuthControllers.getMe(token)
+      .then((res) => {
+        const data = res?.data?.data || res?.data;
+        if (data) {
+          setUser(data);
+          const sessionKey = isJudgePanel ? "judge_user" : "user";
+          sessionStorage.setItem(sessionKey, JSON.stringify(data));
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to fetch user from API, falling back to session storage", err);
+        const userStr = isJudgePanel ? sessionStorage.getItem("judge_user") : sessionStorage.getItem("user");
+        if (userStr) {
+          try {
+            setUser(JSON.parse(userStr));
+          } catch (error) {
+            console.error("Failed to parse user from sessionStorage", error);
+          }
+        }
+      });
   }, []);
 
   const handleLogout = async () => {
@@ -130,7 +143,7 @@ const Header = () => {
               }}
             >
               <Avatar
-                src={user?.avatarUrl || undefined}
+                src={user?.avatarDownloadUrl || user?.avatarUrl || undefined}
                 sx={{
                   width: 34,
                   height: 34,
@@ -159,7 +172,7 @@ const Header = () => {
               elevation={0}
               sx={{
                 p: 2,
-                minWidth: 100,
+                minWidth: 160,
                 backdropFilter: "blur(16px)",
                 WebkitBackdropFilter: "blur(16px)",
                 bgcolor: `${colors.BACKGROUND}e6`,
@@ -171,13 +184,32 @@ const Header = () => {
                 gap: 1.5,
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1.5 }}>
-                <Box>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, color: colors.TEXT_PRIMARY }}>
-                    {user?.role?.toUpperCase() === "JUDGE" ? "Judge" : (user?.roleEntity?.name || "Admin")}
-                  </Typography>
-                </Box>
-              </Box>
+              {!(pathname === "/dashboard/profile" || pathname === "/judge-panel/profile") && (
+                <Button
+                  variant="text"
+                  startIcon={<Person />}
+                  onClick={() => {
+                    setMenuOpen(false);
+                    const isJudgePanel = window.location.pathname.startsWith('/judge-panel');
+                    router.push(isJudgePanel ? "/judge-panel/profile" : "/dashboard/profile");
+                  }}
+                  sx={{
+                    justifyContent: "flex-start",
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 500,
+                    whiteSpace: "nowrap",
+                    color: colors.TEXT_PRIMARY,
+                    "&:hover": {
+                      bgcolor: "rgba(0, 0, 0, 0.04)",
+                    },
+                  }}
+                >
+                  My Profile
+                </Button>
+              )}
 
               <Button
                 variant="text"
@@ -191,6 +223,7 @@ const Header = () => {
                   borderRadius: 2,
                   textTransform: "none",
                   fontWeight: 500,
+                  whiteSpace: "nowrap",
                   color: "#ef4444",
                   "&:hover": {
                     bgcolor: "rgba(239, 68, 68, 0.08)",
